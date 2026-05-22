@@ -11,8 +11,10 @@ import subprocess
 import smtplib
 import requests
 import pandas as pd
-from datetime import date
+from datetime import date, datetime
+from pathlib import Path
 from fpdf import FPDF
+from openpyxl import load_workbook
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.base import MIMEBase
@@ -1243,79 +1245,177 @@ with tab2:
 # TAB 3 — ACTUALIZAR PRECIOS
 # ══════════════════════════════════════════════════════════════════════════════
 with tab3:
-    st.markdown("### Actualizar precios de compra")
-    st.info("Edita los precios de compra directamente en la tabla. Los cambios se guardan al presionar **Guardar**.")
+    st.markdown("### ✏️ Actualizar precios de compra")
 
-    edit_df = pd.DataFrame([
-        {
-            "Código": p["codigo"],
-            "Producto": p["producto"],
-            "kg/caja": p["kg_caja"],
-            "Precio compra (USD/caja)": p["precio_compra"],
-            "Margen %": round(p["margen_pct"] * 100, 1),
-            "Grupo": p["grupo"],
-        }
-        for p in products
-    ])
+    # ── Leer precios del Excel si existe ──────────────────────────────────────
+    _XLS = Path(os.path.dirname(__file__)) / "Documentacion" / "Precios" / "Cotizaciones.xlsx"
+    _excel_prices = {}   # {codigo: precio_excel}
+
+    if _XLS.exists():
+        try:
+            _wb  = load_workbook(io.BytesIO(_XLS.read_bytes()), data_only=True)
+            _wsp = _wb["TABLA PRECIOS"]
+            _COL = {
+                4:"F-PSG10",5:"F-PN016",6:"F-PPA01",7:"F-PSR02",8:"F-PSR05",
+                9:"F-PSM09",10:"F-TAS04",11:"F-GNB010",12:"F-MPS03",13:"F-CCN017",
+                14:"F-BCC013",15:"F-AHSS012",16:"F-BBB06",17:"F-ZPT020",
+                18:"F-TX020",19:"F-UVP08",20:"F-UVP07",
+            }
+            for col, cod in _COL.items():
+                last = None
+                for r in range(32, 84):
+                    v = _wsp.cell(row=r, column=col).value
+                    if isinstance(v, (int, float)) and v > 0:
+                        last = float(v)
+                if last:
+                    _excel_prices[cod] = last
+
+            # Estado de sincronización
+            _diffs = [p for p in products
+                      if p["codigo"] in _excel_prices
+                      and abs(p["precio_compra"] - _excel_prices[p["codigo"]]) > 0.001]
+
+            xc1, xc2 = st.columns([4, 1])
+            with xc1:
+                if _diffs:
+                    st.warning(
+                        f"⚠️ El Excel tiene **{len(_diffs)} precio(s) diferente(s)** "
+                        f"a la app. Las filas en 🟡 amarillo son los cambios pendientes."
+                    )
+                else:
+                    st.success("✅ Los precios de la app están sincronizados con el Excel.")
+            with xc2:
+                _xls_mtime = datetime.fromtimestamp(_XLS.stat().st_mtime)
+                st.caption(f"Excel actualizado:\n**{_xls_mtime.strftime('%d/%m %H:%M')}**")
+
+        except Exception as e:
+            st.info(f"No se pudo leer el Excel: {e}")
+    else:
+        st.info(
+            "💡 Conecta el Excel para sincronización automática. "
+            "El archivo debe estar en:\n"
+            f"`{_XLS}`"
+        )
+
+    st.markdown("---")
+
+    # ── Tabla de precios (con precios Excel si disponibles) ───────────────────
+    edit_rows = []
+    for p in products:
+        excel_p = _excel_prices.get(p["codigo"])
+        edit_rows.append({
+            "Código":                  p["codigo"],
+            "Producto":                p["producto"],
+            "kg/caja":                 p["kg_caja"],
+            "Precio app (USD)":        p["precio_compra"],
+            "Precio Excel (USD)":      excel_p if excel_p else p["precio_compra"],
+            "Margen %":                round(p["margen_pct"] * 100, 1),
+            "Grupo":                   p["grupo"],
+        })
+
+    edit_df = pd.DataFrame(edit_rows)
+
+    # Resaltar filas donde Excel ≠ app
+    def _hl_diff(row):
+        cod     = row["Código"]
+        excel_v = _excel_prices.get(cod)
+        app_v   = row["Precio app (USD)"]
+        if excel_v and abs(app_v - excel_v) > 0.001:
+            return ["background-color:#fff9c4"] * len(row)
+        return [""] * len(row)
+
+    cols_disabled = ["Código", "Producto", "kg/caja", "Grupo", "Precio Excel (USD)"]
+    if not _excel_prices:
+        cols_disabled.append("Precio Excel (USD)")
 
     edited = st.data_editor(
         edit_df,
         use_container_width=True,
         hide_index=True,
-        disabled=["Código", "Producto", "kg/caja", "Grupo"],
+        disabled=cols_disabled,
         column_config={
-            "Precio compra (USD/caja)": st.column_config.NumberColumn(
-                "Precio compra (USD/caja)", min_value=0.0, step=0.01, format="$%.2f"
-            ),
+            "Precio app (USD)":   st.column_config.NumberColumn(
+                "Precio app $", min_value=0.0, step=0.01, format="$%.2f",
+                help="Precio actual en la app — editable"),
+            "Precio Excel (USD)": st.column_config.NumberColumn(
+                "Precio Excel $", format="$%.2f",
+                help="Último precio del historial en Cotizaciones.xlsx — solo lectura"),
             "Margen %": st.column_config.NumberColumn(
-                "Margen %", min_value=0.0, max_value=100.0, step=0.5, format="%.1f%%"
-            ),
+                "Margen %", min_value=0.0, max_value=100.0, step=0.5, format="%.1f%%"),
         },
         key="price_editor",
     )
 
-    col_save, col_reset = st.columns([1, 5])
-    with col_save:
-        if st.button("💾 Guardar", type="primary", use_container_width=True):
+    if _excel_prices and edit_df.style.apply(_hl_diff, axis=1):
+        st.caption("🟡 Filas amarillas = precio diferente entre Excel y app")
+
+    # ── Botones de acción ─────────────────────────────────────────────────────
+    b1, b2, b3, b4 = st.columns([2, 2, 2, 2])
+
+    with b1:
+        if st.button("💾 Guardar cambios", type="primary", use_container_width=True):
             for i, row in edited.iterrows():
-                products[i]["precio_compra"] = float(row["Precio compra (USD/caja)"])
-                products[i]["margen_pct"] = float(row["Margen %"]) / 100.0
+                products[i]["precio_compra"] = float(row["Precio app (USD)"])
+                products[i]["margen_pct"]    = float(row["Margen %"]) / 100.0
             save_data(data)
-            st.success("✅ Precios guardados correctamente.")
+            st.success("✅ Guardado.")
             st.rerun()
-    with col_reset:
-        if st.button("↩️ Restablecer datos originales", use_container_width=False):
+
+    with b2:
+        if _excel_prices and st.button("📊 Aplicar precios Excel",
+                                        use_container_width=True,
+                                        help="Copia los precios del Excel a la app"):
+            changed = 0
+            for p in products:
+                if p["codigo"] in _excel_prices:
+                    new_p = _excel_prices[p["codigo"]]
+                    if abs(p["precio_compra"] - new_p) > 0.001:
+                        p["precio_compra"] = new_p
+                        changed += 1
+            save_data(data)
+            st.success(f"✅ {changed} precio(s) actualizados desde Excel.")
+            st.rerun()
+
+    with b3:
+        if st.button("🚀 Guardar y Publicar",
+                     use_container_width=True,
+                     help="Guarda los cambios y los publica en Streamlit Cloud"):
+            for i, row in edited.iterrows():
+                products[i]["precio_compra"] = float(row["Precio app (USD)"])
+                products[i]["margen_pct"]    = float(row["Margen %"]) / 100.0
+            save_data(data)
+            # Publicar via GitHub API
+            try:
+                _tok = st.secrets.get("GITHUB_TOKEN","") if hasattr(st,"secrets") else ""
+                if not _tok:
+                    _sp = os.path.join(os.path.dirname(__file__),".streamlit","secrets.toml")
+                    if os.path.exists(_sp):
+                        for _l in open(_sp):
+                            if "GITHUB_TOKEN" in _l:
+                                _tok = _l.split("=",1)[1].strip().strip('"').strip("'")
+                if _tok:
+                    _hdrs  = {"Authorization":f"token {_tok}","Accept":"application/vnd.github.v3+json"}
+                    _aurl  = "https://api.github.com/repos/expharet/app-de-pedidos/contents/precios_data.json"
+                    _cnt   = base64.b64encode(json.dumps(data,indent=2,ensure_ascii=False).encode()).decode()
+                    _sha   = requests.get(_aurl,headers=_hdrs,timeout=10).json()["sha"]
+                    _r     = requests.put(_aurl,headers=_hdrs,timeout=20,json={
+                        "message": f"Actualizar precios — {date.today().strftime('%d/%m/%Y')}",
+                        "content": _cnt, "sha": _sha})
+                    if _r.status_code in (200,201):
+                        st.success("🚀 Publicado en Streamlit Cloud — activo en ~1 min.")
+                    else:
+                        st.error("Error publicando.")
+                else:
+                    st.warning("Token GitHub no configurado.")
+            except Exception as _e:
+                st.error(f"Error: {_e}")
+
+    with b4:
+        if st.button("↩️ Restablecer originales", use_container_width=True):
             if os.path.exists(DATA_FILE):
                 os.remove(DATA_FILE)
             st.session_state.data = json.loads(json.dumps(INITIAL_DATA))
             st.rerun()
-
-    st.markdown("---")
-    st.markdown("#### Desglose de costos (precio actual)")
-    breakdown_dest = st.selectbox("Destino para desglose", list(cfg["destinos"].keys()), key="breakdown_dest")
-    breakdown_pals = st.slider("Pallets para desglose", 1, 23, 1, key="breakdown_pals")
-
-    brows = []
-    for p in products:
-        r = calc(p, cfg, breakdown_dest, breakdown_pals)
-        brows.append({
-            "Producto": p["producto"],
-            "Compra": p["precio_compra"],
-            "Costo caja": r["Costo caja"],
-            "Merma": r["FOB + Merma"] - r["FOB base"],
-            "Margen": r["FOB Final"] - r["FOB + Merma"],
-            "Flete": r["Flete"],
-            "DUE/caja": r["Pal USD"] - r["CIF USD"] - (cfg["transporte_interno"] / (breakdown_pals * cfg["grupos"][p["grupo"]]["cajas_pallet"])),
-            "Transporte": cfg["transporte_interno"] / (breakdown_pals * cfg["grupos"][p["grupo"]]["cajas_pallet"]),
-            "→ Precio final": r["Pal USD"],
-        })
-
-    bdf = pd.DataFrame(brows)
-    st.dataframe(
-        bdf.style.format({c: "${:.4f}" for c in bdf.columns if c not in ("Producto",)}),
-        use_container_width=True,
-        hide_index=True,
-    )
 
 
 # ══════════════════════════════════════════════════════════════════════════════
