@@ -895,75 +895,112 @@ def render_order_form(cfg_data, products_list, standalone=False,
     if _cdata_k not in st.session_state:
         st.session_state[_cdata_k]    = {}
 
-    # ── PASO 1: Pantalla de acceso por email ──────────────────────────────────
+    # ── PASO 1: Pantalla de acceso / registro ─────────────────────────────────
     if require_email and not st.session_state[_verified_k]:
         st.markdown("---")
+
+        # Textos según idioma
         if lang == "EN":
-            st.markdown("#### 📧 Are you registered? Access with your email")
-            _email_label = "Your email"
-            _btn_access  = "🔑 Access"
-            _btn_new     = "📝 Register as new client"
-            _welcome_txt = lambda n, np_: f"👋 Welcome back, **{n}**!  You have **{np_}** previous order{'s' if np_!=1 else ''}."
-            _confirm_btn = "✅ Continue as"
-            _change_btn  = "↩️ Use different email"
-            _new_title   = "#### 📝 New client — complete your details"
+            _lbl_ya_cliente  = "#### 🔑 Already a client? Access with your email"
+            _lbl_nuevo       = "#### 📝 New client? Register here"
+            _email_label     = "Your email"
+            _btn_access      = "🔑 Access"
+            _welcome_txt     = lambda n, np_: f"👋 Welcome back, **{n}**! You have **{np_}** previous order{'s' if np_!=1 else ''}."
+            _confirm_btn     = "✅ Continue as"
+            _change_btn      = "↩️ Use different email"
+            _reg_title       = "##### Complete your details to register"
+            _reg_email_lbl   = "Email"
+            _reg_cont_btn    = "✅ Register & Continue"
+            _reg_back        = "↩️ Back"
+            _or_sep          = "── or ──"
+            _btn_go_register = "📝 I'm a new client — Register"
+            _btn_go_login    = "🔑 I already have an account"
         else:
-            st.markdown("#### 📧 ¿Estás registrado? Accede con tu correo")
-            _email_label = "Tu correo electrónico"
-            _btn_access  = "🔑 Acceder"
-            _btn_new     = "📝 Registrarme como nuevo cliente"
-            _welcome_txt = lambda n, np_: f"👋 ¡Hola de nuevo, **{n}**!  Tienes **{np_}** pedido{'s' if np_!=1 else ''} anterior{'es' if np_!=1 else ''}."
-            _confirm_btn = "✅ Continuar como"
-            _change_btn  = "↩️ Usar otro correo"
-            _new_title   = "#### 📝 Nuevo cliente — completa tus datos"
+            _lbl_ya_cliente  = "#### 🔑 ¿Ya eres cliente? Accede con tu correo"
+            _lbl_nuevo       = "#### 📝 ¿Eres nuevo? Regístrate aquí"
+            _email_label     = "Tu correo electrónico"
+            _btn_access      = "🔑 Acceder"
+            _welcome_txt     = lambda n, np_: f"👋 ¡Hola de nuevo, **{n}**! Tienes **{np_}** pedido{'s' if np_!=1 else ''} anterior{'es' if np_!=1 else ''}."
+            _confirm_btn     = "✅ Continuar como"
+            _change_btn      = "↩️ Usar otro correo"
+            _reg_title       = "##### Completa tus datos para registrarte"
+            _reg_email_lbl   = "Correo electrónico"
+            _reg_cont_btn    = "✅ Registrarme y Continuar"
+            _reg_back        = "↩️ Volver"
+            _or_sep          = "── o ──"
+            _btn_go_register = "📝 Soy nuevo cliente — Registrarme"
+            _btn_go_login    = "🔑 Ya tengo cuenta"
 
-        ea1, ea2 = st.columns([3, 1])
-        with ea1:
-            _email_input = st.text_input(_email_label, key=f"email_access_{_sfx}",
-                                         placeholder="nombre@empresa.com")
-        with ea2:
-            st.markdown("<br>", unsafe_allow_html=True)
-            _access_clicked = st.button(_btn_access, type="primary",
-                                        use_container_width=True, key=f"btn_access_{_sfx}")
+        _mode_k = f"access_mode_{_sfx}"   # "login" | "register" | None
+        if _mode_k not in st.session_state:
+            st.session_state[_mode_k] = None
 
-        _show_new_form = st.session_state.get(f"show_new_{_sfx}", False)
-        _email_clean   = _email_input.strip().lower()
+        _mode = st.session_state[_mode_k]
 
-        if _access_clicked and _email_clean:
-            if _email_clean in _clients_db:
-                # Cliente conocido: mostrar tarjeta de bienvenida
-                st.session_state[f"found_email_{_sfx}"] = _email_clean
-            else:
-                # Email no encontrado: mostrar formulario de registro
-                st.session_state[f"show_new_{_sfx}"] = True
-                st.session_state[f"new_email_{_sfx}"] = _email_clean
+        # ── Pantalla principal: dos botones ───────────────────────────────────
+        if _mode is None:
+            _m1, _m2 = st.columns(2)
+            with _m1:
+                st.markdown(_lbl_ya_cliente)
+                if st.button(_btn_access, type="primary",
+                             use_container_width=True, key=f"go_login_{_sfx}"):
+                    st.session_state[_mode_k] = "login"
+                    st.rerun()
+            with _m2:
+                st.markdown(_lbl_nuevo)
+                if st.button(_btn_go_register, use_container_width=True,
+                             key=f"go_register_{_sfx}"):
+                    st.session_state[_mode_k] = "register"
+                    st.rerun()
 
-        # Tarjeta bienvenida cliente existente
-        _found_email = st.session_state.get(f"found_email_{_sfx}", "")
-        if _found_email and _found_email in _clients_db:
-            c = _clients_db[_found_email]
-            _np = len(c.get("pedidos", []))
-            st.markdown("<br>", unsafe_allow_html=True)
+        # ── Modo LOGIN: email → buscar en DB ──────────────────────────────────
+        elif _mode == "login":
+            st.markdown(_lbl_ya_cliente)
+            ea1, ea2 = st.columns([3, 1])
+            with ea1:
+                _email_input = st.text_input(_email_label, key=f"email_access_{_sfx}",
+                                             placeholder="nombre@empresa.com")
+            with ea2:
+                st.markdown("<br>", unsafe_allow_html=True)
+                _access_clicked = st.button(_btn_access, type="primary",
+                                            use_container_width=True,
+                                            key=f"btn_access_{_sfx}")
 
-            with st.container():
+            _email_clean = _email_input.strip().lower()
+
+            if _access_clicked and _email_clean:
+                if _email_clean in _clients_db:
+                    st.session_state[f"found_email_{_sfx}"] = _email_clean
+                else:
+                    # Email no registrado → enviar a registro con email pre-rellenado
+                    st.session_state[_mode_k] = "register"
+                    st.session_state[f"pre_email_{_sfx}"] = _email_clean
+                    st.rerun()
+
+            # Tarjeta bienvenida si email encontrado
+            _found_email = st.session_state.get(f"found_email_{_sfx}", "")
+            if _found_email and _found_email in _clients_db:
+                c = _clients_db[_found_email]
+                _np = len(c.get("pedidos", []))
+                st.markdown("<br>", unsafe_allow_html=True)
                 st.success(_welcome_txt(c["nombre"], _np))
                 st.markdown(
                     f"🏢 **{c.get('razon_social','')}** &nbsp;|&nbsp; "
                     f"📞 {c.get('telefono','—')} &nbsp;|&nbsp; "
-                    f"📅 Último pedido: {c.get('ultimo_pedido','—')}"
+                    f"📅 {'Last order' if lang=='EN' else 'Último pedido'}: {c.get('ultimo_pedido','—')}"
                 )
                 bc1, bc2 = st.columns([2, 1])
                 with bc1:
                     if st.button(f"{_confirm_btn} **{c['nombre']}**",
                                  type="primary", use_container_width=True,
                                  key=f"btn_confirm_{_sfx}"):
-                        # Cargar datos del cliente en session_state
                         st.session_state[_cdata_k] = {
                             "nombre": c["nombre"], "razon_social": c["razon_social"],
-                            "email": _found_email, "telefono": c.get("telefono",""),
+                            "email": _found_email, "telefono": c.get("telefono", ""),
                         }
                         st.session_state[_verified_k] = True
                         st.session_state.pop(f"found_email_{_sfx}", None)
+                        st.session_state[_mode_k] = None
                         st.rerun()
                 with bc2:
                     if st.button(_change_btn, use_container_width=True,
@@ -971,36 +1008,51 @@ def render_order_form(cfg_data, products_list, standalone=False,
                         st.session_state.pop(f"found_email_{_sfx}", None)
                         st.rerun()
 
-        # Formulario de nuevo cliente
-        elif st.session_state.get(f"show_new_{_sfx}"):
-            _new_email = st.session_state.get(f"new_email_{_sfx}", "")
             st.markdown("<br>", unsafe_allow_html=True)
-            st.markdown(_new_title)
-            if lang == "EN":
-                st.caption(f"Email: **{_new_email}** — fill in your details to continue")
-            else:
-                st.caption(f"Email: **{_new_email}** — completa tus datos para continuar")
+            if st.button(_reg_back, key=f"back_from_login_{_sfx}"):
+                st.session_state[_mode_k] = None
+                st.session_state.pop(f"found_email_{_sfx}", None)
+                st.rerun()
+
+        # ── Modo REGISTRO: formulario completo ────────────────────────────────
+        elif _mode == "register":
+            st.markdown(_lbl_nuevo)
+            st.caption(_reg_title)
+            _pre_email = st.session_state.pop(f"pre_email_{_sfx}", None)
+
             nf1, nf2 = st.columns(2)
             with nf1:
-                _nn  = st.text_input(T["name"],    key=f"new_name_{_sfx}",  placeholder=T["name_ph"])
-                _nr  = st.text_input(T["company"], key=f"new_razon_{_sfx}", placeholder=T["company_ph"])
+                _ne  = st.text_input(_reg_email_lbl, key=f"reg_email_{_sfx}",
+                                     value=_pre_email or "",
+                                     placeholder="nombre@empresa.com")
+                _nn  = st.text_input(T["name"],    key=f"new_name_{_sfx}",
+                                     placeholder=T["name_ph"])
             with nf2:
+                _nr  = st.text_input(T["company"], key=f"new_razon_{_sfx}",
+                                     placeholder=T["company_ph"])
                 _prefix_labels = [f"{name}  {code}" for name, code in PHONE_PREFIXES]
                 _pi  = st.selectbox(T["prefix"], range(len(PHONE_PREFIXES)),
                                     format_func=lambda i: _prefix_labels[i],
                                     key=f"new_prefix_{_sfx}")
-                _pn  = st.text_input(T["phone"], key=f"new_phone_{_sfx}", placeholder=T["phone_ph"])
+                _pn  = st.text_input(T["phone"], key=f"new_phone_{_sfx}",
+                                     placeholder=T["phone_ph"])
 
-            if st.button(f"✅ {T['confirm_btn'].replace('Confirmar Pedido','').replace('Confirm Order','').strip()} — {'Continuar' if lang=='ES' else 'Continue'}",
-                         type="primary", disabled=not(_nn and _nr),
-                         key=f"btn_new_ok_{_sfx}"):
+            _can_reg = bool(_ne and _nn and _nr)
+            if st.button(_reg_cont_btn, type="primary",
+                         disabled=not _can_reg, key=f"btn_reg_ok_{_sfx}"):
                 _ph = f"{PHONE_PREFIXES[_pi][1]} {_pn}".strip()
+                _email_reg = _ne.strip().lower()
                 st.session_state[_cdata_k] = {
                     "nombre": _nn, "razon_social": _nr,
-                    "email": _new_email, "telefono": _ph,
+                    "email": _email_reg, "telefono": _ph,
                 }
                 st.session_state[_verified_k] = True
-                st.session_state.pop(f"show_new_{_sfx}", None)
+                st.session_state[_mode_k]     = None
+                st.rerun()
+
+            st.markdown("<br>", unsafe_allow_html=True)
+            if st.button(_reg_back, key=f"back_from_reg_{_sfx}"):
+                st.session_state[_mode_k] = None
                 st.rerun()
 
         st.markdown("---")
