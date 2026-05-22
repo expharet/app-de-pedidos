@@ -976,7 +976,7 @@ with tab5:
             try:
                 # Stage the data file
                 r1 = subprocess.run(
-                    ["git", "add", "precios_data.py", "precios_data.json"],
+                    ["git", "add", "precios_data.json"],
                     cwd=repo_dir, capture_output=True, text=True
                 )
                 # Commit (ignore error if nothing changed)
