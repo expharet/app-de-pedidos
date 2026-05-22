@@ -1244,6 +1244,39 @@ with tab5:
         st.success("✅ Lista de productos actualizada.")
         st.rerun()
 
+    # ── Logo de la empresa ────────────────────────────────────────────────────
+    st.markdown("---")
+    st.markdown("#### 🖼️ Logo de la empresa")
+
+    _logo_path = os.path.join(os.path.dirname(__file__), "logo.png")
+    col_logo, col_upload = st.columns([1, 2])
+
+    with col_logo:
+        if os.path.exists(_logo_path):
+            st.image(_logo_path, caption="Logo actual", use_container_width=True)
+        else:
+            st.info("Sin logo configurado")
+
+    with col_upload:
+        st.markdown("Sube tu logo en formato **PNG o JPG** (fondo transparente o blanco recomendado):")
+        uploaded = st.file_uploader(
+            "Seleccionar imagen",
+            type=["png", "jpg", "jpeg", "webp"],
+            key="logo_uploader",
+            label_visibility="collapsed",
+        )
+        if uploaded:
+            img_bytes = uploaded.read()
+            # Convertir a PNG si no lo es
+            from PIL import Image as PILImage
+            img_obj = PILImage.open(io.BytesIO(img_bytes)).convert("RGBA")
+            buf = io.BytesIO()
+            img_obj.save(buf, format="PNG")
+            with open(_logo_path, "wb") as f:
+                f.write(buf.getvalue())
+            st.success("✅ Logo guardado. Pulsa **🚀 Publicar en la nube** para que aparezca en la app.")
+            st.image(_logo_path, caption="Nuevo logo", width=200)
+
     # ── Publicar en la nube ────────────────────────────────────────────────────
     st.markdown("---")
     st.markdown("#### ☁️ Publicar cambios en la nube")
@@ -1294,6 +1327,21 @@ with tab5:
                     "sha":     sha,
                 }
                 r_put = requests.put(api_url, json=payload, headers=headers, timeout=20)
+
+                # También subir el logo si existe
+                _lp = os.path.join(os.path.dirname(__file__), "logo.png")
+                if os.path.exists(_lp):
+                    with open(_lp, "rb") as lf:
+                        logo_b64 = base64.b64encode(lf.read()).decode()
+                    logo_url = "https://api.github.com/repos/expharet/app-de-pedidos/contents/logo.png"
+                    r_logo_get = requests.get(logo_url, headers=headers, timeout=10)
+                    logo_sha = r_logo_get.json().get("sha", "") if r_logo_get.status_code == 200 else ""
+                    logo_payload = {
+                        "message": f"Actualizar logo — {date.today().strftime('%d/%m/%Y')}",
+                        "content": logo_b64,
+                        **({"sha": logo_sha} if logo_sha else {}),
+                    }
+                    requests.put(logo_url, json=logo_payload, headers=headers, timeout=20)
 
                 if r_put.status_code in (200, 201):
                     st.success(
