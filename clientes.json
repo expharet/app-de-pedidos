@@ -76,5 +76,58 @@
         ]
       }
     ]
+  },
+  "silviandres93@hotmail.com": {
+    "nombre": "Silvia",
+    "razon_social": "Prueba ",
+    "telefono": "",
+    "primer_pedido": "2026-05-22",
+    "ultimo_pedido": "2026-05-22",
+    "pedidos": [
+      {
+        "id": "PED-20260522-001",
+        "fecha": "2026-05-22",
+        "destino": "Londres/UK",
+        "total_usd": 20907.69,
+        "dest_code": "GBP",
+        "dest_sym": "£",
+        "dest_rate": 0.7453,
+        "total_loc": 15582.5,
+        "pallets": 7,
+        "cajas": 1120,
+        "productos": [
+          {
+            "producto": "Yellow Pitahaya",
+            "cajas": 360,
+            "precio_usd": 23.5368,
+            "total_usd": 8473.24
+          },
+          {
+            "producto": "Maracuyá",
+            "cajas": 160,
+            "precio_usd": 16.015,
+            "total_usd": 2562.4
+          },
+          {
+            "producto": "Tamarillo",
+            "cajas": 320,
+            "precio_usd": 15.6246,
+            "total_usd": 4999.88
+          },
+          {
+            "producto": "Melon Pear",
+            "cajas": 160,
+            "precio_usd": 15.5879,
+            "total_usd": 2494.07
+          },
+          {
+            "producto": "Babaco",
+            "cajas": 120,
+            "precio_usd": 19.8176,
+            "total_usd": 2378.11
+          }
+        ]
+      }
+    ]
   }
 }
