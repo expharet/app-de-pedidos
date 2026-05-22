@@ -47,5 +47,34 @@
         ]
       }
     ]
+  },
+  "olivercardenas28@hotmail.com": {
+    "nombre": "Julio salinas",
+    "razon_social": "Prueba",
+    "telefono": "+34 666666666",
+    "primer_pedido": "2026-05-22",
+    "ultimo_pedido": "2026-05-22",
+    "pedidos": [
+      {
+        "id": "PED-20260522-001",
+        "fecha": "2026-05-22",
+        "destino": "Madrid/España",
+        "total_usd": 5854.75,
+        "dest_code": "EUR",
+        "dest_sym": "€",
+        "dest_rate": 0.86244,
+        "total_loc": 5049.37,
+        "pallets": 3,
+        "cajas": 360,
+        "productos": [
+          {
+            "producto": "Cacao",
+            "cajas": 360,
+            "precio_usd": 16.2632,
+            "total_usd": 5854.75
+          }
+        ]
+      }
+    ]
   }
 }
