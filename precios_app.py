@@ -1,4 +1,4 @@
-"""Lista de Precios — Export Haret"""
+"""Export Haret — Pedidos"""
 
 import streamlit as st
 import json
@@ -17,6 +17,24 @@ import qrcode
 from PIL import Image
 
 
+@st.cache_data(ttl=3600)          # Refresca cada hora
+def fetch_live_eur_usd() -> tuple:
+    """Tipo de cambio EUR/USD en tiempo real desde el Banco Central Europeo."""
+    try:
+        r = requests.get(
+            "https://api.frankfurter.app/latest?from=EUR&to=USD",
+            timeout=6
+        )
+        if r.status_code == 200:
+            data_fx = r.json()
+            rate    = float(data_fx["rates"]["USD"])
+            day     = data_fx.get("date", "")
+            return rate, f"🟢 En vivo BCE · {day}"
+    except Exception:
+        pass
+    return None, "🔴 Sin conexión"
+
+
 def get_network_url(port: int = 8501) -> str:
     """Devuelve la URL accesible en red local (no localhost)."""
     try:
@@ -29,7 +47,7 @@ def get_network_url(port: int = 8501) -> str:
         return f"http://localhost:{port}"
 
 st.set_page_config(
-    page_title="Lista de Precios — Export Haret",
+    page_title="Export Haret — Pedidos",
     page_icon="🌿",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -257,11 +275,13 @@ def gen_albaran_pdf(client_name, razon_social, destino, active_items, total_caja
     pdf.ln(4)
 
     # ── Datos del cliente ──
+    rate_label = cfg_data.get("_rate_label", "").replace("🟢","").replace("🟡","").strip()
     for label, value in [
-        ("Cliente:", client_name),
+        ("Cliente:",      client_name),
         ("Razón social:", razon_social),
-        ("Fecha:", date.today().strftime("%d/%m/%Y")),
-        ("Destino:", destino),
+        ("Fecha:",        date.today().strftime("%d/%m/%Y")),
+        ("Destino:",      destino),
+        ("EUR/USD:",      f"{cfg_data['eur_usd']:.4f}  ({rate_label})"),
     ]:
         pdf.set_font("U", "B", 10)
         pdf.cell(38, 7, label)
@@ -357,7 +377,10 @@ def render_order_form(cfg_data, products_list, standalone=False):
     MIN_PALLETS = 3
 
     if standalone:
-        st.markdown("## 🌿 Export Haret — Realizar Pedido")
+        _logo_path_s = os.path.join(os.path.dirname(__file__), "logo.png")
+        if os.path.exists(_logo_path_s):
+            st.image(_logo_path_s, width=180)
+        st.markdown("## 🌿 Export Haret — Pedidos")
         st.markdown("---")
 
     # ── Datos del cliente ──
@@ -615,6 +638,14 @@ products = data["products"]
 minimos = data.get("minimos", INITIAL_DATA["minimos"])
 cfg["minimos"] = minimos
 
+# ── Tipo de cambio en vivo (BCE, actualizado cada hora) ───────────────────────
+_live_rate, _rate_label = fetch_live_eur_usd()
+if _live_rate:
+    cfg["eur_usd"] = _live_rate      # usada en calc(), calc_pedido() y albarán
+    cfg["_rate_label"] = _rate_label
+else:
+    cfg["_rate_label"] = f"🟡 Manual · {cfg['eur_usd']:.4f}"
+
 # ── Vista cliente (URL ?view=cliente) ─────────────────────────────────────────
 IS_CLIENT = st.query_params.get("view", "") == "cliente"
 
@@ -624,18 +655,32 @@ if IS_CLIENT:
 
 # ── Sidebar (solo admin) ───────────────────────────────────────────────────────
 with st.sidebar:
-    st.image("https://placehold.co/200x60/2d6a4f/white?text=Export+Haret", use_container_width=True)
+    # Logo: usa archivo local si existe, si no placeholder verde
+    _logo_path = os.path.join(os.path.dirname(__file__), "logo.png")
+    if os.path.exists(_logo_path):
+        st.image(_logo_path, use_container_width=True)
+    else:
+        st.image("https://placehold.co/220x70/2d6a4f/white?text=Export+Haret", use_container_width=True)
     st.markdown("---")
     destino = st.selectbox("🌍 Destino", list(cfg["destinos"].keys()))
     num_pallets = st.slider("📦 Pallets", 1, 23, 1)
     st.markdown("---")
-    st.caption(f"EUR/USD: **{cfg['eur_usd']}**")
+    st.markdown(
+        f"**1 EUR = {cfg['eur_usd']:.4f} USD**  \n"
+        f"<small>{cfg.get('_rate_label','')}</small>",
+        unsafe_allow_html=True,
+    )
     st.caption(f"Tarifa: **{cfg['destinos'][destino]} USD/kg**")
     st.caption(f"Vigente: {date.today().strftime('%d/%m/%Y')}")
 
 # ── Header ────────────────────────────────────────────────────────────────────
-st.markdown("## 🌿 Lista de Precios — Export Haret")
-st.markdown(f"**Destino:** {destino} &nbsp;|&nbsp; **{num_pallets} pallet{'s' if num_pallets > 1 else ''}** &nbsp;|&nbsp; EUR/USD {cfg['eur_usd']}")
+st.markdown("## 🌿 Export Haret — Pedidos")
+st.markdown(
+    f"**Destino:** {destino} &nbsp;|&nbsp; "
+    f"**1 EUR = {cfg['eur_usd']:.4f} USD** &nbsp;"
+    f"<small style='color:#888'>{cfg.get('_rate_label','')}</small>",
+    unsafe_allow_html=True,
+)
 
 tab1, tab2, tab3, tab4, tab5 = st.tabs(["📋 Cotización", "🛒 Hacer pedido", "✏️ Actualizar precios", "🌐 Todos los destinos", "⚙️ Configuración"])
 
