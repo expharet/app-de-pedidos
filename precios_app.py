@@ -1114,6 +1114,22 @@ def render_order_form(cfg_data, products_list, standalone=False,
         )
 
     st.markdown("---")
+
+    # Nota de precios variables — solo vista cliente
+    if standalone:
+        if lang == "EN":
+            st.warning(
+                "⚠️ **Prices are variable.** Both product prices and freight rates "
+                "are reviewed and updated **every Tuesday**. "
+                "This simulation is for reference only."
+            )
+        else:
+            st.warning(
+                "⚠️ **Los precios son variables.** Tanto los precios de los productos "
+                "como los fletes se revisan y actualizan **cada Martes**. "
+                "Esta simulación es orientativa."
+            )
+
     st.markdown(T["products"])
 
     OPT_PAL = T["opt_pal"]
