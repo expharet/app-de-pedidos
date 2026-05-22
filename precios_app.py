@@ -1059,26 +1059,47 @@ def render_order_form(cfg_data, products_list, standalone=False,
         # No continuar hasta que el cliente se haya identificado
         return
 
-    # ── PASO 2: Cliente identificado — mostrar resumen + destino ─────────────
-    _cd = st.session_state[_cdata_k]
-    client_name  = _cd["nombre"]
-    razon_social = _cd["razon_social"]
-    client_email = _cd["email"]
-    phone_full   = _cd.get("telefono", "")
+    # ── PASO 2: Datos del cliente ─────────────────────────────────────────────
+    if require_email:
+        # Vista cliente: datos verificados desde session_state
+        _cd = st.session_state[_cdata_k]
+        client_name  = _cd["nombre"]
+        razon_social = _cd["razon_social"]
+        client_email = _cd["email"]
+        phone_full   = _cd.get("telefono", "")
 
-    # Cabecera con datos del cliente + botón cambiar
-    hc1, hc2 = st.columns([4, 1])
-    with hc1:
-        st.markdown(
-            f"**{client_name}** — {razon_social} &nbsp;|&nbsp; "
-            f"📧 {client_email} &nbsp;|&nbsp; 📞 {phone_full or '—'}"
-        )
-    with hc2:
-        if st.button("↩️ Cambiar" if lang=="ES" else "↩️ Change",
-                     key=f"btn_logout_{_sfx}", use_container_width=True):
-            st.session_state[_verified_k] = False
-            st.session_state[_cdata_k]    = {}
-            st.rerun()
+        # Cabecera compacta con botón cambiar
+        hc1, hc2 = st.columns([4, 1])
+        with hc1:
+            st.markdown(
+                f"**{client_name}** — {razon_social} &nbsp;|&nbsp; "
+                f"📧 {client_email} &nbsp;|&nbsp; 📞 {phone_full or '—'}"
+            )
+        with hc2:
+            if st.button("↩️ Cambiar" if lang == "ES" else "↩️ Change",
+                         key=f"btn_logout_{_sfx}", use_container_width=True):
+                st.session_state[_verified_k] = False
+                st.session_state[_cdata_k]    = {}
+                st.rerun()
+    else:
+        # Vista admin: campos directos de texto
+        st.markdown("##### 👤 Datos del cliente")
+        _ai1, _ai2 = st.columns(2)
+        with _ai1:
+            client_name  = st.text_input(T["name"],    key="adm_name",
+                                         placeholder=T["name_ph"])
+            client_email = st.text_input("📧 Email",   key="adm_email",
+                                         placeholder="cliente@empresa.com")
+        with _ai2:
+            razon_social = st.text_input(T["company"], key="adm_razon",
+                                         placeholder=T["company_ph"])
+            _prefix_labels = [f"{name}  {code}" for name, code in PHONE_PREFIXES]
+            _pi_adm = st.selectbox(T["prefix"], range(len(PHONE_PREFIXES)),
+                                   format_func=lambda i: _prefix_labels[i],
+                                   key="adm_prefix")
+            _pn_adm = st.text_input(T["phone"], key="adm_phone",
+                                    placeholder=T["phone_ph"])
+            phone_full = f"{PHONE_PREFIXES[_pi_adm][1]} {_pn_adm}".strip()
 
     # Destino
     ped_dest = st.selectbox(T["dest"], list(cfg_data["destinos"].keys()), key="cl_dest")
@@ -1653,7 +1674,7 @@ with tab1:
 # TAB 2 — HACER PEDIDO
 # ══════════════════════════════════════════════════════════════════════════════
 with tab2:
-    render_order_form(cfg, products, standalone=False)
+    render_order_form(cfg, products, standalone=False, require_email=False)
 
     # ── Panel de enlace para cliente ──────────────────────────────────────────
     st.markdown("---")
