@@ -1094,6 +1094,55 @@ if IS_CLIENT:
     render_order_form(cfg, products, standalone=True)
     st.stop()
 
+# ── Autenticación admin ────────────────────────────────────────────────────────
+def _get_cred(key: str, default: str) -> str:
+    try:
+        return st.secrets.get(key, default)
+    except Exception:
+        # Fallback: leer del secrets.toml local
+        _sp = os.path.join(os.path.dirname(__file__), ".streamlit", "secrets.toml")
+        if os.path.exists(_sp):
+            for line in open(_sp):
+                if key in line and "=" in line:
+                    return line.split("=", 1)[1].strip().strip('"').strip("'")
+        return default
+
+ADMIN_USER = _get_cred("ADMIN_USER", "exportharet")
+ADMIN_PASS = _get_cred("ADMIN_PASS", "Haret2026$")
+
+if "admin_ok" not in st.session_state:
+    st.session_state.admin_ok = False
+
+if not st.session_state.admin_ok:
+    # ── Pantalla de login ──────────────────────────────────────────────────
+    _logo_login = os.path.join(os.path.dirname(__file__), "logo.png")
+    lc1, lc2, lc3 = st.columns([1, 2, 1])
+    with lc2:
+        st.markdown("<br>", unsafe_allow_html=True)
+        if os.path.exists(_logo_login):
+            st.image(_logo_login, width=220)
+        st.markdown("## Panel de administración")
+        st.markdown("---")
+        with st.form("login_form"):
+            usr = st.text_input("👤 Usuario",  placeholder="exportharet")
+            pwd = st.text_input("🔒 Contraseña", type="password", placeholder="••••••••")
+            ok  = st.form_submit_button("Iniciar sesión", type="primary",
+                                         use_container_width=True)
+            if ok:
+                if usr == ADMIN_USER and pwd == ADMIN_PASS:
+                    st.session_state.admin_ok = True
+                    st.rerun()
+                else:
+                    st.error("❌ Usuario o contraseña incorrectos.")
+
+        st.markdown(
+            "<center><small style='color:#aaa'>¿Cliente? Accede al formulario de pedido en<br>"
+            f"<a href='{get_network_url(8501)}/?view=cliente' target='_blank'>"
+            "exportharet-pedidos.streamlit.app/?view=cliente</a></small></center>",
+            unsafe_allow_html=True,
+        )
+    st.stop()
+
 # ── Sidebar (solo admin) ───────────────────────────────────────────────────────
 with st.sidebar:
     # Logo: usa archivo local si existe, si no placeholder verde
@@ -1113,6 +1162,11 @@ with st.sidebar:
     )
     st.caption(f"Tarifa: **{cfg['destinos'][destino]} USD/kg**")
     st.caption(f"Vigente: {date.today().strftime('%d/%m/%Y')}")
+    st.markdown("---")
+    st.caption(f"👤 {ADMIN_USER}")
+    if st.button("🚪 Cerrar sesión", use_container_width=True):
+        st.session_state.admin_ok = False
+        st.rerun()
 
 # ── Header ────────────────────────────────────────────────────────────────────
 st.markdown("## 🌿 Export Haret — Pedidos")
