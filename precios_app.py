@@ -848,8 +848,13 @@ TR = {
 }
 
 
-def render_order_form(cfg_data, products_list, standalone=False):
-    """Formulario de pedido. standalone=True = vista cliente, False = pestaña admin."""
+def render_order_form(cfg_data, products_list, standalone=False,
+                      show_header=True, require_email=True):
+    """Formulario de pedido.
+    standalone=True  → vista cliente (?view=cliente)
+    show_header=False → oculta logo/título/idioma (ya mostrado por el portal)
+    require_email=False → salta la verificación de email (ya hecha por el portal)
+    """
     MIN_PALLETS = 3
 
     # ── Selector de idioma ──────────────────────────────────────────────────────
@@ -857,19 +862,22 @@ def render_order_form(cfg_data, products_list, standalone=False):
     if lang_key not in st.session_state:
         st.session_state[lang_key] = "ES"
 
-    lang_col, _ = st.columns([1, 5])
-    with lang_col:
-        lang = st.radio(
-            "🌐",
-            ["🇪🇸 ES", "🇬🇧 EN"],
-            horizontal=True,
-            key=lang_key,
-            label_visibility="collapsed",
-        )
-    lang = "EN" if "EN" in lang else "ES"
-    T   = TR[lang]   # atajo de traducción
+    if show_header:
+        lang_col, _ = st.columns([1, 5])
+        with lang_col:
+            lang = st.radio(
+                "🌐",
+                ["🇪🇸 ES", "🇬🇧 EN"],
+                horizontal=True,
+                key=lang_key,
+                label_visibility="collapsed",
+            )
+        lang = "EN" if "EN" in lang else "ES"
+    else:
+        lang = "EN" if "EN" in st.session_state.get(lang_key, "🇪🇸 ES") else "ES"
+    T = TR[lang]
 
-    if standalone:
+    if standalone and show_header:
         _logo_path_s = os.path.join(os.path.dirname(__file__), "logo.png")
         if os.path.exists(_logo_path_s):
             st.image(_logo_path_s, width=180)
@@ -888,7 +896,7 @@ def render_order_form(cfg_data, products_list, standalone=False):
         st.session_state[_cdata_k]    = {}
 
     # ── PASO 1: Pantalla de acceso por email ──────────────────────────────────
-    if not st.session_state[_verified_k]:
+    if require_email and not st.session_state[_verified_k]:
         st.markdown("---")
         if lang == "EN":
             st.markdown("#### 📧 Are you registered? Access with your email")
@@ -1306,6 +1314,66 @@ def render_order_form(cfg_data, products_list, standalone=False):
             st.error(f"Error generando el albarán: {e}")
 
 
+# ── Historial de pedidos del cliente ─────────────────────────────────────────
+def render_order_history(client_email: str, lang: str = "ES"):
+    """Muestra los pedidos anteriores de un cliente."""
+    clients = load_clients()
+    c       = clients.get(client_email, {})
+    pedidos = c.get("pedidos", [])
+
+    if lang == "EN":
+        titulo    = "### 📋 Your Orders"
+        sin_ped   = "You have no previous orders yet."
+        lbl_tot   = "Total USD"
+        lbl_pal   = "Pallets"
+        lbl_cajas = "Boxes"
+        lbl_prod  = "**Products:**"
+        lbl_box   = "boxes"
+    else:
+        titulo    = "### 📋 Mis Pedidos"
+        sin_ped   = "Todavía no tienes pedidos anteriores."
+        lbl_tot   = "Total USD"
+        lbl_pal   = "Pallets"
+        lbl_cajas = "Cajas"
+        lbl_prod  = "**Productos:**"
+        lbl_box   = "cajas"
+
+    st.markdown(titulo)
+
+    if not pedidos:
+        st.info(sin_ped)
+        return
+
+    # Mostrar del más reciente al más antiguo
+    for ped in reversed(pedidos):
+        fecha      = ped.get("fecha", "—")
+        destino    = ped.get("destino", "—")
+        total_usd  = ped.get("total_usd", 0)
+        dest_code  = ped.get("dest_code", "USD")
+        dest_sym   = ped.get("dest_sym", "$")
+        total_loc  = ped.get("total_loc", total_usd)
+        pallets    = ped.get("pallets", 0)
+        cajas      = ped.get("cajas", 0)
+        productos  = ped.get("productos", [])
+
+        header = f"📦 {fecha} — {destino} — {pallets} pallets — ${total_usd:,.2f} USD"
+        if dest_code != "USD":
+            header += f"  ({dest_sym}{total_loc:,.2f} {dest_code})"
+
+        with st.expander(header):
+            m1, m2, m3 = st.columns(3)
+            m1.metric(lbl_tot,   f"${total_usd:,.2f}")
+            m2.metric(lbl_pal,   pallets)
+            m3.metric(lbl_cajas, cajas)
+
+            if productos:
+                st.markdown(lbl_prod)
+                for pr in productos:
+                    nombre = pr.get("nombre") or pr.get("producto", "—")
+                    cajas_p = pr.get("cajas", 0)
+                    st.markdown(f"&nbsp;&nbsp;• {nombre} — **{cajas_p}** {lbl_box}")
+
+
 # ── Load ──────────────────────────────────────────────────────────────────────
 if "data" not in st.session_state:
     st.session_state.data = load_data()
@@ -1328,7 +1396,54 @@ else:
 IS_CLIENT = st.query_params.get("view", "") == "cliente"
 
 if IS_CLIENT:
-    render_order_form(cfg, products, standalone=True)
+    _verified = st.session_state.get("client_verified_cl", False)
+    _cdata    = st.session_state.get("client_data_cl", {})
+
+    if not _verified:
+        # ── Pantalla de acceso/registro ────────────────────────────────────────
+        render_order_form(cfg, products, standalone=True,
+                          show_header=True, require_email=True)
+    else:
+        # ── Portal del cliente (ya identificado) ───────────────────────────────
+        _lang = "EN" if "EN" in st.session_state.get("order_lang", "🇪🇸 ES") else "ES"
+
+        # Cabecera: logo centrado
+        _lp = os.path.join(os.path.dirname(__file__), "logo.png")
+        _pc1, _pc2, _pc3 = st.columns([1, 2, 1])
+        with _pc2:
+            if os.path.exists(_lp):
+                st.image(_lp, width=200)
+
+        # Barra de bienvenida + logout
+        _ph1, _ph2 = st.columns([5, 1])
+        with _ph1:
+            st.markdown(
+                f"👤 **{_cdata.get('nombre','')}** &nbsp;|&nbsp; "
+                f"🏢 {_cdata.get('razon_social','')} &nbsp;|&nbsp; "
+                f"📧 {_cdata.get('email','')} &nbsp;|&nbsp; "
+                f"📞 {_cdata.get('telefono','—')}"
+            )
+        with _ph2:
+            _exit_lbl = "🚪 Salir" if _lang == "ES" else "🚪 Exit"
+            if st.button(_exit_lbl, key="portal_exit", use_container_width=True):
+                st.session_state["client_verified_cl"] = False
+                st.session_state["client_data_cl"]     = {}
+                st.rerun()
+
+        st.markdown("---")
+
+        # Tabs: Nuevo Pedido | Mis Pedidos
+        if _lang == "EN":
+            _tab1, _tab2 = st.tabs(["🛒 New Order", "📋 My Orders"])
+        else:
+            _tab1, _tab2 = st.tabs(["🛒 Nuevo Pedido", "📋 Mis Pedidos"])
+
+        with _tab1:
+            render_order_form(cfg, products, standalone=True,
+                              show_header=False, require_email=False)
+        with _tab2:
+            render_order_history(_cdata.get("email", ""), lang=_lang)
+
     st.stop()
 
 # ── Autenticación admin ────────────────────────────────────────────────────────
