@@ -1262,9 +1262,9 @@ def render_order_form(cfg_data, products_list, standalone=False,
     albaran_key   = f"albaran_{confirm_key}"
     can_confirm   = (total_pallets >= MIN_PALLETS
                      and bool(client_name) and bool(razon_social)
-                     and bool(client_email) and bool(phone_num))
+                     and bool(client_email) and bool(phone_full))
 
-    if not client_name or not razon_social or not client_email or not phone_num:
+    if not client_name or not razon_social or not client_email or not phone_full:
         st.warning(T["warn_fields"])
     elif total_pallets < MIN_PALLETS:
         st.warning(T["warn_pallets"].format(f=faltan, s="s" if faltan!=1 else "", min=MIN_PALLETS))
