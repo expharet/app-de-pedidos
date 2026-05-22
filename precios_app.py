@@ -1168,13 +1168,20 @@ def render_order_form(cfg_data, products_list, standalone=False,
 
         with c1:
             st.markdown(f"**{p['producto']}**")
+            # Kg por caja + mínimo
+            _kg = p.get("kg_caja", 0)
+            _kg_str = (f"{int(_kg)} kg/caja" if _kg == int(_kg) else f"{_kg:.1f} kg/caja")
+            if lang == "EN":
+                _kg_str = _kg_str.replace("caja", "box")
             if min_c > 0:
                 if min_c % cajas_pal == 0:
                     pals = min_c // cajas_pal
                     lbl = T["min_pal"].format(n=pals, s="s" if pals>1 else "", c=min_c)
                 else:
                     lbl = T["min_caj"].format(n=min_c)
-                st.caption(lbl)
+                st.caption(f"{_kg_str} · {lbl}")
+            else:
+                st.caption(_kg_str)
 
         with c2:
             unit = st.selectbox(
