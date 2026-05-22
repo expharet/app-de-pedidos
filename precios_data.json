@@ -6,7 +6,7 @@
     "peso_pallet": 29.9,
     "tara_caja": 0.4,
     "transporte_interno": 60.0,
-    "eur_usd": 1.1599,
+    "eur_usd": 1.1595,
     "grupos": {
       "A": {
         "cajas_pallet": 160,
@@ -110,7 +110,7 @@
         "valor": 2
       }
     },
-    "_rate_label": "🟢 En vivo BCE · 2026-05-21"
+    "_rate_label": "🟢 En vivo BCE · 2026-05-22"
   },
   "products": [
     {
@@ -129,7 +129,7 @@
       "kg_caja": 2.5,
       "costo_caja_manual": 0.03,
       "precio_compra": 6.5,
-      "margen_pct": 0.11,
+      "margen_pct": 0.1,
       "grupo": "C",
       "activo": true
     },
@@ -138,8 +138,8 @@
       "producto": "Yellow Pitahaya",
       "kg_caja": 2.5,
       "costo_caja_manual": null,
-      "precio_compra": 13.3,
-      "margen_pct": 0.06,
+      "precio_compra": 13.5,
+      "margen_pct": 0.08,
       "grupo": "B",
       "activo": true
     },
@@ -199,7 +199,7 @@
       "kg_caja": 3.0,
       "costo_caja_manual": 0.0,
       "precio_compra": 5.25,
-      "margen_pct": 0.09,
+      "margen_pct": 0.11,
       "grupo": "C",
       "activo": true
     },
@@ -209,7 +209,7 @@
       "kg_caja": 3.0,
       "costo_caja_manual": null,
       "precio_compra": 6.0,
-      "margen_pct": 0.11,
+      "margen_pct": 0.1,
       "grupo": "D",
       "activo": true
     },
