@@ -69,25 +69,25 @@ INITIAL_DATA = {
         },
     },
     "products": [
-        {"codigo": "F-PSG10",  "producto": "Granadilla",     "kg_caja": 2.0,  "costo_caja_manual": 0.03, "precio_compra": 7.95,  "margen_pct": 0.08,  "grupo": "A"},
-        {"codigo": "F-PN016",  "producto": "Lulo",           "kg_caja": 2.5,  "costo_caja_manual": 0.03, "precio_compra": 6.50,  "margen_pct": 0.11,  "grupo": "C"},
-        {"codigo": "F-PPA01",  "producto": "Amarilla P",     "kg_caja": 2.5,  "costo_caja_manual": None, "precio_compra": 15.50, "margen_pct": 0.06,  "grupo": "B"},
-        {"codigo": "F-PSR02",  "producto": "Roja P",         "kg_caja": 4.5,  "costo_caja_manual": None, "precio_compra": 19.19, "margen_pct": 0.055, "grupo": "F"},
-        {"codigo": "F-PSR05",  "producto": "Blanca P",       "kg_caja": 4.5,  "costo_caja_manual": None, "precio_compra": 13.60, "margen_pct": 0.055, "grupo": "F"},
-        {"codigo": "F-PSM09",  "producto": "Maracuyá",       "kg_caja": 2.5,  "costo_caja_manual": 0.0,  "precio_compra": 7.00,  "margen_pct": 0.08,  "grupo": "C"},
-        {"codigo": "F-TAS04",  "producto": "Tomate de árbol","kg_caja": 2.5,  "costo_caja_manual": 0.0,  "precio_compra": 6.50,  "margen_pct": 0.10,  "grupo": "C"},
-        {"codigo": "F-GNB010", "producto": "Guanabana",      "kg_caja": 4.0,  "costo_caja_manual": None, "precio_compra": 13.14, "margen_pct": 0.12,  "grupo": "I"},
-        {"codigo": "F-MPS03",  "producto": "Pepino dulce",   "kg_caja": 3.0,  "costo_caja_manual": 0.0,  "precio_compra": 5.25,  "margen_pct": 0.09,  "grupo": "C"},
-        {"codigo": "F-CCN017", "producto": "Cacao",          "kg_caja": 3.0,  "costo_caja_manual": None, "precio_compra": 6.00,  "margen_pct": 0.11,  "grupo": "D"},
-        {"codigo": "F-BCC013", "producto": "Babaco",         "kg_caja": 3.0,  "costo_caja_manual": None, "precio_compra": 8.60,  "margen_pct": 0.10,  "grupo": "D"},
-        {"codigo": "F-AHSS012","producto": "Aguacate",       "kg_caja": 4.0,  "costo_caja_manual": None, "precio_compra": 8.55,  "margen_pct": 0.06,  "grupo": "E"},
-        {"codigo": "F-BBB06",  "producto": "Baby banano",    "kg_caja": 3.5,  "costo_caja_manual": None, "precio_compra": 13.20, "margen_pct": 0.06,  "grupo": "E"},
-        {"codigo": "F-ZPT020", "producto": "Zapote Mamey",   "kg_caja": 4.0,  "costo_caja_manual": None, "precio_compra": 12.00, "margen_pct": 0.18,  "grupo": "E"},
-        {"codigo": "F-TX020",  "producto": "Taxo",           "kg_caja": 2.5,  "costo_caja_manual": 0.0,  "precio_compra": 6.70,  "margen_pct": 0.10,  "grupo": "C"},
-        {"codigo": "F-UVP08",  "producto": "Physalis",       "kg_caja": 1.25, "costo_caja_manual": 0.0,  "precio_compra": 8.50,  "margen_pct": 0.11,  "grupo": "G"},
-        {"codigo": "F-UVP07",  "producto": "Physalis - husk","kg_caja": 1.5,  "costo_caja_manual": 0.0,  "precio_compra": 7.25,  "margen_pct": 0.11,  "grupo": "H"},
-        {"codigo": "F-SLK011", "producto": "Salack",         "kg_caja": 2.5,  "costo_caja_manual": 0.4,  "precio_compra": 12.20, "margen_pct": 0.10,  "grupo": "C"},
-        {"codigo": "F-CAZ021", "producto": "Caña de azúcar", "kg_caja": 4.0,  "costo_caja_manual": None, "precio_compra": 10.72, "margen_pct": 0.11,  "grupo": "E"},
+        {"codigo": "F-PSG10",  "producto": "Granadilla",     "kg_caja": 2.0,  "costo_caja_manual": 0.03, "precio_compra": 7.95,  "margen_pct": 0.08,  "grupo": "A", "activo": True},
+        {"codigo": "F-PN016",  "producto": "Lulo",           "kg_caja": 2.5,  "costo_caja_manual": 0.03, "precio_compra": 6.50,  "margen_pct": 0.11,  "grupo": "C", "activo": True},
+        {"codigo": "F-PPA01",  "producto": "Amarilla P",     "kg_caja": 2.5,  "costo_caja_manual": None, "precio_compra": 15.50, "margen_pct": 0.06,  "grupo": "B", "activo": True},
+        {"codigo": "F-PSR02",  "producto": "Roja P",         "kg_caja": 4.5,  "costo_caja_manual": None, "precio_compra": 19.19, "margen_pct": 0.055, "grupo": "F", "activo": True},
+        {"codigo": "F-PSR05",  "producto": "Blanca P",       "kg_caja": 4.5,  "costo_caja_manual": None, "precio_compra": 13.60, "margen_pct": 0.055, "grupo": "F", "activo": True},
+        {"codigo": "F-PSM09",  "producto": "Maracuyá",       "kg_caja": 2.5,  "costo_caja_manual": 0.0,  "precio_compra": 7.00,  "margen_pct": 0.08,  "grupo": "C", "activo": True},
+        {"codigo": "F-TAS04",  "producto": "Tomate de árbol","kg_caja": 2.5,  "costo_caja_manual": 0.0,  "precio_compra": 6.50,  "margen_pct": 0.10,  "grupo": "C", "activo": True},
+        {"codigo": "F-GNB010", "producto": "Guanabana",      "kg_caja": 4.0,  "costo_caja_manual": None, "precio_compra": 13.14, "margen_pct": 0.12,  "grupo": "I", "activo": True},
+        {"codigo": "F-MPS03",  "producto": "Pepino dulce",   "kg_caja": 3.0,  "costo_caja_manual": 0.0,  "precio_compra": 5.25,  "margen_pct": 0.09,  "grupo": "C", "activo": True},
+        {"codigo": "F-CCN017", "producto": "Cacao",          "kg_caja": 3.0,  "costo_caja_manual": None, "precio_compra": 6.00,  "margen_pct": 0.11,  "grupo": "D", "activo": True},
+        {"codigo": "F-BCC013", "producto": "Babaco",         "kg_caja": 3.0,  "costo_caja_manual": None, "precio_compra": 8.60,  "margen_pct": 0.10,  "grupo": "D", "activo": True},
+        {"codigo": "F-AHSS012","producto": "Aguacate",       "kg_caja": 4.0,  "costo_caja_manual": None, "precio_compra": 8.55,  "margen_pct": 0.06,  "grupo": "E", "activo": True},
+        {"codigo": "F-BBB06",  "producto": "Baby banano",    "kg_caja": 3.5,  "costo_caja_manual": None, "precio_compra": 13.20, "margen_pct": 0.06,  "grupo": "E", "activo": True},
+        {"codigo": "F-ZPT020", "producto": "Zapote Mamey",   "kg_caja": 4.0,  "costo_caja_manual": None, "precio_compra": 12.00, "margen_pct": 0.18,  "grupo": "E", "activo": True},
+        {"codigo": "F-TX020",  "producto": "Taxo",           "kg_caja": 2.5,  "costo_caja_manual": 0.0,  "precio_compra": 6.70,  "margen_pct": 0.10,  "grupo": "C", "activo": True},
+        {"codigo": "F-UVP08",  "producto": "Physalis",       "kg_caja": 1.25, "costo_caja_manual": 0.0,  "precio_compra": 8.50,  "margen_pct": 0.11,  "grupo": "G", "activo": True},
+        {"codigo": "F-UVP07",  "producto": "Physalis - husk","kg_caja": 1.5,  "costo_caja_manual": 0.0,  "precio_compra": 7.25,  "margen_pct": 0.11,  "grupo": "H", "activo": True},
+        {"codigo": "F-SLK011", "producto": "Salack",         "kg_caja": 2.5,  "costo_caja_manual": 0.4,  "precio_compra": 12.20, "margen_pct": 0.10,  "grupo": "C", "activo": True},
+        {"codigo": "F-CAZ021", "producto": "Caña de azúcar", "kg_caja": 4.0,  "costo_caja_manual": None, "precio_compra": 10.72, "margen_pct": 0.11,  "grupo": "E", "activo": True},
     ],
     "minimos": {
         "F-PSG10":  {"tipo": "cajas", "valor": 80},
@@ -377,6 +377,9 @@ def render_order_form(cfg_data, products_list, standalone=False):
     OPT_PAL = "📦 Pallets"
     OPT_CAJ = "🗃️ Cajas"
     sfx     = "cl" if standalone else "adm"
+
+    # Solo productos activos (disponibles para pedido)
+    products_list = [p for p in products_list if p.get("activo", True)]
 
     # Cabecera de columnas
     h1, h2, h3, h4 = st.columns([3, 1.8, 1.4, 1])
@@ -955,17 +958,18 @@ with tab5:
 
     st.markdown("---")
     st.markdown("### Gestión de productos")
-    st.markdown("Para agregar o eliminar productos usa el editor a continuación:")
+    st.markdown("Activa o desactiva la disponibilidad con un clic en la columna **✓ Pedido**:")
 
     prod_df = pd.DataFrame([
         {
-            "Código": p["codigo"],
-            "Producto": p["producto"],
-            "kg/caja": p["kg_caja"],
+            "✓ Pedido":          p.get("activo", True),
+            "Producto":          p["producto"],
+            "Código":            p["codigo"],
+            "kg/caja":           p["kg_caja"],
             "Costo caja manual": p["costo_caja_manual"],
-            "Precio compra": p["precio_compra"],
-            "Margen %": round(p["margen_pct"] * 100, 1),
-            "Grupo": p["grupo"],
+            "Precio compra":     p["precio_compra"],
+            "Margen %":          round(p["margen_pct"] * 100, 1),
+            "Grupo":             p["grupo"],
         }
         for p in products
     ])
@@ -976,13 +980,17 @@ with tab5:
         hide_index=True,
         num_rows="dynamic",
         column_config={
-            "Grupo": st.column_config.SelectboxColumn("Grupo", options=list(cfg["grupos"].keys())),
-            "kg/caja": st.column_config.NumberColumn("kg/caja", min_value=0.1, step=0.25),
+            "✓ Pedido":   st.column_config.CheckboxColumn(
+                "✓ Pedido", width="small",
+                help="Activa para que el producto aparezca en el formulario de pedido"),
+            "Producto":   st.column_config.TextColumn("Producto"),
+            "Código":     st.column_config.TextColumn("Código", width="small"),
+            "Grupo":      st.column_config.SelectboxColumn("Grupo", options=list(cfg["grupos"].keys()), width="small"),
+            "kg/caja":    st.column_config.NumberColumn("kg/caja", min_value=0.1, step=0.25, width="small"),
             "Costo caja manual": st.column_config.NumberColumn(
-                "Costo caja manual", help="Dejar vacío para usar costo_caja_base / kg"
-            ),
-            "Precio compra": st.column_config.NumberColumn("Precio compra", min_value=0.0, step=0.01, format="$%.2f"),
-            "Margen %": st.column_config.NumberColumn("Margen %", min_value=0.0, max_value=100.0, step=0.5),
+                "Costo caja", help="Vacío = costo_base / kg", width="small"),
+            "Precio compra": st.column_config.NumberColumn("Compra $", min_value=0.0, step=0.01, format="$%.2f"),
+            "Margen %":   st.column_config.NumberColumn("Margen %", min_value=0.0, max_value=100.0, step=0.5, width="small"),
         },
         key="prod_editor",
     )
@@ -991,13 +999,14 @@ with tab5:
         new_products = []
         for _, row in edited_prods.iterrows():
             new_products.append({
-                "codigo": row["Código"],
-                "producto": row["Producto"],
-                "kg_caja": float(row["kg/caja"]),
+                "codigo":            row["Código"],
+                "producto":          row["Producto"],
+                "kg_caja":           float(row["kg/caja"]),
                 "costo_caja_manual": float(row["Costo caja manual"]) if pd.notna(row["Costo caja manual"]) else None,
-                "precio_compra": float(row["Precio compra"]),
-                "margen_pct": float(row["Margen %"]) / 100.0,
-                "grupo": row["Grupo"],
+                "precio_compra":     float(row["Precio compra"]),
+                "margen_pct":        float(row["Margen %"]) / 100.0,
+                "grupo":             row["Grupo"],
+                "activo":            bool(row["✓ Pedido"]),
             })
         data["products"] = new_products
         save_data(data)
