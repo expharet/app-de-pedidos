@@ -8,10 +8,15 @@ import io
 import base64
 import urllib.parse
 import subprocess
+import smtplib
 import requests
 import pandas as pd
 from datetime import date
 from fpdf import FPDF
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from email.mime.base import MIMEBase
+from email import encoders
 import socket
 import qrcode
 from PIL import Image
@@ -33,6 +38,112 @@ def fetch_live_eur_usd() -> tuple:
     except Exception:
         pass
     return None, "🔴 Sin conexión"
+
+
+# ── Divisas por destino ───────────────────────────────────────────────────────
+DESTINO_DIVISA = {
+    "Madrid/España":   ("EUR", "€"),
+    "París/Francia":   ("EUR", "€"),
+    "Londres/UK":      ("GBP", "£"),
+    "Suiza":           ("CHF", "Fr"),
+    "Países Bajos":    ("EUR", "€"),
+    "Dubai/EAU":       ("AED", "د.إ"),
+    "Nueva York/USA":  ("USD", "$"),
+    "Miami/USA":       ("USD", "$"),
+    "(otros)":         ("EUR", "€"),
+}
+
+@st.cache_data(ttl=3600)
+def fetch_dest_rate(dest_code: str) -> float:
+    """USD → dest_code exchange rate (live BCE/Frankfurter)."""
+    if dest_code == "USD":
+        return 1.0
+    try:
+        r = requests.get(
+            f"https://api.frankfurter.app/latest?from=USD&to={dest_code}",
+            timeout=6,
+        )
+        if r.status_code == 200:
+            return float(r.json()["rates"][dest_code])
+    except Exception:
+        pass
+    return 1.0
+
+
+# ── Prefijos telefónicos ──────────────────────────────────────────────────────
+PHONE_PREFIXES = [
+    ("🇪🇸 España",           "+34"),
+    ("🇫🇷 Francia",          "+33"),
+    ("🇬🇧 Reino Unido",      "+44"),
+    ("🇩🇪 Alemania",         "+49"),
+    ("🇳🇱 Países Bajos",     "+31"),
+    ("🇨🇭 Suiza",            "+41"),
+    ("🇦🇪 Emiratos Árabes",  "+971"),
+    ("🇺🇸 USA / Canadá",     "+1"),
+    ("🇪🇨 Ecuador",          "+593"),
+    ("🇨🇴 Colombia",         "+57"),
+    ("🇲🇽 México",           "+52"),
+    ("🇧🇷 Brasil",           "+55"),
+    ("🇦🇷 Argentina",        "+54"),
+    ("🇵🇪 Perú",             "+51"),
+    ("🇮🇹 Italia",           "+39"),
+    ("🇵🇹 Portugal",         "+351"),
+    ("🇧🇪 Bélgica",          "+32"),
+    ("🇦🇹 Austria",          "+43"),
+    ("🇸🇦 Arabia Saudí",     "+966"),
+    ("🇶🇦 Qatar",            "+974"),
+    ("🇰🇼 Kuwait",           "+965"),
+    ("🇦🇺 Australia",        "+61"),
+    ("🇯🇵 Japón",            "+81"),
+    ("🇨🇳 China",            "+86"),
+    ("🇷🇺 Rusia",            "+7"),
+]
+
+
+# ── Envío automático de email ─────────────────────────────────────────────────
+def send_order_email(saved: dict, ai_full: list, pdf_bytes: bytes,
+                     cfg_data: dict, wa_text: str) -> tuple:
+    """Envía el albarán por email a order@exportharet.com."""
+    try:
+        smtp_user = st.secrets.get("SMTP_USER", "")
+        smtp_pass = st.secrets.get("SMTP_PASS", "")
+        smtp_host = st.secrets.get("SMTP_HOST", "smtp.gmail.com")
+        smtp_port = int(st.secrets.get("SMTP_PORT", "587"))
+    except Exception:
+        smtp_user = smtp_pass = ""
+
+    if not smtp_user or not smtp_pass:
+        return False, "sin_smtp"
+
+    try:
+        msg             = MIMEMultipart()
+        msg["From"]     = smtp_user
+        msg["To"]       = "order@exportharet.com"
+        msg["Reply-To"] = saved.get("email", "")
+        msg["Subject"]  = (
+            f"Nuevo Pedido — {saved['client_name']} — "
+            f"{saved['destino']} — {date.today().strftime('%d/%m/%Y')}"
+        )
+        body = wa_text.replace("*", "").replace("━", "-")
+        msg.attach(MIMEText(body, "plain", "utf-8"))
+
+        # PDF adjunto
+        part = MIMEBase("application", "octet-stream")
+        part.set_payload(pdf_bytes)
+        encoders.encode_base64(part)
+        fname = f"Albaran_{saved['client_name'].replace(' ','_')}_{date.today()}.pdf"
+        part.add_header("Content-Disposition", f'attachment; filename="{fname}"')
+        msg.attach(part)
+
+        with smtplib.SMTP(smtp_host, smtp_port) as srv:
+            srv.ehlo()
+            srv.starttls()
+            srv.login(smtp_user, smtp_pass)
+            srv.sendmail(smtp_user, "order@exportharet.com", msg.as_string())
+
+        return True, "ok"
+    except Exception as e:
+        return False, str(e)
 
 
 def get_network_url(port: int = 8501) -> str:
@@ -243,7 +354,8 @@ def _font_path(filename: str) -> str:
 
 
 def gen_albaran_pdf(client_name, razon_social, destino, active_items, total_cajas,
-                    total_pallets, total_usd, total_eur, cfg_data):
+                    total_pallets, total_usd, total_eur, cfg_data,
+                    client_email="", telefono=""):
     pdf = FPDF()
     pdf.add_page()
     pdf.set_margins(15, 15, 15)
@@ -276,13 +388,22 @@ def gen_albaran_pdf(client_name, razon_social, destino, active_items, total_caja
 
     # ── Datos del cliente ──
     rate_label = cfg_data.get("_rate_label", "").replace("🟢","").replace("🟡","").strip()
-    for label, value in [
+    dest_code_pdf, dest_sym_pdf = DESTINO_DIVISA.get(destino, ("USD","$"))
+    dest_rate_pdf = fetch_dest_rate(dest_code_pdf)
+    client_fields = [
         ("Cliente:",      client_name),
         ("Razón social:", razon_social),
-        ("Fecha:",        date.today().strftime("%d/%m/%Y")),
-        ("Destino:",      destino),
-        ("EUR/USD:",      f"{cfg_data['eur_usd']:.4f}  ({rate_label})"),
-    ]:
+    ]
+    if client_email: client_fields.append(("Email:",     client_email))
+    if telefono:     client_fields.append(("Teléfono:",  telefono))
+    client_fields += [
+        ("Fecha:",   date.today().strftime("%d/%m/%Y")),
+        ("Destino:", destino),
+        ("EUR/USD:", f"{cfg_data['eur_usd']:.4f}  ({rate_label})"),
+    ]
+    if dest_code_pdf not in ("USD",):
+        client_fields.append((f"Divisa {dest_code_pdf}:", f"1 USD = {dest_rate_pdf:.4f} {dest_sym_pdf}"))
+    for label, value in client_fields:
         pdf.set_font("U", "B", 10)
         pdf.cell(38, 7, label)
         pdf.set_font("U", "", 10)
@@ -389,12 +510,33 @@ def render_order_form(cfg_data, products_list, standalone=False):
     with cc1:
         client_name  = st.text_input("Nombre del cliente *", key="cl_name",
                                       placeholder="Nombre completo")
-        razon_social = st.text_input("Razón social *", key="cl_razon",
+        razon_social = st.text_input("Razón social / Empresa *", key="cl_razon",
                                       placeholder="Empresa S.L.")
+        client_email = st.text_input("📧 Email de contacto *", key="cl_email",
+                                      placeholder="cliente@empresa.com")
+        # Teléfono con prefijo de país
+        prefix_labels = [f"{name}  {code}" for name, code in PHONE_PREFIXES]
+        prefix_idx    = st.selectbox("📞 País / Prefijo *", range(len(PHONE_PREFIXES)),
+                                      format_func=lambda i: prefix_labels[i],
+                                      key="cl_phone_prefix")
+        phone_num     = st.text_input("Número de teléfono *", key="cl_phone_num",
+                                       placeholder="612 345 678")
+        phone_full    = f"{PHONE_PREFIXES[prefix_idx][1]} {phone_num}".strip()
+
     with cc2:
         ped_dest = st.selectbox("🌍 Destino *", list(cfg_data["destinos"].keys()),
                                  key="cl_dest")
-        st.info(f"Mínimo de orden: **{MIN_PALLETS} pallets** totales.")
+        # Divisa del destino
+        dest_code, dest_sym = DESTINO_DIVISA.get(ped_dest, ("USD", "$"))
+        dest_rate           = fetch_dest_rate(dest_code)
+        if dest_code == "USD":
+            st.info(f"Mínimo de orden: **{MIN_PALLETS} pallets** totales.\n\nDivisa: **USD ($)**")
+        else:
+            st.info(
+                f"Mínimo de orden: **{MIN_PALLETS} pallets** totales.\n\n"
+                f"Divisa del destino: **{dest_code} ({dest_sym})** · "
+                f"1 USD = {dest_rate:.4f} {dest_code}"
+            )
 
     st.markdown("---")
     st.markdown("#### 📦 Productos del pedido")
@@ -496,44 +638,53 @@ def render_order_form(cfg_data, products_list, standalone=False):
     else:
         st.progress(1.0, text=f"✅ {total_pallets} pallets — pedido válido")
 
+    # Divisa local del destino
+    dest_code, dest_sym = DESTINO_DIVISA.get(ped_dest, ("USD", "$"))
+    dest_rate           = fetch_dest_rate(dest_code)
+    show_local          = dest_code not in ("USD",)
+    loc_total_col       = f"Total {dest_sym}{dest_code}" if show_local else None
+
     rows = []
     for p, cajas in active_items:
         r = calc_pedido(p, cfg_data, ped_dest, total_cajas)
         cajas_pal = cfg_data["grupos"][p["grupo"]]["cajas_pallet"]
-        rows.append({
-            "Producto":       p["producto"],
-            "Pallets":        round(cajas / cajas_pal, 2),
-            "Cajas":          cajas,
-            "Precio/caja $":  r["precio_caja_usd"],
-            "Precio/caja €":  r["precio_caja_eur"],
-            "Total USD":      r["precio_caja_usd"] * cajas,
-            "Total EUR":      r["precio_caja_eur"] * cajas,
-        })
+        row = {
+            "Producto":      p["producto"],
+            "Pallets":       round(cajas / cajas_pal, 2),
+            "Cajas":         cajas,
+            "Precio/caja $": r["precio_caja_usd"],
+            "Total USD":     r["precio_caja_usd"] * cajas,
+        }
+        if show_local:
+            row[f"{dest_sym}/caja"]  = r["precio_caja_usd"] * dest_rate
+            row[loc_total_col]       = r["precio_caja_usd"] * cajas * dest_rate
+        rows.append(row)
 
-    sum_df      = pd.DataFrame(rows)
-    total_usd   = sum_df["Total USD"].sum()
-    total_eur   = sum_df["Total EUR"].sum()
-    peso_kg     = sum(p["kg_caja"] * q for p, q in active_items)
+    sum_df    = pd.DataFrame(rows)
+    total_usd = sum_df["Total USD"].sum()
+    total_loc = sum_df[loc_total_col].sum() if show_local else None
+    peso_kg   = sum(p["kg_caja"] * q for p, q in active_items)
 
     c1, c2, c3, c4, c5 = st.columns(5)
     c1.metric("Pallets",   str(total_pallets))
     c2.metric("Cajas",     f"{total_cajas:,}")
     c3.metric("Peso neto", f"{peso_kg:,.0f} kg")
     c4.metric("Total USD", f"${total_usd:,.2f}")
-    c5.metric("Total EUR", f"€{total_eur:,.2f}")
+    if show_local and total_loc:
+        c5.metric(f"Total {dest_code}", f"{dest_sym}{total_loc:,.2f}")
+    else:
+        c5.metric("Pallets físicos", str(total_pallets))
 
     def hl(col):
         return ["background-color:#e8f5e9;font-weight:bold"] * len(col) if "Total" in col.name else [""] * len(col)
 
+    fmt = {"Pallets": "{:.2f}", "Cajas": "{:,.0f}", "Precio/caja $": "${:.2f}", "Total USD": "${:.2f}"}
+    if show_local:
+        fmt[f"{dest_sym}/caja"] = f"{dest_sym}{{:.2f}}"
+        fmt[loc_total_col]      = f"{dest_sym}{{:.2f}}"
+
     st.dataframe(
-        sum_df.style.apply(hl, axis=0).format({
-            "Pallets":       "{:.2f}",
-            "Cajas":         "{:,.0f}",
-            "Precio/caja $": "${:.2f}",
-            "Precio/caja €": "€{:.2f}",
-            "Total USD":     "${:.2f}",
-            "Total EUR":     "€{:.2f}",
-        }),
+        sum_df.style.apply(hl, axis=0).format(fmt),
         use_container_width=True, hide_index=True,
     )
 
@@ -559,10 +710,12 @@ def render_order_form(cfg_data, products_list, standalone=False):
     # ── Confirmar ──
     confirm_key   = "confirm_cl" if standalone else "confirm_admin"
     albaran_key   = f"albaran_{confirm_key}"
-    can_confirm   = total_pallets >= MIN_PALLETS and bool(client_name) and bool(razon_social)
+    can_confirm   = (total_pallets >= MIN_PALLETS
+                     and bool(client_name) and bool(razon_social)
+                     and bool(client_email) and bool(phone_num))
 
-    if not client_name or not razon_social:
-        st.warning("⚠️ Completa el **nombre del cliente** y **razón social** para confirmar.")
+    if not client_name or not razon_social or not client_email or not phone_num:
+        st.warning("⚠️ Completa todos los datos del cliente para confirmar.")
     elif total_pallets < MIN_PALLETS:
         st.warning(f"⚠️ Faltan {faltan} pallet{'s' if faltan != 1 else ''} para alcanzar el mínimo de {MIN_PALLETS}.")
     if below_minimum:
@@ -578,12 +731,17 @@ def render_order_form(cfg_data, products_list, standalone=False):
         st.session_state[albaran_key] = {
             "client_name":  client_name,
             "razon_social": razon_social,
+            "email":        client_email,
+            "telefono":     phone_full,
             "destino":      ped_dest,
             "ai_codigos":   [(p["codigo"], q) for p, q in active_items],
             "total_cajas":  total_cajas,
             "total_pallets": total_pallets,
             "total_usd":    total_usd,
             "total_eur":    total_eur,
+            "dest_code":    DESTINO_DIVISA.get(ped_dest, ("USD","$"))[0],
+            "dest_sym":     DESTINO_DIVISA.get(ped_dest, ("USD","$"))[1],
+            "dest_rate":    fetch_dest_rate(DESTINO_DIVISA.get(ped_dest, ("USD","$"))[0]),
         }
 
     # ── Mostrar albarán (persiste aunque el formulario cambie) ──
@@ -599,17 +757,37 @@ def render_order_form(cfg_data, products_list, standalone=False):
                 saved["client_name"], saved["razon_social"], saved["destino"],
                 ai_full, saved["total_cajas"], saved["total_pallets"],
                 saved["total_usd"], saved["total_eur"], cfg_data,
+                client_email=saved.get("email",""),
+                telefono=saved.get("telefono",""),
             )
-            wa_text  = gen_wa_text(
+            wa_text = gen_wa_text(
                 saved["client_name"], saved["razon_social"], saved["destino"],
                 ai_full, saved["total_cajas"], saved["total_pallets"],
                 saved["total_usd"], saved["total_eur"], cfg_data,
             )
+            # Añadir datos de contacto al mensaje WhatsApp
+            extra = []
+            if saved.get("email"):    extra.append(f"📧 {saved['email']}")
+            if saved.get("telefono"): extra.append(f"📞 {saved['telefono']}")
+            if extra:
+                wa_text = wa_text.replace("━━━━━━━━━━━━━━━━━━━━━\n*PRODUCTOS:*",
+                    "━━━━━━━━━━━━━━━━━━━━━\n" + "\n".join(extra) +
+                    "\n━━━━━━━━━━━━━━━━━━━━━\n*PRODUCTOS:*")
+
+            fname    = f"Albaran_{saved['client_name'].replace(' ','_')}_{date.today()}.pdf"
             wa_url   = "https://wa.me/?text=" + urllib.parse.quote(wa_text)
             subj     = urllib.parse.quote(f"Pedido Export Haret – {saved['client_name']}")
             body     = urllib.parse.quote(wa_text.replace("*", ""))
             mail_url = f"mailto:order@exportharet.com?subject={subj}&body={body}"
-            fname    = f"Albaran_{saved['client_name'].replace(' ','_')}_{date.today()}.pdf"
+
+            # ── Envío automático por SMTP ──────────────────────────────────────
+            email_ok, email_msg = send_order_email(saved, ai_full, pdf_bytes, cfg_data, wa_text)
+            if email_ok:
+                st.success("📨 Pedido enviado automáticamente a **order@exportharet.com**")
+            elif email_msg == "sin_smtp":
+                st.info("💡 Configura SMTP_USER / SMTP_PASS en los secretos para envío automático.")
+            else:
+                st.warning(f"⚠️ No se pudo enviar email automático: {email_msg}")
 
             ba1, ba2, ba3, ba4 = st.columns([2, 2, 2, 1])
             with ba1:
