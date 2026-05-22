@@ -6,7 +6,7 @@
     "peso_pallet": 29.9,
     "tara_caja": 0.4,
     "transporte_interno": 80.0,
-    "eur_usd": 1.164,
+    "eur_usd": 1.1599,
     "grupos": {
       "A": {
         "cajas_pallet": 160,
@@ -109,7 +109,8 @@
         "tipo": "pallet",
         "valor": 2
       }
-    }
+    },
+    "_rate_label": "🟢 En vivo BCE · 2026-05-21"
   },
   "products": [
     {
