@@ -291,7 +291,7 @@
       "precio_compra": 12.2,
       "margen_pct": 0.1,
       "grupo": "C",
-      "activo": true
+      "activo": false
     },
     {
       "codigo": "F-CAZ021",
