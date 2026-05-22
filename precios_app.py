@@ -159,6 +159,110 @@ def get_network_url(port: int = 8501) -> str:
     except Exception:
         return f"http://localhost:{port}"
 
+# ── Base de datos de clientes ──────────────────────────────────────────────────
+CLIENTES_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "clientes.json")
+
+def load_clients() -> dict:
+    if os.path.exists(CLIENTES_FILE):
+        try:
+            with open(CLIENTES_FILE, encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            pass
+    return {}
+
+def save_clients(clients: dict):
+    with open(CLIENTES_FILE, "w", encoding="utf-8") as f:
+        json.dump(clients, f, indent=2, ensure_ascii=False)
+
+def register_order(saved: dict, ai_full: list, cfg_data: dict):
+    """Registra o actualiza el cliente y guarda el pedido en su historial."""
+    email = saved.get("email", "").strip().lower()
+    if not email:
+        return
+    clients = load_clients()
+    today   = date.today().isoformat()
+
+    # Crear/actualizar ficha del cliente
+    if email not in clients:
+        clients[email] = {
+            "nombre":        saved["client_name"],
+            "razon_social":  saved["razon_social"],
+            "telefono":      saved.get("telefono", ""),
+            "primer_pedido": today,
+            "ultimo_pedido": today,
+            "pedidos":       [],
+        }
+    else:
+        c = clients[email]
+        c["nombre"]       = saved["client_name"]   # actualizar por si cambió
+        c["razon_social"] = saved["razon_social"]
+        c["telefono"]     = saved.get("telefono", c.get("telefono",""))
+        c["ultimo_pedido"] = today
+
+    # Construir resumen del pedido
+    productos_resumen = []
+    for p, cajas in ai_full:
+        r = calc_pedido(p, cfg_data, saved["destino"], saved["total_cajas"])
+        productos_resumen.append({
+            "producto":   p["producto"],
+            "cajas":      cajas,
+            "precio_usd": round(r["precio_caja_usd"], 4),
+            "total_usd":  round(r["precio_caja_usd"] * cajas, 2),
+        })
+
+    pedido_id = f"PED-{today.replace('-','')}-{len(clients[email]['pedidos'])+1:03d}"
+    clients[email]["pedidos"].append({
+        "id":         pedido_id,
+        "fecha":      today,
+        "destino":    saved["destino"],
+        "total_usd":  round(saved["total_usd"], 2),
+        "dest_code":  saved.get("dest_code", "USD"),
+        "dest_sym":   saved.get("dest_sym",  "$"),
+        "dest_rate":  saved.get("dest_rate", 1.0),
+        "total_loc":  round(saved["total_usd"] * saved.get("dest_rate", 1.0), 2),
+        "pallets":    saved["total_pallets"],
+        "cajas":      saved["total_cajas"],
+        "productos":  productos_resumen,
+    })
+
+    save_clients(clients)
+
+    # Publicar clientes.json en GitHub también
+    _push_clients_to_github(clients)
+
+def _push_clients_to_github(clients: dict):
+    """Sube clientes.json a GitHub vía API."""
+    try:
+        _sp  = os.path.join(os.path.dirname(__file__), ".streamlit", "secrets.toml")
+        tok  = ""
+        try:
+            tok = st.secrets.get("GITHUB_TOKEN", "")
+        except Exception:
+            pass
+        if not tok and os.path.exists(_sp):
+            for line in open(_sp):
+                if "GITHUB_TOKEN" in line and "=" in line:
+                    tok = line.split("=",1)[1].strip().strip('"').strip("'")
+        if not tok:
+            return
+        hdrs    = {"Authorization": f"token {tok}",
+                   "Accept": "application/vnd.github.v3+json"}
+        api_url = "https://api.github.com/repos/expharet/app-de-pedidos/contents/clientes.json"
+        content = base64.b64encode(
+            json.dumps(clients, indent=2, ensure_ascii=False).encode()
+        ).decode()
+        r_get   = requests.get(api_url, headers=hdrs, timeout=10)
+        sha     = r_get.json().get("sha", "") if r_get.status_code == 200 else ""
+        payload = {"message": f"Registro cliente — {date.today().isoformat()}",
+                   "content": content}
+        if sha:
+            payload["sha"] = sha
+        requests.put(api_url, json=payload, headers=hdrs, timeout=15)
+    except Exception:
+        pass   # silencioso — no bloquear el flujo principal
+
+
 def sync_from_cotizaciones(excel_bytes: bytes, current_data: dict) -> tuple:
     """
     Lee Cotizaciones.xlsx y devuelve (new_products, new_cfg, lista_cambios).
@@ -774,11 +878,48 @@ def render_order_form(cfg_data, products_list, standalone=False):
 
     # ── Datos del cliente ──
     st.markdown(T["client_section"])
+    # Auto-relleno si el email ya existe en la base de clientes
+    def _on_email_change():
+        em = st.session_state.get("cl_email", "").strip().lower()
+        if not em:
+            return
+        existing = load_clients()
+        if em in existing:
+            c = existing[em]
+            st.session_state["cl_name"]  = c.get("nombre", "")
+            st.session_state["cl_razon"] = c.get("razon_social", "")
+            # Intentar precargar teléfono
+            tel = c.get("telefono", "")
+            if tel:
+                # Separar prefijo del número
+                parts = tel.split(" ", 1)
+                if len(parts) == 2:
+                    prefix, num = parts
+                    for idx, (_, code) in enumerate(PHONE_PREFIXES):
+                        if code == prefix:
+                            st.session_state["cl_phone_prefix"] = idx
+                            break
+                    st.session_state["cl_phone_num"] = num
+
     cc1, cc2 = st.columns(2)
     with cc1:
+        client_email = st.text_input(T["email"],   key="cl_email",
+                                     placeholder=T["email_ph"],
+                                     on_change=_on_email_change)
+
+        # Mostrar bienvenida si cliente conocido
+        _em_key = client_email.strip().lower()
+        _known  = load_clients()
+        if _em_key and _em_key in _known:
+            _nc = len(_known[_em_key].get("pedidos", []))
+            _ul = _known[_em_key].get("ultimo_pedido", "")
+            if lang == "EN":
+                st.success(f"👋 Welcome back! **{_known[_em_key]['nombre']}** · {_nc} previous order{'s' if _nc!=1 else ''}")
+            else:
+                st.success(f"👋 ¡Bienvenido de nuevo! **{_known[_em_key]['nombre']}** · {_nc} pedido{'s' if _nc!=1 else ''} anterior{'es' if _nc!=1 else ''}")
+
         client_name  = st.text_input(T["name"],    key="cl_name",         placeholder=T["name_ph"])
         razon_social = st.text_input(T["company"], key="cl_razon",        placeholder=T["company_ph"])
-        client_email = st.text_input(T["email"],   key="cl_email",        placeholder=T["email_ph"])
         prefix_labels = [f"{name}  {code}" for name, code in PHONE_PREFIXES]
         prefix_idx    = st.selectbox(T["prefix"], range(len(PHONE_PREFIXES)),
                                       format_func=lambda i: prefix_labels[i],
@@ -1043,6 +1184,9 @@ def render_order_form(cfg_data, products_list, standalone=False):
             body     = urllib.parse.quote(wa_text.replace("*", ""))
             mail_url = f"mailto:order@exportharet.com?subject={subj}&body={body}"
 
+            # ── Registrar cliente y pedido ────────────────────────────────────
+            register_order(saved, ai_full, cfg_data)
+
             # ── Envío automático por SMTP ──────────────────────────────────────
             email_ok, email_msg = send_order_email(saved, ai_full, pdf_bytes, cfg_data, wa_text)
             if email_ok:
@@ -1177,7 +1321,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-tab1, tab2, tab3, tab4, tab5 = st.tabs(["📋 Cotización", "🛒 Hacer pedido", "✏️ Actualizar precios", "🌐 Todos los destinos", "⚙️ Configuración"])
+tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(["📋 Cotización", "🛒 Hacer pedido", "✏️ Actualizar precios", "🌐 Todos los destinos", "⚙️ Configuración", "👥 Clientes"])
 
 # ══════════════════════════════════════════════════════════════════════════════
 # TAB 1 — COTIZACIÓN
@@ -1847,3 +1991,118 @@ with tab5:
                 st.error("⏱ Tiempo de espera agotado. Comprueba tu conexión.")
             except Exception as e:
                 st.error(f"❌ Error inesperado: {e}")
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# TAB 6 — CLIENTES
+# ══════════════════════════════════════════════════════════════════════════════
+with tab6:
+    st.markdown("### 👥 Base de datos de clientes")
+
+    all_clients = load_clients()
+
+    if not all_clients:
+        st.info("Aún no hay clientes registrados. Los clientes se registran automáticamente al confirmar su primer pedido.")
+    else:
+        # ── Métricas generales ──
+        total_clientes = len(all_clients)
+        total_pedidos  = sum(len(c.get("pedidos",[])) for c in all_clients.values())
+        total_facturado = sum(
+            p["total_usd"]
+            for c in all_clients.values()
+            for p in c.get("pedidos", [])
+        )
+        mc1, mc2, mc3 = st.columns(3)
+        mc1.metric("👤 Clientes registrados", total_clientes)
+        mc2.metric("📦 Pedidos totales",       total_pedidos)
+        mc3.metric("💵 Facturación total USD",  f"${total_facturado:,.2f}")
+
+        st.markdown("---")
+
+        # ── Buscador ──
+        search = st.text_input("🔍 Buscar por nombre, empresa o email", key="client_search",
+                               placeholder="Escribe para filtrar...")
+
+        # ── Tabla resumen de clientes ──
+        client_rows = []
+        for email, c in all_clients.items():
+            pedidos = c.get("pedidos", [])
+            total   = sum(p["total_usd"] for p in pedidos)
+            client_rows.append({
+                "Email":          email,
+                "Nombre":         c.get("nombre",""),
+                "Empresa":        c.get("razon_social",""),
+                "Teléfono":       c.get("telefono",""),
+                "Pedidos":        len(pedidos),
+                "Total USD":      total,
+                "Primer pedido":  c.get("primer_pedido",""),
+                "Último pedido":  c.get("ultimo_pedido",""),
+            })
+
+        df_clients = pd.DataFrame(client_rows)
+
+        # Aplicar filtro
+        if search:
+            mask = (
+                df_clients["Email"].str.contains(search, case=False, na=False) |
+                df_clients["Nombre"].str.contains(search, case=False, na=False) |
+                df_clients["Empresa"].str.contains(search, case=False, na=False)
+            )
+            df_clients = df_clients[mask]
+
+        def hl_clients(col):
+            if col.name == "Total USD":
+                return ["background-color:#e8f5e9;font-weight:bold"] * len(col)
+            return [""] * len(col)
+
+        st.dataframe(
+            df_clients.style.apply(hl_clients, axis=0).format({"Total USD": "${:,.2f}"}),
+            use_container_width=True, hide_index=True
+        )
+
+        st.markdown("---")
+        st.markdown("#### 📋 Historial de pedidos por cliente")
+
+        # Selector de cliente para ver detalle
+        email_sel = st.selectbox(
+            "Selecciona un cliente",
+            options=list(all_clients.keys()),
+            format_func=lambda e: f"{all_clients[e].get('nombre','')} — {e}",
+            key="client_selector"
+        )
+
+        if email_sel and email_sel in all_clients:
+            c = all_clients[email_sel]
+            pedidos = c.get("pedidos", [])
+
+            # Ficha del cliente
+            fi1, fi2, fi3, fi4 = st.columns(4)
+            fi1.markdown(f"**{c.get('nombre','')}**  \n{c.get('razon_social','')}")
+            fi2.markdown(f"📧 {email_sel}")
+            fi3.markdown(f"📞 {c.get('telefono','—')}")
+            fi4.markdown(f"📦 **{len(pedidos)}** pedido{'s' if len(pedidos)!=1 else ''}")
+
+            if not pedidos:
+                st.caption("Este cliente aún no tiene pedidos registrados.")
+            else:
+                for ped in reversed(pedidos):   # más reciente primero
+                    with st.expander(
+                        f"🗓️ {ped['fecha']}  ·  {ped['id']}  ·  "
+                        f"{ped['destino']}  ·  ${ped['total_usd']:,.2f}  "
+                        f"({ped['pallets']} pal · {ped['cajas']} cajas)"
+                    ):
+                        prod_df = pd.DataFrame(ped.get("productos", []))
+                        if not prod_df.empty:
+                            st.dataframe(
+                                prod_df.style.format({
+                                    "precio_usd": "${:.2f}",
+                                    "total_usd":  "${:.2f}",
+                                }),
+                                use_container_width=True, hide_index=True
+                            )
+                        # Totales
+                        dc, ds, dr = ped.get("dest_code","USD"), ped.get("dest_sym","$"), ped.get("dest_rate",1.0)
+                        st.markdown(
+                            f"**Total USD:** ${ped['total_usd']:,.2f}"
+                            + (f"  ·  **Total {dc}:** {ds}{ped.get('total_loc', ped['total_usd']*dr):,.2f}" if dc != "USD" else "")
+                        )
