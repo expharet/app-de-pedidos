@@ -5,7 +5,7 @@
     "due": 280.0,
     "peso_pallet": 29.9,
     "tara_caja": 0.4,
-    "transporte_interno": 80.0,
+    "transporte_interno": 60.0,
     "eur_usd": 1.1599,
     "grupos": {
       "A": {
@@ -138,7 +138,7 @@
       "producto": "Yellow Pitahaya",
       "kg_caja": 2.5,
       "costo_caja_manual": null,
-      "precio_compra": 11.8,
+      "precio_compra": 13.3,
       "margen_pct": 0.06,
       "grupo": "B",
       "activo": true
@@ -188,7 +188,7 @@
       "producto": "Soursop",
       "kg_caja": 4.0,
       "costo_caja_manual": null,
-      "precio_compra": 9.8,
+      "precio_compra": 13.14,
       "margen_pct": 0.12,
       "grupo": "I",
       "activo": true
@@ -238,7 +238,7 @@
       "producto": "Baby banano",
       "kg_caja": 3.5,
       "costo_caja_manual": null,
-      "precio_compra": 13.2,
+      "precio_compra": 11.5,
       "margen_pct": 0.06,
       "grupo": "E",
       "activo": false
