@@ -6,6 +6,7 @@ import os
 import math
 import io
 import urllib.parse
+import subprocess
 import pandas as pd
 from datetime import date
 from fpdf import FPDF
@@ -960,3 +961,44 @@ with tab5:
         save_data(data)
         st.success("✅ Lista de productos actualizada.")
         st.rerun()
+
+    # ── Publicar en la nube ────────────────────────────────────────────────────
+    st.markdown("---")
+    st.markdown("#### ☁️ Publicar cambios en la nube")
+    st.info(
+        "Después de guardar cualquier cambio (precios, configuración, productos), "
+        "pulsa este botón para que los clientes vean los nuevos datos al instante."
+    )
+
+    if st.button("🚀 Publicar en la nube", type="primary", use_container_width=False):
+        repo_dir = os.path.dirname(os.path.abspath(__file__))
+        with st.spinner("Publicando en Streamlit Cloud..."):
+            try:
+                # Stage the data file
+                r1 = subprocess.run(
+                    ["git", "add", "precios_data.py", "precios_data.json"],
+                    cwd=repo_dir, capture_output=True, text=True
+                )
+                # Commit (ignore error if nothing changed)
+                msg = f"Actualizar precios y configuración — {date.today().strftime('%d/%m/%Y')}"
+                subprocess.run(
+                    ["git", "commit", "-m", msg],
+                    cwd=repo_dir, capture_output=True, text=True
+                )
+                # Push
+                r3 = subprocess.run(
+                    ["git", "push"],
+                    cwd=repo_dir, capture_output=True, text=True, timeout=30
+                )
+                if r3.returncode == 0:
+                    st.success(
+                        "✅ **¡Publicado!** Los cambios están en la nube. "
+                        "La app se actualizará en 1-2 minutos en:\n\n"
+                        "🌐 https://exportharet-pedidos.streamlit.app"
+                    )
+                else:
+                    st.error(f"Error al publicar: {r3.stderr}")
+            except subprocess.TimeoutExpired:
+                st.error("Tiempo de espera agotado. Comprueba tu conexión a internet.")
+            except Exception as e:
+                st.error(f"Error: {e}")
