@@ -157,6 +157,103 @@ def get_network_url(port: int = 8501) -> str:
     except Exception:
         return f"http://localhost:{port}"
 
+def sync_from_cotizaciones(excel_bytes: bytes, current_data: dict) -> tuple:
+    """
+    Lee Cotizaciones.xlsx y devuelve (new_products, new_cfg, lista_cambios).
+    Detecta cambios en precios de compra, tarifas de flete y parámetros.
+    """
+    from openpyxl import load_workbook
+    import io as _io
+
+    wb       = load_workbook(_io.BytesIO(excel_bytes), data_only=True)
+    ws_cfg   = wb["CONFIGURACION"]
+    ws_pr    = wb["TABLA PRECIOS"]
+    new_cfg  = json.loads(json.dumps(current_data["config"]))
+    changes  = []
+
+    # ── Parámetros generales (busca por nombre de celda, robusto a cambios de fila) ──
+    for row in ws_cfg.iter_rows():
+        for cell in row:
+            v = str(cell.value or "")
+            c3 = ws_cfg.cell(row=cell.row, column=3).value
+            if not isinstance(c3, (int, float)):
+                continue
+            val = float(c3)
+            if "Costo de la caja" in v:
+                if abs(new_cfg.get("costo_caja", 0) - val) > 0.0001:
+                    changes.append(f"Costo caja: {new_cfg.get('costo_caja')} → {val}")
+                    new_cfg["costo_caja"] = val
+            elif "Merma" in v and "%" in v:
+                if abs(new_cfg.get("merma_pct", 0) - val) > 0.0001:
+                    changes.append(f"Merma %: {new_cfg.get('merma_pct')} → {val}")
+                    new_cfg["merma_pct"] = val
+            elif "DUE" in v and "fijo" in v:
+                if abs(new_cfg.get("due", 0) - val) > 0.0001:
+                    changes.append(f"DUE: {new_cfg.get('due')} → {val}")
+                    new_cfg["due"] = val
+            elif "Peso pallet" in v:
+                if abs(new_cfg.get("peso_pallet", 0) - val) > 0.0001:
+                    changes.append(f"Peso pallet: {new_cfg.get('peso_pallet')} → {val}")
+                    new_cfg["peso_pallet"] = val
+            elif "Tara de la caja" in v:
+                if abs(new_cfg.get("tara_caja", 0) - val) > 0.0001:
+                    changes.append(f"Tara caja: {new_cfg.get('tara_caja')} → {val}")
+                    new_cfg["tara_caja"] = val
+            elif "transporte interno" in v.lower() and "costo" in v.lower():
+                if abs(new_cfg.get("transporte_interno", 0) - val) > 0.0001:
+                    changes.append(f"Transporte interno: {new_cfg.get('transporte_interno')} → {val}")
+                    new_cfg["transporte_interno"] = val
+            # Tarifas de destino (columna B = nombre del destino, columna C = tarifa)
+            dest_name = str(ws_cfg.cell(row=cell.row, column=2).value or "")
+            if cell.column == 2 and dest_name in new_cfg.get("destinos", {}):
+                if abs(new_cfg["destinos"][dest_name] - val) > 0.0001:
+                    changes.append(f"Tarifa **{dest_name}**: {new_cfg['destinos'][dest_name]} → {val}")
+                    new_cfg["destinos"][dest_name] = val
+
+    # ── Últimos precios de compra desde historial (TABLA PRECIOS, filas 32-83) ──
+    COL_MAP = {
+         4: "F-PSG10",   # D Granadilla
+         5: "F-PN016",   # E Lulo
+         6: "F-PPA01",   # F Amarilla P
+         7: "F-PSR02",   # G Roja P
+         8: "F-PSR05",   # H Blanca P
+         9: "F-PSM09",   # I Maracuyá
+        10: "F-TAS04",   # J Tomate de árbol
+        11: "F-GNB010",  # K Guanabana
+        12: "F-MPS03",   # L Pepino dulce
+        13: "F-CCN017",  # M Cacao
+        14: "F-BCC013",  # N Babaco
+        15: "F-AHSS012", # O Aguacate
+        16: "F-BBB06",   # P Baby banano
+        17: "F-ZPT020",  # Q Zapote Mamey
+        18: "F-TX020",   # R Taxo
+        19: "F-UVP08",   # S Physalis
+        20: "F-UVP07",   # T Physalis-husk
+    }
+    latest = {}
+    for col, codigo in COL_MAP.items():
+        last = None
+        for r in range(32, 84):
+            v = ws_pr.cell(row=r, column=col).value
+            if isinstance(v, (int, float)) and v > 0:
+                last = float(v)
+        if last:
+            latest[codigo] = last
+
+    new_products = []
+    for p in current_data["products"]:
+        np2 = dict(p)
+        if p["codigo"] in latest:
+            new_price = latest[p["codigo"]]
+            if abs(np2["precio_compra"] - new_price) > 0.001:
+                changes.append(
+                    f"**{p['producto']}**: ${np2['precio_compra']:.2f} → ${new_price:.2f}")
+                np2["precio_compra"] = new_price
+        new_products.append(np2)
+
+    return new_products, new_cfg, changes
+
+
 def _load_page_icon():
     """Carga el favicon personalizado si existe, si no usa el emoji."""
     _fav = os.path.join(os.path.dirname(os.path.abspath(__file__)), "favicon.png")
@@ -1404,6 +1501,69 @@ with tab5:
 
     # ── Logo de la empresa ────────────────────────────────────────────────────
     st.markdown("---")
+    # ── Sincronizar con Excel Cotizaciones ────────────────────────────────────
+    st.markdown("---")
+    st.markdown("#### 📊 Sincronizar con Excel Cotizaciones")
+
+    xc1, xc2 = st.columns([3, 2])
+    with xc1:
+        st.markdown(
+            "Sube el archivo **Cotizaciones.xlsx** para importar automáticamente:\n"
+            "- Precios de compra de cada producto (última semana del historial)\n"
+            "- Tarifas de flete por destino\n"
+            "- Parámetros generales (DUE, merma, peso pallet…)"
+        )
+        excel_up = st.file_uploader(
+            "Cotizaciones.xlsx", type=["xlsx", "xlsm"],
+            key="excel_sync", label_visibility="collapsed"
+        )
+
+    with xc2:
+        # Botón para cargar automáticamente desde ruta local si existe
+        _xls_local = os.path.join(
+            os.path.dirname(__file__),
+            "Documentacion", "Precios", "Cotizaciones.xlsx"
+        )
+        if os.path.exists(_xls_local):
+            st.info("📂 Archivo local detectado en el proyecto")
+            if st.button("🔄 Sincronizar desde archivo local", use_container_width=True):
+                with open(_xls_local, "rb") as f:
+                    st.session_state["_excel_sync_bytes"] = f.read()
+        else:
+            st.caption("El archivo local no está en la carpeta del proyecto.")
+
+    # Procesar el Excel (subido o local)
+    _xbytes = None
+    if excel_up:
+        _xbytes = excel_up.read()
+    elif st.session_state.get("_excel_sync_bytes"):
+        _xbytes = st.session_state.pop("_excel_sync_bytes")
+
+    if _xbytes:
+        with st.spinner("Leyendo Cotizaciones.xlsx…"):
+            try:
+                new_prods, new_cfg_excel, ch = sync_from_cotizaciones(_xbytes, data)
+            except Exception as e:
+                st.error(f"Error al leer el Excel: {e}")
+                new_prods = new_cfg_excel = ch = None
+
+        if ch is not None:
+            if ch:
+                st.markdown(f"**Se detectaron {len(ch)} cambios:**")
+                for c in ch:
+                    st.markdown(f"- {c}")
+                if st.button("✅ Aplicar todos los cambios", type="primary",
+                             key="apply_excel_sync"):
+                    data["products"] = new_prods
+                    data["config"]   = new_cfg_excel
+                    data["config"]["minimos"] = minimos  # conservar mínimos
+                    save_data(data)
+                    st.success("✅ Datos sincronizados desde Cotizaciones.xlsx")
+                    st.rerun()
+            else:
+                st.success("✅ Los datos ya están sincronizados — no hay cambios.")
+
+    # ── Logo de la empresa ────────────────────────────────────────────────────
     st.markdown("#### 🖼️ Logo de la empresa")
 
     _logo_path = os.path.join(os.path.dirname(__file__), "logo.png")
