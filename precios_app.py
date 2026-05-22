@@ -55,6 +55,7 @@ INITIAL_DATA = {
             "H": {"cajas_pallet": 160, "nombre": "Physalis con cáscara"},
             "I": {"cajas_pallet":  60, "nombre": "Guanabana"},
         },
+        "public_url": "https://exportharet-pedidos.streamlit.app",
         "destinos": {
             "Madrid/España": 2.25,
             "París/Francia": 2.75,
@@ -676,8 +677,8 @@ with tab2:
     st.markdown("---")
     st.markdown("#### 🔗 Compartir formulario de pedido con el cliente")
 
-    # URL con IP de red real (no localhost — funciona desde otros dispositivos)
-    base_url   = get_network_url(8501)
+    # Usar siempre la URL pública configurada (Streamlit Cloud)
+    base_url   = cfg.get("public_url", "https://exportharet-pedidos.streamlit.app").rstrip("/")
     client_url = f"{base_url}/?view=cliente"
 
     cl1, cl2 = st.columns([3, 1])
@@ -861,6 +862,13 @@ with tab5:
         new_peso_pallet = st.number_input("Peso pallet + plástico (kg)", value=cfg["peso_pallet"], step=0.1)
 
     st.markdown("---")
+    new_public_url = st.text_input(
+        "🌐 URL pública de la app (para compartir con clientes)",
+        value=cfg.get("public_url", "https://exportharet-pedidos.streamlit.app"),
+        help="URL de Streamlit Cloud. Se usa en los botones de WhatsApp, Email y QR.",
+    )
+
+    st.markdown("---")
     st.markdown("### Tarifas por destino (USD/kg aéreo)")
 
     dest_rows = [{"Destino": k, "Tarifa USD/kg": v} for k, v in cfg["destinos"].items()]
@@ -903,6 +911,7 @@ with tab5:
         cfg["merma_pct"] = new_merma / 100.0
         cfg["costo_caja"] = new_costo_caja
         cfg["peso_pallet"] = new_peso_pallet
+        cfg["public_url"] = new_public_url.rstrip("/")
         for _, row in edited_dest.iterrows():
             cfg["destinos"][row["Destino"]] = float(row["Tarifa USD/kg"])
         for _, row in edited_grupos.iterrows():
