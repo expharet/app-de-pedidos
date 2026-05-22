@@ -364,7 +364,7 @@ def _font_path(filename: str) -> str:
 def gen_albaran_pdf(client_name, razon_social, destino, active_items, total_cajas,
                     total_pallets, total_usd, cfg_data,
                     total_eur=None, client_email="", telefono="",
-                    dest_code="USD", dest_sym="$", dest_rate=1.0):
+                    dest_code="USD", dest_sym="$", dest_rate=1.0, lang="ES"):
     pdf = FPDF()
     pdf.add_page()
     pdf.set_margins(15, 15, 15)
@@ -389,29 +389,27 @@ def gen_albaran_pdf(client_name, razon_social, destino, active_items, total_caja
     # ── Título albarán ──
     pdf.set_text_color(0, 0, 0)
     pdf.set_font("U", "B", 14)
-    pdf.cell(0, 10, "ALBARÁN DE PEDIDO", ln=True, align="C")
+    pdf.cell(0, 10, Tp["pdf_title"], ln=True, align="C")
     pdf.set_draw_color(*GREEN)
     pdf.set_line_width(0.6)
     pdf.line(15, pdf.get_y(), 195, pdf.get_y())
     pdf.ln(4)
 
     # ── Datos del cliente ──
+    Tp = TR.get(lang, TR["ES"])
     rate_label = cfg_data.get("_rate_label", "").replace("🟢","").replace("🟡","").strip()
-    dest_code_pdf, dest_sym_pdf = DESTINO_DIVISA.get(destino, ("USD","$"))
-    dest_rate_pdf = fetch_dest_rate(dest_code_pdf)
-    client_fields = [
-        ("Cliente:",      client_name),
-        ("Razón social:", razon_social),
-    ]
-    if client_email: client_fields.append(("Email:",     client_email))
-    if telefono:     client_fields.append(("Teléfono:",  telefono))
+    client_fields = [(Tp["pdf_client"],  client_name),
+                     (Tp["pdf_company"], razon_social)]
+    if client_email: client_fields.append((Tp["pdf_email"], client_email))
+    if telefono:     client_fields.append((Tp["pdf_phone"], telefono))
     client_fields += [
-        ("Fecha:",   date.today().strftime("%d/%m/%Y")),
-        ("Destino:", destino),
-        ("EUR/USD:", f"{cfg_data['eur_usd']:.4f}  ({rate_label})"),
+        (Tp["pdf_date"],  date.today().strftime("%d/%m/%Y")),
+        (Tp["pdf_dest"],  destino),
+        (Tp["pdf_rate"],  f"{cfg_data['eur_usd']:.4f}  ({rate_label})"),
     ]
-    if dest_code_pdf not in ("USD",):
-        client_fields.append((f"Divisa {dest_code_pdf}:", f"1 USD = {dest_rate_pdf:.4f} {dest_sym_pdf}"))
+    if dest_code not in ("USD",):
+        client_fields.append((Tp["pdf_divisa"].format(code=dest_code),
+                              f"1 USD = {dest_rate:.4f} {dest_sym}"))
     for label, value in client_fields:
         pdf.set_font("U", "B", 10)
         pdf.cell(38, 7, label)
@@ -427,7 +425,8 @@ def gen_albaran_pdf(client_name, razon_social, destino, active_items, total_caja
     pdf.set_text_color(255, 255, 255)
     pdf.set_font("U", "B", 9)
     widths  = [58, 22, 22, 40, 40]
-    headers = ["Producto", "Cajas", "Pallets", "Precio/caja USD", "Total USD"]
+    headers = [Tp["pdf_product"], Tp["pdf_boxes"], Tp["pdf_pallets"],
+               Tp["pdf_price_usd"], Tp["pdf_total_usd"]]
     aligns  = ["L", "C", "C", "R", "R"]
     for w, h, a in zip(widths, headers, aligns):
         pdf.cell(w, 7, h, fill=True, align=a)
@@ -460,7 +459,7 @@ def gen_albaran_pdf(client_name, razon_social, destino, active_items, total_caja
 
     # ── Totales ──
     pdf.set_font("U", "", 10)
-    pdf.cell(100, 7, f"Total pallets: {total_pallets}   ·   Total cajas: {total_cajas:,}")
+    pdf.cell(100, 7, Tp["pdf_total_pal"].format(n=total_pallets, c=f"{total_cajas:,}"))
     pdf.set_font("U", "B", 11)
     pdf.cell(0, 7, f"TOTAL USD:  ${total_usd:,.2f}", align="R", ln=True)
     pdf.cell(100, 7, "")
@@ -472,7 +471,7 @@ def gen_albaran_pdf(client_name, razon_social, destino, active_items, total_caja
     pdf.ln(10)
     pdf.set_font("U", "", 8)
     pdf.set_text_color(120, 120, 120)
-    pdf.cell(0, 5, "Export Haret  ·  order@exportharet.com  ·  Documento generado automáticamente",
+    pdf.cell(0, 5, Tp["pdf_footer"],
              align="C", ln=True)
 
     return bytes(pdf.output())
@@ -480,16 +479,17 @@ def gen_albaran_pdf(client_name, razon_social, destino, active_items, total_caja
 
 def gen_wa_text(client_name, razon_social, destino, active_items,
                 total_cajas, total_pallets, total_usd, cfg_data,
-                total_eur=None, dest_code="USD", dest_sym="$", dest_rate=1.0):
+                total_eur=None, dest_code="USD", dest_sym="$", dest_rate=1.0, lang="ES"):
+    Tw = TR.get(lang, TR["ES"])
     lines = [
-        "🌿 *PEDIDO — EXPORT HARET*",
+        Tw["wa_header"],
         "━━━━━━━━━━━━━━━━━━━━━",
-        f"👤 Cliente: {client_name}",
-        f"🏢 Razón social: {razon_social}",
-        f"📅 Fecha: {date.today().strftime('%d/%m/%Y')}",
-        f"✈️ Destino: {destino}",
+        f"{Tw['wa_client']} {client_name}",
+        f"{Tw['wa_company']} {razon_social}",
+        f"{Tw['wa_date']} {date.today().strftime('%d/%m/%Y')}",
+        f"{Tw['wa_dest']} {destino}",
         "━━━━━━━━━━━━━━━━━━━━━",
-        "*PRODUCTOS:*",
+        Tw["wa_products"],
     ]
     for p, cajas in active_items:
         r = calc_pedido(p, cfg_data, destino, total_cajas)
@@ -499,7 +499,7 @@ def gen_wa_text(client_name, razon_social, destino, active_items,
     total_loc = total_usd * dest_rate
     lines += [
         "━━━━━━━━━━━━━━━━━━━━━",
-        f"📦 Total: {total_cajas:,} cajas  |  {total_pallets} pallets",
+        Tw["wa_summary"].format(c=f"{total_cajas:,}", p=total_pallets),
         f"💵 *Total USD: ${total_usd:,.2f}*",
     ]
     if dest_code != "USD":
@@ -507,56 +507,203 @@ def gen_wa_text(client_name, razon_social, destino, active_items,
     return "\n".join(lines)
 
 
+TR = {
+    "ES": {
+        "lang_label":      "Idioma / Language",
+        "title":           "## 🌿 Export Haret — Pedidos",
+        "client_section":  "#### 👤 Datos del cliente",
+        "name":            "Nombre del cliente *",
+        "name_ph":         "Nombre completo",
+        "company":         "Razón social / Empresa *",
+        "company_ph":      "Empresa S.L.",
+        "email":           "📧 Email de contacto *",
+        "email_ph":        "cliente@empresa.com",
+        "prefix":          "📞 País / Prefijo *",
+        "phone":           "Número de teléfono *",
+        "phone_ph":        "612 345 678",
+        "dest":            "🌍 Destino *",
+        "min_order":       "Mínimo de orden: **{n} pallets** totales.",
+        "dest_currency":   "Divisa del destino: **{code} ({sym})** · 1 USD = {rate:.4f} {code}",
+        "currency_usd":    "Divisa: **USD ($)**",
+        "products":        "#### 📦 Productos del pedido",
+        "unit_col":        "Unidad",
+        "qty_col":         "Cantidad",
+        "boxes_col":       "= Cajas",
+        "opt_pal":         "📦 Pallets",
+        "opt_caj":         "🗃️ Cajas",
+        "min_pal":         "mín. {n} pallet{s} ({c} cajas)",
+        "min_caj":         "mín. {n} cajas",
+        "hint":            "↑ Elige **📦 Pallets** o **🗃️ Cajas** e ingresa la cantidad de cada producto.",
+        "pallets_m":       "Pallets",
+        "cajas_m":         "Cajas",
+        "weight_m":        "Peso neto",
+        "progress_ok":     "✅ {n} pallets — pedido válido",
+        "progress_low":    "🔴 {n} de {min} pallets mínimos — faltan {f} pallet{s}",
+        "warn_fields":     "⚠️ Completa todos los datos del cliente para confirmar.",
+        "warn_pallets":    "⚠️ Faltan {f} pallet{s} para alcanzar el mínimo de {min}.",
+        "below_min":       "⚠️ **{prod}**: pediste {got} cajas — mínimo es {need} cajas.",
+        "confirm_btn":     "✅ Confirmar Pedido",
+        "confirmed_ok":    "✅ Pedido confirmado — {name} · {dest}",
+        "email_auto_ok":   "📨 Pedido enviado automáticamente a **order@exportharet.com**",
+        "email_no_smtp":   "💡 Configura SMTP en los secretos para envío automático.",
+        "email_error":     "⚠️ No se pudo enviar email: {e}",
+        "pdf_btn":         "📄 Descargar Albarán PDF",
+        "wa_btn":          "📱 Enviar por WhatsApp",
+        "mail_btn":        "📧 Enviar por Email",
+        "new_btn":         "🔄 Nuevo",
+        "pdf_title":       "ALBARÁN DE PEDIDO",
+        "pdf_client":      "Cliente:",
+        "pdf_company":     "Razón social:",
+        "pdf_email":       "Email:",
+        "pdf_phone":       "Teléfono:",
+        "pdf_date":        "Fecha:",
+        "pdf_dest":        "Destino:",
+        "pdf_rate":        "EUR/USD:",
+        "pdf_divisa":      "Divisa {code}:",
+        "pdf_product":     "Producto",
+        "pdf_boxes":       "Cajas",
+        "pdf_pallets":     "Pallets",
+        "pdf_price_usd":   "Precio/caja USD",
+        "pdf_total_usd":   "Total USD",
+        "pdf_total_pal":   "Total pallets: {n}   ·   Total cajas: {c}",
+        "pdf_footer":      "Export Haret  ·  order@exportharet.com  ·  Documento generado automáticamente",
+        "wa_header":       "🌿 *PEDIDO — EXPORT HARET*",
+        "wa_client":       "👤 Cliente:",
+        "wa_company":      "🏢 Razón social:",
+        "wa_date":         "📅 Fecha:",
+        "wa_dest":         "✈️ Destino:",
+        "wa_products":     "*PRODUCTOS:*",
+        "wa_summary":      "📦 Total: {c} cajas  |  {p} pallets",
+    },
+    "EN": {
+        "lang_label":      "Idioma / Language",
+        "title":           "## 🌿 Export Haret — Orders",
+        "client_section":  "#### 👤 Client Information",
+        "name":            "Client Name *",
+        "name_ph":         "Full name",
+        "company":         "Company / Business Name *",
+        "company_ph":      "Company Ltd.",
+        "email":           "📧 Contact Email *",
+        "email_ph":        "client@company.com",
+        "prefix":          "📞 Country / Prefix *",
+        "phone":           "Phone Number *",
+        "phone_ph":        "612 345 678",
+        "dest":            "🌍 Destination *",
+        "min_order":       "Minimum order: **{n} pallets** total.",
+        "dest_currency":   "Destination currency: **{code} ({sym})** · 1 USD = {rate:.4f} {code}",
+        "currency_usd":    "Currency: **USD ($)**",
+        "products":        "#### 📦 Order Products",
+        "unit_col":        "Unit",
+        "qty_col":         "Quantity",
+        "boxes_col":       "= Boxes",
+        "opt_pal":         "📦 Pallets",
+        "opt_caj":         "🗃️ Boxes",
+        "min_pal":         "min. {n} pallet{s} ({c} boxes)",
+        "min_caj":         "min. {n} boxes",
+        "hint":            "↑ Choose **📦 Pallets** or **🗃️ Boxes** and enter the quantity for each product.",
+        "pallets_m":       "Pallets",
+        "cajas_m":         "Boxes",
+        "weight_m":        "Net Weight",
+        "progress_ok":     "✅ {n} pallets — valid order",
+        "progress_low":    "🔴 {n} of {min} minimum pallets — add {f} more pallet{s}",
+        "warn_fields":     "⚠️ Please fill in all client information to confirm.",
+        "warn_pallets":    "⚠️ {f} more pallet{s} needed to reach the minimum of {min}.",
+        "below_min":       "⚠️ **{prod}**: you entered {got} boxes — minimum is {need} boxes.",
+        "confirm_btn":     "✅ Confirm Order",
+        "confirmed_ok":    "✅ Order confirmed — {name} · {dest}",
+        "email_auto_ok":   "📨 Order automatically sent to **order@exportharet.com**",
+        "email_no_smtp":   "💡 Configure SMTP secrets for automatic email sending.",
+        "email_error":     "⚠️ Could not send email: {e}",
+        "pdf_btn":         "📄 Download Order PDF",
+        "wa_btn":          "📱 Send via WhatsApp",
+        "mail_btn":        "📧 Send via Email",
+        "new_btn":         "🔄 New Order",
+        "pdf_title":       "ORDER CONFIRMATION",
+        "pdf_client":      "Client:",
+        "pdf_company":     "Company:",
+        "pdf_email":       "Email:",
+        "pdf_phone":       "Phone:",
+        "pdf_date":        "Date:",
+        "pdf_dest":        "Destination:",
+        "pdf_rate":        "EUR/USD:",
+        "pdf_divisa":      "{code} rate:",
+        "pdf_product":     "Product",
+        "pdf_boxes":       "Boxes",
+        "pdf_pallets":     "Pallets",
+        "pdf_price_usd":   "Price/box USD",
+        "pdf_total_usd":   "Total USD",
+        "pdf_total_pal":   "Total pallets: {n}   ·   Total boxes: {c}",
+        "pdf_footer":      "Export Haret  ·  order@exportharet.com  ·  Automatically generated document",
+        "wa_header":       "🌿 *ORDER — EXPORT HARET*",
+        "wa_client":       "👤 Client:",
+        "wa_company":      "🏢 Company:",
+        "wa_date":         "📅 Date:",
+        "wa_dest":         "✈️ Destination:",
+        "wa_products":     "*PRODUCTS:*",
+        "wa_summary":      "📦 Total: {c} boxes  |  {p} pallets",
+    },
+}
+
+
 def render_order_form(cfg_data, products_list, standalone=False):
     """Formulario de pedido. standalone=True = vista cliente, False = pestaña admin."""
     MIN_PALLETS = 3
+
+    # ── Selector de idioma ──────────────────────────────────────────────────────
+    lang_key = "order_lang"
+    if lang_key not in st.session_state:
+        st.session_state[lang_key] = "ES"
+
+    lang_col, _ = st.columns([1, 5])
+    with lang_col:
+        lang = st.radio(
+            "🌐",
+            ["🇪🇸 ES", "🇬🇧 EN"],
+            horizontal=True,
+            key=lang_key,
+            label_visibility="collapsed",
+        )
+    lang = "EN" if "EN" in lang else "ES"
+    T   = TR[lang]   # atajo de traducción
 
     if standalone:
         _logo_path_s = os.path.join(os.path.dirname(__file__), "logo.png")
         if os.path.exists(_logo_path_s):
             st.image(_logo_path_s, width=180)
-        st.markdown("## 🌿 Export Haret — Pedidos")
+        st.markdown(T["title"])
         st.markdown("---")
 
     # ── Datos del cliente ──
-    st.markdown("#### 👤 Datos del cliente")
+    st.markdown(T["client_section"])
     cc1, cc2 = st.columns(2)
     with cc1:
-        client_name  = st.text_input("Nombre del cliente *", key="cl_name",
-                                      placeholder="Nombre completo")
-        razon_social = st.text_input("Razón social / Empresa *", key="cl_razon",
-                                      placeholder="Empresa S.L.")
-        client_email = st.text_input("📧 Email de contacto *", key="cl_email",
-                                      placeholder="cliente@empresa.com")
-        # Teléfono con prefijo de país
+        client_name  = st.text_input(T["name"],    key="cl_name",         placeholder=T["name_ph"])
+        razon_social = st.text_input(T["company"], key="cl_razon",        placeholder=T["company_ph"])
+        client_email = st.text_input(T["email"],   key="cl_email",        placeholder=T["email_ph"])
         prefix_labels = [f"{name}  {code}" for name, code in PHONE_PREFIXES]
-        prefix_idx    = st.selectbox("📞 País / Prefijo *", range(len(PHONE_PREFIXES)),
+        prefix_idx    = st.selectbox(T["prefix"], range(len(PHONE_PREFIXES)),
                                       format_func=lambda i: prefix_labels[i],
                                       key="cl_phone_prefix")
-        phone_num     = st.text_input("Número de teléfono *", key="cl_phone_num",
-                                       placeholder="612 345 678")
-        phone_full    = f"{PHONE_PREFIXES[prefix_idx][1]} {phone_num}".strip()
+        phone_num  = st.text_input(T["phone"], key="cl_phone_num", placeholder=T["phone_ph"])
+        phone_full = f"{PHONE_PREFIXES[prefix_idx][1]} {phone_num}".strip()
 
     with cc2:
-        ped_dest = st.selectbox("🌍 Destino *", list(cfg_data["destinos"].keys()),
-                                 key="cl_dest")
-        # Divisa del destino
+        ped_dest = st.selectbox(T["dest"], list(cfg_data["destinos"].keys()), key="cl_dest")
         dest_code, dest_sym = DESTINO_DIVISA.get(ped_dest, ("USD", "$"))
         dest_rate           = fetch_dest_rate(dest_code)
         if dest_code == "USD":
-            st.info(f"Mínimo de orden: **{MIN_PALLETS} pallets** totales.\n\nDivisa: **USD ($)**")
+            st.info(T["min_order"].format(n=MIN_PALLETS) + "\n\n" + T["currency_usd"])
         else:
             st.info(
-                f"Mínimo de orden: **{MIN_PALLETS} pallets** totales.\n\n"
-                f"Divisa del destino: **{dest_code} ({dest_sym})** · "
-                f"1 USD = {dest_rate:.4f} {dest_code}"
+                T["min_order"].format(n=MIN_PALLETS) + "\n\n" +
+                T["dest_currency"].format(code=dest_code, sym=dest_sym, rate=dest_rate)
             )
 
     st.markdown("---")
-    st.markdown("#### 📦 Productos del pedido")
+    st.markdown(T["products"])
 
-    OPT_PAL = "📦 Pallets"
-    OPT_CAJ = "🗃️ Cajas"
+    OPT_PAL = T["opt_pal"]
+    OPT_CAJ = T["opt_caj"]
     sfx     = "cl" if standalone else "adm"
 
     # Solo productos activos (disponibles para pedido)
@@ -564,9 +711,9 @@ def render_order_form(cfg_data, products_list, standalone=False):
 
     # Cabecera de columnas
     h1, h2, h3, h4 = st.columns([3, 1.8, 1.4, 1])
-    h2.markdown("<small style='color:#888'>Unidad</small>", unsafe_allow_html=True)
-    h3.markdown("<small style='color:#888'>Cantidad</small>", unsafe_allow_html=True)
-    h4.markdown("<small style='color:#888'>= Cajas</small>", unsafe_allow_html=True)
+    h2.markdown(f"<small style='color:#888'>{T['unit_col']}</small>", unsafe_allow_html=True)
+    h3.markdown(f"<small style='color:#888'>{T['qty_col']}</small>",  unsafe_allow_html=True)
+    h4.markdown(f"<small style='color:#888'>{T['boxes_col']}</small>", unsafe_allow_html=True)
 
     st.markdown("<hr style='margin:4px 0 8px 0'>", unsafe_allow_html=True)
 
@@ -585,9 +732,9 @@ def render_order_form(cfg_data, products_list, standalone=False):
             if min_c > 0:
                 if min_c % cajas_pal == 0:
                     pals = min_c // cajas_pal
-                    lbl = f"mín. {pals} pallet{'s' if pals>1 else ''} ({min_c} cajas)"
+                    lbl = T["min_pal"].format(n=pals, s="s" if pals>1 else "", c=min_c)
                 else:
-                    lbl = f"mín. {min_c} cajas"
+                    lbl = T["min_caj"].format(n=min_c)
                 st.caption(lbl)
 
         with c2:
@@ -631,7 +778,7 @@ def render_order_form(cfg_data, products_list, standalone=False):
     st.markdown("---")
 
     if not active_items:
-        st.caption("↑ Elige **📦 Pallets** o **🗃️ Cajas** e ingresa la cantidad de cada producto.")
+        st.caption(T["hint"])
         return
 
     total_cajas = sum(q for _, q in active_items)
@@ -648,9 +795,10 @@ def render_order_form(cfg_data, products_list, standalone=False):
     faltan = max(0, MIN_PALLETS - total_pallets)
     pct = min(total_pallets / MIN_PALLETS, 1.0)
     if total_pallets < MIN_PALLETS:
-        st.progress(pct, text=f"🔴 {total_pallets} de {MIN_PALLETS} pallets mínimos — faltan {faltan} pallet{'s' if faltan != 1 else ''}")
+        st.progress(pct, text=T["progress_low"].format(
+            n=total_pallets, min=MIN_PALLETS, f=faltan, s="s" if faltan!=1 else ""))
     else:
-        st.progress(1.0, text=f"✅ {total_pallets} pallets — pedido válido")
+        st.progress(1.0, text=T["progress_ok"].format(n=total_pallets))
 
     # Divisa local del destino
     dest_code, dest_sym = DESTINO_DIVISA.get(ped_dest, ("USD", "$"))
@@ -680,9 +828,9 @@ def render_order_form(cfg_data, products_list, standalone=False):
     peso_kg   = sum(p["kg_caja"] * q for p, q in active_items)
 
     c1, c2, c3, c4, c5 = st.columns(5)
-    c1.metric("Pallets",   str(total_pallets))
-    c2.metric("Cajas",     f"{total_cajas:,}")
-    c3.metric("Peso neto", f"{peso_kg:,.0f} kg")
+    c1.metric(T["pallets_m"], str(total_pallets))
+    c2.metric(T["cajas_m"],  f"{total_cajas:,}")
+    c3.metric(T["weight_m"], f"{peso_kg:,.0f} kg")
     c4.metric("Total USD", f"${total_usd:,.2f}")
     if show_local and total_loc:
         c5.metric(f"Total {dest_code}", f"{dest_sym}{total_loc:,.2f}")
@@ -724,17 +872,16 @@ def render_order_form(cfg_data, products_list, standalone=False):
                      and bool(client_email) and bool(phone_num))
 
     if not client_name or not razon_social or not client_email or not phone_num:
-        st.warning("⚠️ Completa todos los datos del cliente para confirmar.")
+        st.warning(T["warn_fields"])
     elif total_pallets < MIN_PALLETS:
-        st.warning(f"⚠️ Faltan {faltan} pallet{'s' if faltan != 1 else ''} para alcanzar el mínimo de {MIN_PALLETS}.")
+        st.warning(T["warn_pallets"].format(f=faltan, s="s" if faltan!=1 else "", min=MIN_PALLETS))
     if below_minimum:
         for nombre, pedido, minimo in below_minimum:
-            st.error(f"⚠️ **{nombre}**: pediste {pedido} cajas — mínimo es {minimo} cajas.")
+            st.error(T["below_min"].format(prod=nombre, got=pedido, need=minimo))
 
     can_confirm = can_confirm and len(below_minimum) == 0
 
-    btn_label = "✅ Confirmar Pedido"
-    if st.button(btn_label, type="primary", disabled=not can_confirm, key=confirm_key):
+    if st.button(T["confirm_btn"], type="primary", disabled=not can_confirm, key=confirm_key):
         # Guardar todo lo necesario en session_state — independiente del estado del formulario
         cod_map = {p["codigo"]: p for p in products_list}
         st.session_state[albaran_key] = {
@@ -751,33 +898,36 @@ def render_order_form(cfg_data, products_list, standalone=False):
             "dest_code":    dest_code,
             "dest_sym":     dest_sym,
             "dest_rate":    dest_rate,
+            "lang":         lang,
         }
 
     # ── Mostrar albarán (persiste aunque el formulario cambie) ──
     saved = st.session_state.get(albaran_key)
     if saved:
-        st.success(f"✅ Pedido confirmado — {saved['client_name']} · {saved['destino']}")
+        _Ts = TR.get(saved.get("lang","ES"), TR["ES"])
+        st.success(_Ts["confirmed_ok"].format(name=saved["client_name"], dest=saved["destino"]))
 
         cod_map = {p["codigo"]: p for p in products_list}
         ai_full = [(cod_map[c], q) for c, q in saved["ai_codigos"] if c in cod_map]
 
         try:
-            _dc = saved.get("dest_code","USD")
-            _ds = saved.get("dest_sym","$")
-            _dr = saved.get("dest_rate", 1.0)
+            _dc   = saved.get("dest_code","USD")
+            _ds   = saved.get("dest_sym","$")
+            _dr   = saved.get("dest_rate", 1.0)
+            _lang = saved.get("lang","ES")
             pdf_bytes = gen_albaran_pdf(
                 saved["client_name"], saved["razon_social"], saved["destino"],
                 ai_full, saved["total_cajas"], saved["total_pallets"],
                 saved["total_usd"], cfg_data,
                 client_email=saved.get("email",""),
                 telefono=saved.get("telefono",""),
-                dest_code=_dc, dest_sym=_ds, dest_rate=_dr,
+                dest_code=_dc, dest_sym=_ds, dest_rate=_dr, lang=_lang,
             )
             wa_text = gen_wa_text(
                 saved["client_name"], saved["razon_social"], saved["destino"],
                 ai_full, saved["total_cajas"], saved["total_pallets"],
                 saved["total_usd"], cfg_data,
-                dest_code=_dc, dest_sym=_ds, dest_rate=_dr,
+                dest_code=_dc, dest_sym=_ds, dest_rate=_dr, lang=_lang,
             )
             # Añadir datos de contacto al mensaje WhatsApp
             extra = []
@@ -797,23 +947,23 @@ def render_order_form(cfg_data, products_list, standalone=False):
             # ── Envío automático por SMTP ──────────────────────────────────────
             email_ok, email_msg = send_order_email(saved, ai_full, pdf_bytes, cfg_data, wa_text)
             if email_ok:
-                st.success("📨 Pedido enviado automáticamente a **order@exportharet.com**")
+                st.success(_Ts["email_auto_ok"])
             elif email_msg == "sin_smtp":
-                st.info("💡 Configura SMTP_USER / SMTP_PASS en los secretos para envío automático.")
+                st.info(_Ts["email_no_smtp"])
             else:
-                st.warning(f"⚠️ No se pudo enviar email automático: {email_msg}")
+                st.warning(_Ts["email_error"].format(e=email_msg))
 
             ba1, ba2, ba3, ba4 = st.columns([2, 2, 2, 1])
             with ba1:
-                st.download_button("📄 Descargar Albarán PDF", pdf_bytes,
+                st.download_button(_Ts["pdf_btn"], pdf_bytes,
                                    file_name=fname, mime="application/pdf",
                                    use_container_width=True)
             with ba2:
-                st.link_button("📱 Enviar por WhatsApp", wa_url, use_container_width=True)
+                st.link_button(_Ts["wa_btn"], wa_url, use_container_width=True)
             with ba3:
-                st.link_button("📧 Enviar por Email", mail_url, use_container_width=True)
+                st.link_button(_Ts["mail_btn"], mail_url, use_container_width=True)
             with ba4:
-                if st.button("🔄 Nuevo", key=f"new_{confirm_key}", use_container_width=True):
+                if st.button(_Ts["new_btn"], key=f"new_{confirm_key}", use_container_width=True):
                     del st.session_state[albaran_key]
                     st.rerun()
         except Exception as e:
