@@ -5,8 +5,10 @@ import json
 import os
 import math
 import io
+import base64
 import urllib.parse
 import subprocess
+import requests
 import pandas as pd
 from datetime import date
 from fpdf import FPDF
@@ -1022,34 +1024,59 @@ with tab5:
     )
 
     if st.button("🚀 Publicar en la nube", type="primary", use_container_width=False):
-        repo_dir = os.path.dirname(os.path.abspath(__file__))
         with st.spinner("Publicando en Streamlit Cloud..."):
             try:
-                # Stage the data file
-                r1 = subprocess.run(
-                    ["git", "add", "precios_data.json"],
-                    cwd=repo_dir, capture_output=True, text=True
-                )
-                # Commit (ignore error if nothing changed)
-                msg = f"Actualizar precios y configuración — {date.today().strftime('%d/%m/%Y')}"
-                subprocess.run(
-                    ["git", "commit", "-m", msg],
-                    cwd=repo_dir, capture_output=True, text=True
-                )
-                # Push
-                r3 = subprocess.run(
-                    ["git", "push"],
-                    cwd=repo_dir, capture_output=True, text=True, timeout=30
-                )
-                if r3.returncode == 0:
+                # Token desde secrets (Streamlit Cloud) o archivo local
+                gh_token = st.secrets.get("GITHUB_TOKEN", "") if hasattr(st, "secrets") else ""
+                if not gh_token:
+                    # Fallback: leer de archivo local de secretos
+                    secrets_path = os.path.join(os.path.dirname(__file__), ".streamlit", "secrets.toml")
+                    if os.path.exists(secrets_path):
+                        with open(secrets_path) as sf:
+                            for line in sf:
+                                if "GITHUB_TOKEN" in line:
+                                    gh_token = line.split("=")[-1].strip().strip('"').strip("'")
+
+                if not gh_token:
+                    st.error("❌ Token de GitHub no configurado. Contacta al administrador.")
+                    st.stop()
+
+                # Contenido actual del archivo de datos
+                data_content = json.dumps(data, indent=2, ensure_ascii=False)
+                content_b64  = base64.b64encode(data_content.encode()).decode()
+
+                api_url = "https://api.github.com/repos/expharet/app-de-pedidos/contents/precios_data.json"
+                headers = {
+                    "Authorization": f"token {gh_token}",
+                    "Accept":        "application/vnd.github.v3+json",
+                }
+
+                # Obtener SHA actual del archivo (necesario para actualizarlo)
+                r_get = requests.get(api_url, headers=headers, timeout=15)
+                if r_get.status_code != 200:
+                    st.error(f"❌ Error leyendo archivo en GitHub: {r_get.status_code}")
+                    st.stop()
+                sha = r_get.json()["sha"]
+
+                # Publicar el archivo actualizado
+                payload = {
+                    "message": f"Actualizar precios — {date.today().strftime('%d/%m/%Y')}",
+                    "content": content_b64,
+                    "sha":     sha,
+                }
+                r_put = requests.put(api_url, json=payload, headers=headers, timeout=20)
+
+                if r_put.status_code in (200, 201):
                     st.success(
                         "✅ **¡Publicado!** Los cambios están en la nube. "
-                        "La app se actualizará en 1-2 minutos en:\n\n"
+                        "La app se actualizará en 1-2 minutos:\n\n"
                         "🌐 https://exportharet-pedidos.streamlit.app"
                     )
                 else:
-                    st.error(f"Error al publicar: {r3.stderr}")
-            except subprocess.TimeoutExpired:
-                st.error("Tiempo de espera agotado. Comprueba tu conexión a internet.")
+                    msg = r_put.json().get("message", str(r_put.status_code))
+                    st.error(f"❌ Error publicando: {msg}")
+
+            except requests.Timeout:
+                st.error("⏱ Tiempo de espera agotado. Comprueba tu conexión.")
             except Exception as e:
-                st.error(f"Error: {e}")
+                st.error(f"❌ Error inesperado: {e}")
