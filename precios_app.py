@@ -1359,7 +1359,6 @@ def render_order_form(cfg_data, products_list, standalone=False,
             "dest_code":    dest_code,
             "dest_sym":     dest_sym,
             "dest_rate":    dest_rate,
-            "total_flete":  total_flete,
             "lang":         lang,
         }
 
