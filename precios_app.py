@@ -354,8 +354,9 @@ def _font_path(filename: str) -> str:
 
 
 def gen_albaran_pdf(client_name, razon_social, destino, active_items, total_cajas,
-                    total_pallets, total_usd, total_eur, cfg_data,
-                    client_email="", telefono=""):
+                    total_pallets, total_usd, cfg_data,
+                    total_eur=None, client_email="", telefono="",
+                    dest_code="USD", dest_sym="$", dest_rate=1.0):
     pdf = FPDF()
     pdf.add_page()
     pdf.set_margins(15, 15, 15)
@@ -455,7 +456,9 @@ def gen_albaran_pdf(client_name, razon_social, destino, active_items, total_caja
     pdf.set_font("U", "B", 11)
     pdf.cell(0, 7, f"TOTAL USD:  ${total_usd:,.2f}", align="R", ln=True)
     pdf.cell(100, 7, "")
-    pdf.cell(0, 7, f"TOTAL EUR:  €{total_eur:,.2f}", align="R", ln=True)
+    if dest_code != "USD":
+        total_loc_pdf = total_usd * dest_rate
+        pdf.cell(0, 7, f"TOTAL {dest_code}:  {dest_sym}{total_loc_pdf:,.2f}", align="R", ln=True)
 
     # ── Pie ──
     pdf.ln(10)
@@ -468,7 +471,8 @@ def gen_albaran_pdf(client_name, razon_social, destino, active_items, total_caja
 
 
 def gen_wa_text(client_name, razon_social, destino, active_items,
-                total_cajas, total_pallets, total_usd, total_eur, cfg_data):
+                total_cajas, total_pallets, total_usd, cfg_data,
+                total_eur=None, dest_code="USD", dest_sym="$", dest_rate=1.0):
     lines = [
         "🌿 *PEDIDO — EXPORT HARET*",
         "━━━━━━━━━━━━━━━━━━━━━",
@@ -484,12 +488,14 @@ def gen_wa_text(client_name, razon_social, destino, active_items,
         pal = cajas / cfg_data["grupos"][p["grupo"]]["cajas_pallet"]
         total = r["precio_caja_usd"] * cajas
         lines.append(f"• {p['producto']}: {cajas} cajas ({pal:.2f} pal) — ${total:,.2f}")
+    total_loc = total_usd * dest_rate
     lines += [
         "━━━━━━━━━━━━━━━━━━━━━",
         f"📦 Total: {total_cajas:,} cajas  |  {total_pallets} pallets",
         f"💵 *Total USD: ${total_usd:,.2f}*",
-        f"💶 *Total EUR: €{total_eur:,.2f}*",
     ]
+    if dest_code != "USD":
+        lines.append(f"💱 *Total {dest_code}: {dest_sym}{total_loc:,.2f}*")
     return "\n".join(lines)
 
 
@@ -738,10 +744,10 @@ def render_order_form(cfg_data, products_list, standalone=False):
             "total_cajas":  total_cajas,
             "total_pallets": total_pallets,
             "total_usd":    total_usd,
-            "total_eur":    total_eur,
-            "dest_code":    DESTINO_DIVISA.get(ped_dest, ("USD","$"))[0],
-            "dest_sym":     DESTINO_DIVISA.get(ped_dest, ("USD","$"))[1],
-            "dest_rate":    fetch_dest_rate(DESTINO_DIVISA.get(ped_dest, ("USD","$"))[0]),
+            "total_loc":    total_loc,
+            "dest_code":    dest_code,
+            "dest_sym":     dest_sym,
+            "dest_rate":    dest_rate,
         }
 
     # ── Mostrar albarán (persiste aunque el formulario cambie) ──
@@ -753,17 +759,22 @@ def render_order_form(cfg_data, products_list, standalone=False):
         ai_full = [(cod_map[c], q) for c, q in saved["ai_codigos"] if c in cod_map]
 
         try:
+            _dc = saved.get("dest_code","USD")
+            _ds = saved.get("dest_sym","$")
+            _dr = saved.get("dest_rate", 1.0)
             pdf_bytes = gen_albaran_pdf(
                 saved["client_name"], saved["razon_social"], saved["destino"],
                 ai_full, saved["total_cajas"], saved["total_pallets"],
-                saved["total_usd"], saved["total_eur"], cfg_data,
+                saved["total_usd"], cfg_data,
                 client_email=saved.get("email",""),
                 telefono=saved.get("telefono",""),
+                dest_code=_dc, dest_sym=_ds, dest_rate=_dr,
             )
             wa_text = gen_wa_text(
                 saved["client_name"], saved["razon_social"], saved["destino"],
                 ai_full, saved["total_cajas"], saved["total_pallets"],
-                saved["total_usd"], saved["total_eur"], cfg_data,
+                saved["total_usd"], cfg_data,
+                dest_code=_dc, dest_sym=_ds, dest_rate=_dr,
             )
             # Añadir datos de contacto al mensaje WhatsApp
             extra = []
