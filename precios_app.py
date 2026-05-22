@@ -403,16 +403,16 @@ def render_order_form(cfg_data, products_list, standalone=False):
             is_pal = unit == OPT_PAL
             qty = st.number_input(
                 "q",
-                min_value=0.0,
-                step=0.5 if is_pal else 1.0,
-                format="%.1f" if is_pal else "%.0f",
+                min_value=0,
+                step=1,
+                format="%d",
                 label_visibility="collapsed",
                 key=f"qty_{cod}_{sfx}",
             )
 
         with c4:
             if qty > 0:
-                cajas = int(round(qty * cajas_pal)) if is_pal else int(round(qty))
+                cajas = int(qty) * cajas_pal if is_pal else int(qty)
                 st.markdown(
                     f"<span style='color:#2d6a4f;font-weight:bold'>{cajas}</span>",
                     unsafe_allow_html=True,
