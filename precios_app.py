@@ -1060,29 +1060,42 @@ def render_order_form(cfg_data, products_list, standalone=False,
         return
 
     # ── PASO 2: Datos del cliente ─────────────────────────────────────────────
-    if require_email:
-        # Vista cliente: datos verificados desde session_state
-        _cd = st.session_state[_cdata_k]
-        client_name  = _cd["nombre"]
-        razon_social = _cd["razon_social"]
-        client_email = _cd["email"]
-        phone_full   = _cd.get("telefono", "")
+    _cd = st.session_state.get(_cdata_k, {})
 
-        # Cabecera compacta con botón cambiar
-        hc1, hc2 = st.columns([4, 1])
-        with hc1:
-            st.markdown(
-                f"**{client_name}** — {razon_social} &nbsp;|&nbsp; "
-                f"📧 {client_email} &nbsp;|&nbsp; 📞 {phone_full or '—'}"
-            )
-        with hc2:
-            if st.button("↩️ Cambiar" if lang == "ES" else "↩️ Change",
-                         key=f"btn_logout_{_sfx}", use_container_width=True):
-                st.session_state[_verified_k] = False
-                st.session_state[_cdata_k]    = {}
-                st.rerun()
+    if standalone:
+        # Vista cliente: campos pre-rellenados con los datos del login, editables
+        _lbl_datos = "##### 👤 Tus datos" if lang == "ES" else "##### 👤 Your details"
+        _lbl_edit  = ("_Puedes editar cualquier campo si es necesario_"
+                      if lang == "ES" else
+                      "_You can edit any field if needed_")
+        st.markdown(_lbl_datos)
+        st.caption(_lbl_edit)
+
+        _ci1, _ci2 = st.columns(2)
+        with _ci1:
+            client_name  = st.text_input(T["name"],   key=f"cl_name_{_sfx}",
+                                         value=_cd.get("nombre", ""),
+                                         placeholder=T["name_ph"])
+            client_email = st.text_input("📧 Email",  key=f"cl_email_{_sfx}",
+                                         value=_cd.get("email", ""),
+                                         placeholder="nombre@empresa.com")
+        with _ci2:
+            razon_social = st.text_input(T["company"], key=f"cl_razon_{_sfx}",
+                                         value=_cd.get("razon_social", ""),
+                                         placeholder=T["company_ph"])
+            phone_full   = st.text_input(T["phone"],   key=f"cl_phone_{_sfx}",
+                                         value=_cd.get("telefono", ""),
+                                         placeholder=T["phone_ph"])
+
+        # Botón cambiar cuenta (pequeño, debajo de los campos)
+        _logout_lbl = "↩️ Cambiar cuenta" if lang == "ES" else "↩️ Change account"
+        if st.button(_logout_lbl, key=f"btn_logout_{_sfx}"):
+            st.session_state[_verified_k] = False
+            st.session_state[_cdata_k]    = {}
+            st.rerun()
+
     else:
-        # Vista admin: campos directos de texto
+        # Vista admin: campos directos de texto (siempre vacíos)
         st.markdown("##### 👤 Datos del cliente")
         _ai1, _ai2 = st.columns(2)
         with _ai1:
