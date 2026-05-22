@@ -705,11 +705,6 @@ def render_order_form(cfg_data, products_list, standalone=False):
                 "Ocupación": f"{c/(pals*cap)*100:.1f}%",
             })
         st.dataframe(pd.DataFrame(pal_rows), hide_index=True, use_container_width=True)
-        st.caption(
-            f"DUE ${cfg_data['due']:.0f} + Transporte ${cfg_data['transporte_interno']:.0f} "
-            f"repartidos en {total_cajas} cajas = "
-            f"**${(cfg_data['due']+cfg_data['transporte_interno'])/total_cajas:.4f}/caja**"
-        )
 
     st.markdown("---")
 
