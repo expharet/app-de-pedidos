@@ -1,0 +1,341 @@
+{
+  "config": {
+    "costo_caja": 1.0,
+    "merma_pct": 0.01,
+    "due": 280.0,
+    "peso_pallet": 29.9,
+    "tara_caja": 0.4,
+    "transporte_interno": 80.0,
+    "eur_usd": 1.164,
+    "grupos": {
+      "A": {
+        "cajas_pallet": 160,
+        "nombre": "Granadilla"
+      },
+      "B": {
+        "cajas_pallet": 180,
+        "nombre": "Pitahaya Amarilla"
+      },
+      "C": {
+        "cajas_pallet": 160,
+        "nombre": "Lulo · Maracuyá · Tomate · Taxo · Melon"
+      },
+      "D": {
+        "cajas_pallet": 120,
+        "nombre": "Cacao · Babaco"
+      },
+      "E": {
+        "cajas_pallet": 160,
+        "nombre": "Aguacate · Baby banano · Zapote · Caña"
+      },
+      "F": {
+        "cajas_pallet": 120,
+        "nombre": "Roja P · Blanca P"
+      },
+      "G": {
+        "cajas_pallet": 160,
+        "nombre": "Physalis sin cáscara"
+      },
+      "H": {
+        "cajas_pallet": 160,
+        "nombre": "Physalis con cáscara"
+      },
+      "I": {
+        "cajas_pallet": 60,
+        "nombre": "Guanabana"
+      }
+    },
+    "destinos": {
+      "Madrid/España": 2.25,
+      "París/Francia": 2.75,
+      "Londres/UK": 2.6,
+      "Suiza": 2.6,
+      "Países Bajos": 2.6,
+      "Dubai/EAU": 4.3,
+      "Nueva York/USA": 1.2,
+      "Miami/USA": 1.15,
+      "(otros)": 2.1
+    },
+    "minimos": {
+      "F-TAS04": {
+        "tipo": "cajas",
+        "valor": 50
+      },
+      "F-PN016": {
+        "tipo": "cajas",
+        "valor": 50
+      },
+      "F-TX020": {
+        "tipo": "cajas",
+        "valor": 50
+      },
+      "F-MPS03": {
+        "tipo": "cajas",
+        "valor": 30
+      },
+      "F-PSG10": {
+        "tipo": "pallet",
+        "valor": 1
+      },
+      "F-PSM09": {
+        "tipo": "pallet",
+        "valor": 1
+      },
+      "F-CAZ021": {
+        "tipo": "pallet",
+        "valor": 1
+      },
+      "F-BCC013": {
+        "tipo": "pallet",
+        "valor": 1
+      },
+      "F-CCN017": {
+        "tipo": "pallet",
+        "valor": 1
+      },
+      "F-ZPT020": {
+        "tipo": "pallet",
+        "valor": 1
+      },
+      "F-GNB010": {
+        "tipo": "pallet",
+        "valor": 1
+      },
+      "F-UVP08": {
+        "tipo": "cajas",
+        "valor": 50
+      },
+      "F-PPA01": {
+        "tipo": "pallet",
+        "valor": 2
+      }
+    }
+  },
+  "products": [
+    {
+      "codigo": "F-PSG10",
+      "producto": "Granadilla",
+      "kg_caja": 2.0,
+      "costo_caja_manual": 0.03,
+      "precio_compra": 7.95,
+      "margen_pct": 0.08,
+      "grupo": "A"
+    },
+    {
+      "codigo": "F-PN016",
+      "producto": "Lulo",
+      "kg_caja": 2.5,
+      "costo_caja_manual": 0.03,
+      "precio_compra": 6.5,
+      "margen_pct": 0.11,
+      "grupo": "C"
+    },
+    {
+      "codigo": "F-PPA01",
+      "producto": "Amarilla P",
+      "kg_caja": 2.5,
+      "costo_caja_manual": null,
+      "precio_compra": 11.8,
+      "margen_pct": 0.06,
+      "grupo": "B"
+    },
+    {
+      "codigo": "F-PSR02",
+      "producto": "Roja P",
+      "kg_caja": 4.5,
+      "costo_caja_manual": null,
+      "precio_compra": 19.19,
+      "margen_pct": 0.055,
+      "grupo": "F"
+    },
+    {
+      "codigo": "F-PSR05",
+      "producto": "Blanca P",
+      "kg_caja": 4.5,
+      "costo_caja_manual": null,
+      "precio_compra": 13.6,
+      "margen_pct": 0.055,
+      "grupo": "F"
+    },
+    {
+      "codigo": "F-PSM09",
+      "producto": "Maracuyá",
+      "kg_caja": 2.5,
+      "costo_caja_manual": 0.0,
+      "precio_compra": 7.0,
+      "margen_pct": 0.08,
+      "grupo": "C"
+    },
+    {
+      "codigo": "F-TAS04",
+      "producto": "Tomate de árbol",
+      "kg_caja": 2.5,
+      "costo_caja_manual": 0.0,
+      "precio_compra": 6.5,
+      "margen_pct": 0.1,
+      "grupo": "C"
+    },
+    {
+      "codigo": "F-GNB010",
+      "producto": "Guanabana",
+      "kg_caja": 4.0,
+      "costo_caja_manual": null,
+      "precio_compra": 9.8,
+      "margen_pct": 0.12,
+      "grupo": "I"
+    },
+    {
+      "codigo": "F-MPS03",
+      "producto": "Pepino dulce",
+      "kg_caja": 3.0,
+      "costo_caja_manual": 0.0,
+      "precio_compra": 5.25,
+      "margen_pct": 0.09,
+      "grupo": "C"
+    },
+    {
+      "codigo": "F-CCN017",
+      "producto": "Cacao",
+      "kg_caja": 3.0,
+      "costo_caja_manual": null,
+      "precio_compra": 6.0,
+      "margen_pct": 0.11,
+      "grupo": "D"
+    },
+    {
+      "codigo": "F-BCC013",
+      "producto": "Babaco",
+      "kg_caja": 3.0,
+      "costo_caja_manual": null,
+      "precio_compra": 8.6,
+      "margen_pct": 0.1,
+      "grupo": "D"
+    },
+    {
+      "codigo": "F-AHSS012",
+      "producto": "Aguacate",
+      "kg_caja": 4.0,
+      "costo_caja_manual": null,
+      "precio_compra": 8.55,
+      "margen_pct": 0.06,
+      "grupo": "E"
+    },
+    {
+      "codigo": "F-BBB06",
+      "producto": "Baby banano",
+      "kg_caja": 3.5,
+      "costo_caja_manual": null,
+      "precio_compra": 13.2,
+      "margen_pct": 0.06,
+      "grupo": "E"
+    },
+    {
+      "codigo": "F-ZPT020",
+      "producto": "Zapote Mamey",
+      "kg_caja": 4.0,
+      "costo_caja_manual": null,
+      "precio_compra": 12.0,
+      "margen_pct": 0.18,
+      "grupo": "E"
+    },
+    {
+      "codigo": "F-TX020",
+      "producto": "Taxo",
+      "kg_caja": 2.5,
+      "costo_caja_manual": 0.0,
+      "precio_compra": 6.7,
+      "margen_pct": 0.1,
+      "grupo": "C"
+    },
+    {
+      "codigo": "F-UVP08",
+      "producto": "Physalis",
+      "kg_caja": 1.25,
+      "costo_caja_manual": 0.0,
+      "precio_compra": 8.5,
+      "margen_pct": 0.11,
+      "grupo": "G"
+    },
+    {
+      "codigo": "F-UVP07",
+      "producto": "Physalis - husk",
+      "kg_caja": 1.5,
+      "costo_caja_manual": 0.0,
+      "precio_compra": 7.25,
+      "margen_pct": 0.11,
+      "grupo": "H"
+    },
+    {
+      "codigo": "F-SLK011",
+      "producto": "Salack",
+      "kg_caja": 2.5,
+      "costo_caja_manual": 0.4,
+      "precio_compra": 12.2,
+      "margen_pct": 0.1,
+      "grupo": "C"
+    },
+    {
+      "codigo": "F-CAZ021",
+      "producto": "Caña de azúcar",
+      "kg_caja": 4.0,
+      "costo_caja_manual": null,
+      "precio_compra": 10.72,
+      "margen_pct": 0.11,
+      "grupo": "E"
+    }
+  ],
+  "minimos": {
+    "F-TAS04": {
+      "tipo": "cajas",
+      "valor": 50
+    },
+    "F-PN016": {
+      "tipo": "cajas",
+      "valor": 50
+    },
+    "F-TX020": {
+      "tipo": "cajas",
+      "valor": 50
+    },
+    "F-MPS03": {
+      "tipo": "cajas",
+      "valor": 30
+    },
+    "F-PSG10": {
+      "tipo": "pallet",
+      "valor": 1
+    },
+    "F-PSM09": {
+      "tipo": "pallet",
+      "valor": 1
+    },
+    "F-CAZ021": {
+      "tipo": "pallet",
+      "valor": 1
+    },
+    "F-BCC013": {
+      "tipo": "pallet",
+      "valor": 1
+    },
+    "F-CCN017": {
+      "tipo": "pallet",
+      "valor": 1
+    },
+    "F-ZPT020": {
+      "tipo": "pallet",
+      "valor": 1
+    },
+    "F-GNB010": {
+      "tipo": "pallet",
+      "valor": 1
+    },
+    "F-UVP08": {
+      "tipo": "cajas",
+      "valor": 50
+    },
+    "F-PPA01": {
+      "tipo": "pallet",
+      "valor": 2
+    }
+  }
+}
