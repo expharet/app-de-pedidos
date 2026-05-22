@@ -3,85 +3,68 @@ vigilar_excel.py — Export Haret
 ================================
 Monitorea Cotizaciones.xlsx y publica cambios automáticamente en la app.
 
-Uso:
-  .venv/bin/python3 vigilar_excel.py          # modo silencioso
-  .venv/bin/python3 vigilar_excel.py --verbose # muestra detalle de cambios
+Usa polling (comprueba la fecha de modificación cada 3 s) en lugar de
+watchdog, porque Excel en Mac guarda con archivos temporales y los eventos
+de fichero no siempre se detectan correctamente.
 
-Al detectar una modificación en el Excel:
-  1. Lee los últimos precios del historial semanal
-  2. Lee parámetros de CONFIGURACION (tarifas, DUE, merma, etc.)
-  3. Actualiza precios_data.json
-  4. Publica en GitHub → Streamlit Cloud se actualiza en ~1 min
-  5. Muestra notificación en el Mac
+Uso:
+  .venv/bin/python3 vigilar_excel.py
+  .venv/bin/python3 vigilar_excel.py --verbose
 """
 
 import os, sys, time, json, io, base64, requests, traceback
 from datetime import datetime
 from pathlib import Path
-from watchdog.observers import Observer
-from watchdog.events  import FileSystemEventHandler
-from openpyxl         import load_workbook
+from openpyxl import load_workbook
 
 # ── Rutas ─────────────────────────────────────────────────────────────────────
-BASE        = Path(__file__).parent
-EXCEL_PATH  = BASE / "Documentacion" / "Precios" / "Cotizaciones.xlsx"
-DATA_PATH   = BASE / "precios_data.json"
+BASE         = Path(__file__).parent
+EXCEL_PATH   = BASE / "Documentacion" / "Precios" / "Cotizaciones.xlsx"
+DATA_PATH    = BASE / "precios_data.json"
 SECRETS_FILE = BASE / ".streamlit" / "secrets.toml"
 
 GITHUB_OWNER = "expharet"
 GITHUB_REPO  = "app-de-pedidos"
-VERBOSE = "--verbose" in sys.argv or "-v" in sys.argv
+POLL_SECS    = 3       # comprobar cada 3 segundos
+VERBOSE      = "--verbose" in sys.argv or "-v" in sys.argv
 
-# ── Leer token de secrets ─────────────────────────────────────────────────────
-def _read_secret(key):
+# ── Colores terminal ──────────────────────────────────────────────────────────
+G = "\033[92m"; Y = "\033[93m"; R = "\033[91m"; B = "\033[1m"; X = "\033[0m"
+
+def log(msg, color=""):
+    print(f"{color}[{datetime.now().strftime('%H:%M:%S')}] {msg}{X}", flush=True)
+
+# ── Leer secrets ──────────────────────────────────────────────────────────────
+def _secret(key):
     if SECRETS_FILE.exists():
         for line in SECRETS_FILE.read_text().splitlines():
             if key in line and "=" in line:
                 return line.split("=", 1)[1].strip().strip('"').strip("'")
     return os.environ.get(key, "")
 
-GITHUB_TOKEN = _read_secret("GITHUB_TOKEN")
+GITHUB_TOKEN = _secret("GITHUB_TOKEN")
 
-# ── Colores para terminal ─────────────────────────────────────────────────────
-GREEN  = "\033[92m"; YELLOW = "\033[93m"; RED = "\033[91m"; RESET = "\033[0m"
-BOLD   = "\033[1m"
-
-def log(msg, color=""):
-    ts = datetime.now().strftime("%H:%M:%S")
-    print(f"{color}[{ts}] {msg}{RESET}", flush=True)
-
-
-# ── Sincronización Excel → JSON ───────────────────────────────────────────────
+# ── Mapa columnas Excel → código producto ─────────────────────────────────────
 COL_MAP = {
-     4: "F-PSG10",    # D  Granadilla
-     5: "F-PN016",    # E  Lulo
-     6: "F-PPA01",    # F  Amarilla P
-     7: "F-PSR02",    # G  Roja P
-     8: "F-PSR05",    # H  Blanca P
-     9: "F-PSM09",    # I  Maracuyá
-    10: "F-TAS04",    # J  Tomate de árbol
-    11: "F-GNB010",   # K  Guanabana
-    12: "F-MPS03",    # L  Pepino dulce
-    13: "F-CCN017",   # M  Cacao
-    14: "F-BCC013",   # N  Babaco
-    15: "F-AHSS012",  # O  Aguacate
-    16: "F-BBB06",    # P  Baby banano
-    17: "F-ZPT020",   # Q  Zapote Mamey
-    18: "F-TX020",    # R  Taxo
-    19: "F-UVP08",    # S  Physalis
-    20: "F-UVP07",    # T  Physalis - husk
+     4: "F-PSG10",    5: "F-PN016",    6: "F-PPA01",
+     7: "F-PSR02",    8: "F-PSR05",    9: "F-PSM09",
+    10: "F-TAS04",   11: "F-GNB010",  12: "F-MPS03",
+    13: "F-CCN017",  14: "F-BCC013",  15: "F-AHSS012",
+    16: "F-BBB06",   17: "F-ZPT020",  18: "F-TX020",
+    19: "F-UVP08",   20: "F-UVP07",
 }
 
-def sync_excel(excel_bytes: bytes, data: dict) -> tuple[dict, list[str]]:
+# ── Leer Excel y calcular cambios ─────────────────────────────────────────────
+def read_excel_and_diff(excel_path: Path, data: dict) -> tuple:
     """Devuelve (data_actualizada, lista_cambios)."""
-    wb     = load_workbook(io.BytesIO(excel_bytes), data_only=True)
+    wb     = load_workbook(io.BytesIO(excel_path.read_bytes()), data_only=True)
     ws_cfg = wb["CONFIGURACION"]
     ws_pr  = wb["TABLA PRECIOS"]
-    changes = []
-    new_data = json.loads(json.dumps(data))   # deep copy
-    cfg      = new_data["config"]
+    new    = json.loads(json.dumps(data))   # deep copy
+    cfg    = new["config"]
+    ch     = []
 
-    # ── Parámetros CONFIGURACION ────────────────────────────────────────────
+    # Parámetros CONFIGURACION
     for row in ws_cfg.iter_rows():
         for cell in row:
             v  = str(cell.value or "")
@@ -89,181 +72,156 @@ def sync_excel(excel_bytes: bytes, data: dict) -> tuple[dict, list[str]]:
             if not isinstance(c3, (int, float)):
                 continue
             val = float(c3)
-            # Parámetros básicos
-            if "Costo de la caja" in v and abs(cfg.get("costo_caja",0)-val)>1e-4:
-                changes.append(f"costo_caja: {cfg.get('costo_caja')} → {val}")
-                cfg["costo_caja"] = val
-            elif "Merma" in v and "%" in v and abs(cfg.get("merma_pct",0)-val)>1e-6:
-                changes.append(f"merma_pct: {cfg.get('merma_pct')} → {val}")
-                cfg["merma_pct"] = val
-            elif "DUE" in v and "fijo" in v and abs(cfg.get("due",0)-val)>0.01:
-                changes.append(f"DUE: {cfg.get('due')} → {val}")
-                cfg["due"] = val
-            elif "Peso pallet" in v and abs(cfg.get("peso_pallet",0)-val)>0.01:
-                changes.append(f"peso_pallet: {cfg.get('peso_pallet')} → {val}")
-                cfg["peso_pallet"] = val
-            elif "Tara de la caja" in v and abs(cfg.get("tara_caja",0)-val)>0.001:
-                changes.append(f"tara_caja: {cfg.get('tara_caja')} → {val}")
-                cfg["tara_caja"] = val
-            elif "transporte interno" in v.lower() and "costo" in v.lower():
-                if abs(cfg.get("transporte_interno",0)-val)>0.01:
-                    changes.append(f"transporte_interno: {cfg.get('transporte_interno')} → {val}")
-                    cfg["transporte_interno"] = val
-            # Tarifas destino: columna B = nombre destino
+
+            def _upd(key, label=None):
+                label = label or key
+                if abs(cfg.get(key, 0) - val) > 1e-4:
+                    ch.append(f"{label}: {cfg.get(key)} → {val}")
+                    cfg[key] = val
+
+            if "Costo de la caja" in v:           _upd("costo_caja", "Costo caja")
+            elif "Merma" in v and "%" in v:        _upd("merma_pct",  "Merma %")
+            elif "DUE" in v and "fijo" in v:       _upd("due",        "DUE")
+            elif "Peso pallet" in v:               _upd("peso_pallet","Peso pallet")
+            elif "Tara de la caja" in v:           _upd("tara_caja",  "Tara caja")
+            elif "transporte" in v.lower() and "costo" in v.lower():
+                _upd("transporte_interno", "Transporte interno")
+
+            # Tarifas destino
             dest = str(ws_cfg.cell(row=cell.row, column=2).value or "")
             if cell.column == 2 and dest in cfg.get("destinos", {}):
-                if abs(cfg["destinos"][dest] - val) > 0.001:
-                    changes.append(f"tarifa {dest}: {cfg['destinos'][dest]} → {val}")
+                if abs(cfg["destinos"][dest] - val) > 1e-4:
+                    ch.append(f"Tarifa {dest}: {cfg['destinos'][dest]} → {val}")
                     cfg["destinos"][dest] = val
 
-    # ── Precios desde historial semanal (TABLA PRECIOS filas 32-83) ─────────
+    # Últimos precios del historial (filas 32-83)
     latest = {}
-    for col, codigo in COL_MAP.items():
+    for col, cod in COL_MAP.items():
         last = None
         for r in range(32, 84):
             v = ws_pr.cell(row=r, column=col).value
             if isinstance(v, (int, float)) and v > 0:
                 last = float(v)
         if last:
-            latest[codigo] = last
+            latest[cod] = last
 
-    for i, p in enumerate(new_data["products"]):
+    for i, p in enumerate(new["products"]):
         if p["codigo"] in latest:
-            new_price = latest[p["codigo"]]
-            if abs(p["precio_compra"] - new_price) > 0.001:
-                changes.append(f"{p['producto']}: ${p['precio_compra']:.2f} → ${new_price:.2f}")
-                new_data["products"][i]["precio_compra"] = new_price
+            np = latest[p["codigo"]]
+            if abs(p["precio_compra"] - np) > 0.001:
+                ch.append(f"{p['producto']}: ${p['precio_compra']:.2f} → ${np:.2f}")
+                new["products"][i]["precio_compra"] = np
 
-    return new_data, changes
+    return new, ch
 
 
 # ── Publicar en GitHub ────────────────────────────────────────────────────────
-def publish_to_github(data: dict) -> bool:
+def publish(data: dict) -> bool:
     if not GITHUB_TOKEN:
-        log("Token GitHub no configurado — no se puede publicar", RED)
+        log("Token GitHub no configurado — cambios guardados solo en local.", Y)
         return False
-
-    headers = {
+    hdrs = {
         "Authorization": f"token {GITHUB_TOKEN}",
         "Accept":        "application/vnd.github.v3+json",
     }
-    content = json.dumps(data, indent=2, ensure_ascii=False).encode()
-    b64     = base64.b64encode(content).decode()
-    api_url = f"https://api.github.com/repos/{GITHUB_OWNER}/{GITHUB_REPO}/contents/precios_data.json"
-
-    r_get = requests.get(api_url, headers=headers, timeout=15)
+    url     = f"https://api.github.com/repos/{GITHUB_OWNER}/{GITHUB_REPO}/contents/precios_data.json"
+    content = base64.b64encode(
+        json.dumps(data, indent=2, ensure_ascii=False).encode()
+    ).decode()
+    r_get = requests.get(url, headers=hdrs, timeout=15)
     if r_get.status_code != 200:
-        log(f"Error obteniendo SHA del archivo: {r_get.status_code}", RED)
+        log(f"Error obteniendo SHA: {r_get.status_code}", R)
         return False
-    sha = r_get.json()["sha"]
-
-    payload = {
-        "message": f"Sync automático desde Excel — {datetime.now().strftime('%d/%m/%Y %H:%M')}",
-        "content": b64,
-        "sha":     sha,
-    }
-    r_put = requests.put(api_url, json=payload, headers=headers, timeout=20)
+    r_put = requests.put(url, headers=hdrs, timeout=20, json={
+        "message": f"Sync Excel → {datetime.now().strftime('%d/%m/%Y %H:%M')}",
+        "content": content,
+        "sha":     r_get.json()["sha"],
+    })
     return r_put.status_code in (200, 201)
 
 
 # ── Notificación macOS ────────────────────────────────────────────────────────
-def notify(title: str, msg: str):
+def notify(title, msg):
     os.system(
-        f"osascript -e 'display notification \"{msg}\" "
-        f"with title \"{title}\" sound name \"Glass\"'"
+        f'osascript -e \'display notification "{msg}" '
+        f'with title "{title}" sound name "Glass"\''
     )
 
 
-# ── Handler del vigilante ─────────────────────────────────────────────────────
-class ExcelHandler(FileSystemEventHandler):
-    def __init__(self):
-        self._last_sync = 0
+# ── Ciclo de polling ──────────────────────────────────────────────────────────
+def run():
+    print(f"\n{B}{'='*54}")
+    print("  Export Haret — Vigilante automático de Excel")
+    print(f"{'='*54}{X}")
+    print(f"  Excel:   {EXCEL_PATH.name}")
+    print(f"  Carpeta: {EXCEL_PATH.parent}")
+    print(f"  GitHub:  {'✓ configurado' if GITHUB_TOKEN else '✗ sin token (solo local)'}")
+    print(f"  Polling: cada {POLL_SECS} segundos\n")
 
-    def on_modified(self, event):
-        if not str(event.src_path).endswith("Cotizaciones.xlsx"):
-            return
-        now = time.time()
-        if now - self._last_sync < 5:   # debounce 5 s
-            return
-        self._last_sync = now
-        time.sleep(2)                    # esperar a que Excel termine de escribir
-        self._run_sync()
+    if not EXCEL_PATH.exists():
+        log(f"ERROR: no se encuentra el Excel en:\n  {EXCEL_PATH}", R)
+        sys.exit(1)
+    if not DATA_PATH.exists():
+        log(f"ERROR: no se encuentra precios_data.json en:\n  {DATA_PATH}", R)
+        sys.exit(1)
 
-    def _run_sync(self):
-        log(f"Cambio detectado en Cotizaciones.xlsx — sincronizando…", YELLOW)
+    last_mtime = EXCEL_PATH.stat().st_mtime
+    log(f"Vigilante activo — guarda el Excel para sincronizar. Ctrl+C para salir.", G + B)
+    if VERBOSE:
+        log(f"mtime inicial: {last_mtime}", "")
+
+    while True:
+        time.sleep(POLL_SECS)
         try:
-            if not DATA_PATH.exists():
-                log("precios_data.json no existe aún, se creará.", YELLOW)
-                return
+            mtime = EXCEL_PATH.stat().st_mtime
+        except FileNotFoundError:
+            continue   # Excel temporalmente no accesible (guardando)
 
+        if mtime <= last_mtime:
+            continue   # sin cambios
+
+        # El archivo cambió
+        last_mtime = mtime
+        log(f"Cambio detectado (mtime actualizado) — esperando 3 s a que Excel termine…", Y)
+        time.sleep(3)   # dejar que Excel cierre el archivo
+
+        try:
             with open(DATA_PATH) as f:
                 data = json.load(f)
 
-            excel_bytes = EXCEL_PATH.read_bytes()
-            new_data, changes = sync_excel(excel_bytes, data)
+            new_data, changes = read_excel_and_diff(EXCEL_PATH, data)
 
             if not changes:
-                log("Sin cambios detectados.", "")
-                return
+                log("Sin cambios de datos detectados.", "")
+                continue
 
-            log(f"{len(changes)} cambios:", GREEN)
-            if VERBOSE:
-                for c in changes:
-                    print(f"   • {c}")
+            log(f"{len(changes)} cambio(s):", G)
+            for c in changes:
+                print(f"   • {c}")
 
-            # Guardar JSON
+            # Guardar JSON local
             DATA_PATH.write_text(
                 json.dumps(new_data, indent=2, ensure_ascii=False), encoding="utf-8"
             )
-            log("precios_data.json actualizado ✓", GREEN)
+            log("precios_data.json guardado ✓", G)
 
             # Publicar en GitHub
-            log("Publicando en Streamlit Cloud…", YELLOW)
-            ok = publish_to_github(new_data)
+            log("Publicando en Streamlit Cloud…", Y)
+            ok = publish(new_data)
             if ok:
-                log("¡Publicado! La app se actualizará en ~1 minuto. ✅", GREEN + BOLD)
+                log(f"¡Publicado! La app se actualiza en ~1 min  ✅", G + B)
                 notify("Export Haret",
-                       f"{len(changes)} precio(s) actualizados desde Excel")
+                       f"{len(changes)} cambio(s) publicados desde Excel")
             else:
-                log("Error publicando en GitHub.", RED)
-                notify("Export Haret ⚠️", "No se pudo publicar en la nube")
+                log("Guardado local OK, pero no se pudo publicar en GitHub.", Y)
 
         except Exception:
-            log(f"Error durante la sincronización:\n{traceback.format_exc()}", RED)
+            log(f"Error durante la sincronización:", R)
+            traceback.print_exc()
 
 
-# ── Main ──────────────────────────────────────────────────────────────────────
 if __name__ == "__main__":
-    print(f"\n{BOLD}{'='*55}")
-    print("   Export Haret — Vigilante automático de Excel")
-    print(f"{'='*55}{RESET}")
-    print(f"  Archivo:  {EXCEL_PATH}")
-    print(f"  JSON:     {DATA_PATH}")
-    print(f"  GitHub:   {GITHUB_OWNER}/{GITHUB_REPO}")
-    print(f"  Token:    {'✓ configurado' if GITHUB_TOKEN else '✗ NO encontrado'}")
-    print(f"  Verbose:  {'sí' if VERBOSE else 'no  (usa --verbose para ver cambios)'}")
-    print(f"\n  Guardando el Excel → sincronización automática")
-    print(f"  Ctrl+C para detener\n")
-
-    if not EXCEL_PATH.exists():
-        print(f"{RED}ERROR: No se encuentra el Excel en:\n  {EXCEL_PATH}{RESET}")
-        sys.exit(1)
-
-    if not GITHUB_TOKEN:
-        print(f"{YELLOW}AVISO: Sin token GitHub — los cambios se guardarán localmente")
-        print(f"       pero NO se publicarán en la nube.{RESET}\n")
-
-    observer = Observer()
-    handler  = ExcelHandler()
-    observer.schedule(handler, path=str(EXCEL_PATH.parent), recursive=False)
-    observer.start()
-
-    log("Vigilante activo — esperando cambios…", GREEN)
-
     try:
-        while True:
-            time.sleep(1)
+        run()
     except KeyboardInterrupt:
-        observer.stop()
         log("Vigilante detenido.", "")
-    observer.join()
