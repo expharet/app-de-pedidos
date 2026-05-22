@@ -90,19 +90,23 @@ INITIAL_DATA = {
         {"codigo": "F-CAZ021", "producto": "Caña de azúcar", "kg_caja": 4.0,  "costo_caja_manual": None, "precio_compra": 10.72, "margen_pct": 0.11,  "grupo": "E"},
     ],
     "minimos": {
-        "F-TAS04":  {"tipo": "cajas",  "valor": 50},
-        "F-PN016":  {"tipo": "cajas",  "valor": 50},
-        "F-TX020":  {"tipo": "cajas",  "valor": 50},
-        "F-MPS03":  {"tipo": "cajas",  "valor": 30},
-        "F-PSG10":  {"tipo": "pallet", "valor": 1},
-        "F-PSM09":  {"tipo": "pallet", "valor": 1},
-        "F-CAZ021": {"tipo": "pallet", "valor": 1},
-        "F-BCC013": {"tipo": "pallet", "valor": 1},
-        "F-CCN017": {"tipo": "pallet", "valor": 1},
-        "F-ZPT020": {"tipo": "pallet", "valor": 1},
-        "F-GNB010": {"tipo": "pallet", "valor": 1},
-        "F-UVP08":  {"tipo": "cajas",  "valor": 50},
-        "F-PPA01":  {"tipo": "pallet", "valor": 2},
+        "F-PSG10":  {"tipo": "cajas", "valor": 80},
+        "F-PN016":  {"tipo": "cajas", "valor": 40},
+        "F-TAS04":  {"tipo": "cajas", "valor": 40},
+        "F-MPS03":  {"tipo": "cajas", "valor": 40},
+        "F-TX020":  {"tipo": "cajas", "valor": 40},
+        "F-PSM09":  {"tipo": "cajas", "valor": 160},
+        "F-GNB010": {"tipo": "cajas", "valor": 60},
+        "F-CCN017": {"tipo": "cajas", "valor": 120},
+        "F-BCC013": {"tipo": "cajas", "valor": 120},
+        "F-ZPT020": {"tipo": "cajas", "valor": 120},
+        "F-PSR02":  {"tipo": "cajas", "valor": 360},
+        "F-PSR05":  {"tipo": "cajas", "valor": 360},
+        "F-PPA01":  {"tipo": "cajas", "valor": 360},
+        "F-SLK011": {"tipo": "cajas", "valor": 160},
+        "F-CAZ021": {"tipo": "cajas", "valor": 120},
+        "F-UVP08":  {"tipo": "cajas", "valor": 50},
+        "F-UVP07":  {"tipo": "cajas", "valor": 50},
     },
 }
 
@@ -382,15 +386,25 @@ def render_order_form(cfg_data, products_list, standalone=False):
 
     st.markdown("<hr style='margin:4px 0 8px 0'>", unsafe_allow_html=True)
 
-    active_items = []
+    active_items  = []
+    below_minimum = []   # [(nombre, cajas_pedidas, cajas_minimo)]
+
     for p in products_list:
         cajas_pal = cfg_data["grupos"][p["grupo"]]["cajas_pallet"]
         cod       = p["codigo"]
+        min_c     = get_min_cajas(cod, p, cfg_data)
 
-        c1, c2, c3, c4 = st.columns([3, 1.8, 1.4, 1])
+        c1, c2, c3, c4 = st.columns([3, 1.8, 1.4, 1.2])
 
         with c1:
             st.markdown(f"**{p['producto']}**")
+            if min_c > 0:
+                if min_c % cajas_pal == 0:
+                    pals = min_c // cajas_pal
+                    lbl = f"mín. {pals} pallet{'s' if pals>1 else ''} ({min_c} cajas)"
+                else:
+                    lbl = f"mín. {min_c} cajas"
+                st.caption(lbl)
 
         with c2:
             unit = st.selectbox(
@@ -413,10 +427,17 @@ def render_order_form(cfg_data, products_list, standalone=False):
         with c4:
             if qty > 0:
                 cajas = int(qty) * cajas_pal if is_pal else int(qty)
-                st.markdown(
-                    f"<span style='color:#2d6a4f;font-weight:bold'>{cajas}</span>",
-                    unsafe_allow_html=True,
-                )
+                if min_c > 0 and cajas < min_c:
+                    st.markdown(
+                        f"<span style='color:#c62828;font-weight:bold'>⚠ {cajas}</span>",
+                        unsafe_allow_html=True,
+                    )
+                    below_minimum.append((p["producto"], cajas, min_c))
+                else:
+                    st.markdown(
+                        f"<span style='color:#2d6a4f;font-weight:bold'>✓ {cajas}</span>",
+                        unsafe_allow_html=True,
+                    )
                 active_items.append((p, cajas))
             else:
                 st.markdown("<span style='color:#ccc'>—</span>", unsafe_allow_html=True)
@@ -516,6 +537,11 @@ def render_order_form(cfg_data, products_list, standalone=False):
         st.warning("⚠️ Completa el **nombre del cliente** y **razón social** para confirmar.")
     elif total_pallets < MIN_PALLETS:
         st.warning(f"⚠️ Faltan {faltan} pallet{'s' if faltan != 1 else ''} para alcanzar el mínimo de {MIN_PALLETS}.")
+    if below_minimum:
+        for nombre, pedido, minimo in below_minimum:
+            st.error(f"⚠️ **{nombre}**: pediste {pedido} cajas — mínimo es {minimo} cajas.")
+
+    can_confirm = can_confirm and len(below_minimum) == 0
 
     btn_label = "✅ Confirmar Pedido"
     if st.button(btn_label, type="primary", disabled=not can_confirm, key=confirm_key):
