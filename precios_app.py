@@ -611,6 +611,10 @@ def gen_albaran_pdf(client_name, razon_social, destino, active_items, total_caja
         (Tp["pdf_dest"],  destino),
         (Tp["pdf_rate"],  f"{cfg_data['eur_usd']:.4f}  ({rate_label})"),
     ]
+    _tarifa_pdf = cfg_data["destinos"].get(destino, 0)
+    _flete_lbl  = "Flete / Freight" if lang == "ES" else "Freight rate"
+    client_fields.append((_flete_lbl,
+                          f"{_tarifa_pdf:.2f} USD/kg · CIF destino"))
     if dest_code not in ("USD",):
         client_fields.append((Tp["pdf_divisa"].format(code=dest_code),
                               f"1 USD = {dest_rate:.4f} {dest_sym}"))
@@ -625,14 +629,13 @@ def gen_albaran_pdf(client_name, razon_social, destino, active_items, total_caja
     pdf.ln(4)
 
     # ── Tabla de productos ──
-    _flete_lbl = "Flete/caja" if lang == "ES" else "Freight/box"
     pdf.set_fill_color(*GREEN)
     pdf.set_text_color(255, 255, 255)
     pdf.set_font("U", "B", 9)
-    widths  = [50, 18, 18, 28, 32, 34]
+    widths  = [58, 22, 22, 40, 40]
     headers = [Tp["pdf_product"], Tp["pdf_boxes"], Tp["pdf_pallets"],
-               _flete_lbl, Tp["pdf_price_usd"], Tp["pdf_total_usd"]]
-    aligns  = ["L", "C", "C", "R", "R", "R"]
+               Tp["pdf_price_usd"], Tp["pdf_total_usd"]]
+    aligns  = ["L", "C", "C", "R", "R"]
     for w, h, a in zip(widths, headers, aligns):
         pdf.cell(w, 7, h, fill=True, align=a)
     pdf.ln()
@@ -640,16 +643,13 @@ def gen_albaran_pdf(client_name, razon_social, destino, active_items, total_caja
     pdf.set_text_color(0, 0, 0)
     pdf.set_font("U", "", 9)
     fill = False
-    _calc_flete = 0.0
     for p, cajas in active_items:
         r   = calc_pedido(p, cfg_data, destino, total_cajas)
         pal = cajas / cfg_data["grupos"][p["grupo"]]["cajas_pallet"]
-        _calc_flete += r["flete"] * cajas
         row_vals = [
             p["producto"],
             str(cajas),
             f"{pal:.2f}",
-            f"${r['flete']:.2f}",
             f"${r['precio_caja_usd']:.2f}",
             f"${r['precio_caja_usd']*cajas:,.2f}",
         ]
@@ -666,13 +666,8 @@ def gen_albaran_pdf(client_name, razon_social, destino, active_items, total_caja
     pdf.ln(4)
 
     # ── Totales ──
-    _tf = total_flete if total_flete else _calc_flete
-    _flete_total_lbl = "Flete incluido" if lang == "ES" else "Freight included"
     pdf.set_font("U", "", 10)
     pdf.cell(100, 7, Tp["pdf_total_pal"].format(n=total_pallets, c=f"{total_cajas:,}"))
-    pdf.set_font("U", "", 10)
-    pdf.cell(0, 7, f"{_flete_total_lbl}:  ${_tf:,.2f}", align="R", ln=True)
-    pdf.cell(100, 7, "")
     pdf.set_font("U", "B", 11)
     pdf.cell(0, 7, f"TOTAL USD:  ${total_usd:,.2f}", align="R", ln=True)
     pdf.cell(100, 7, "")
@@ -1259,19 +1254,18 @@ def render_order_form(cfg_data, products_list, standalone=False,
     show_local          = dest_code not in ("USD",)
     loc_total_col       = f"Total {dest_sym}{dest_code}" if show_local else None
 
-    rows        = []
-    total_flete = 0.0
+    tarifa_dest = cfg_data["destinos"].get(ped_dest, 0)
+
+    rows = []
     for p, cajas in active_items:
         r         = calc_pedido(p, cfg_data, ped_dest, total_cajas)
         cajas_pal = cfg_data["grupos"][p["grupo"]]["cajas_pallet"]
-        total_flete += r["flete"] * cajas
         row = {
-            "Producto":        p["producto"],
-            "Pallets":         round(cajas / cajas_pal, 2),
-            "Cajas":           cajas,
-            "🚢 Flete/caja $": r["flete"],
-            "Precio/caja $":   r["precio_caja_usd"],
-            "Total USD":       r["precio_caja_usd"] * cajas,
+            "Producto":      p["producto"],
+            "Pallets":       round(cajas / cajas_pal, 2),
+            "Cajas":         cajas,
+            "Precio/caja $": r["precio_caja_usd"],
+            "Total USD":     r["precio_caja_usd"] * cajas,
         }
         if show_local:
             row[f"{dest_sym}/caja"] = r["precio_caja_usd"] * dest_rate
@@ -1285,33 +1279,29 @@ def render_order_form(cfg_data, products_list, standalone=False,
 
     # Métricas resumen
     if show_local and total_loc:
-        _mcols = st.columns(6)
-        _mcols[0].metric(T["pallets_m"],  str(total_pallets))
-        _mcols[1].metric(T["cajas_m"],    f"{total_cajas:,}")
-        _mcols[2].metric(T["weight_m"],   f"{peso_kg:,.0f} kg")
-        _mcols[3].metric("🚢 " + ("Flete" if lang=="ES" else "Freight"),
-                         f"${total_flete:,.2f}")
-        _mcols[4].metric("Total USD",     f"${total_usd:,.2f}")
-        _mcols[5].metric(f"Total {dest_code}", f"{dest_sym}{total_loc:,.2f}")
-    else:
         _mcols = st.columns(5)
-        _mcols[0].metric(T["pallets_m"],  str(total_pallets))
-        _mcols[1].metric(T["cajas_m"],    f"{total_cajas:,}")
-        _mcols[2].metric(T["weight_m"],   f"{peso_kg:,.0f} kg")
-        _mcols[3].metric("🚢 " + ("Flete" if lang=="ES" else "Freight"),
-                         f"${total_flete:,.2f}")
-        _mcols[4].metric("Total USD",     f"${total_usd:,.2f}")
+        _mcols[0].metric(T["pallets_m"], str(total_pallets))
+        _mcols[1].metric(T["cajas_m"],   f"{total_cajas:,}")
+        _mcols[2].metric(T["weight_m"],  f"{peso_kg:,.0f} kg")
+        _mcols[3].metric("Total USD",    f"${total_usd:,.2f}")
+        _mcols[4].metric(f"Total {dest_code}", f"{dest_sym}{total_loc:,.2f}")
+    else:
+        c1, c2, c3, c4 = st.columns(4)
+        c1.metric(T["pallets_m"], str(total_pallets))
+        c2.metric(T["cajas_m"],   f"{total_cajas:,}")
+        c3.metric(T["weight_m"],  f"{peso_kg:,.0f} kg")
+        c4.metric("Total USD",    f"${total_usd:,.2f}")
+
+    # Tarifa de flete del destino — info complementaria
+    _flete_info = (f"🚢 Tarifa flete {ped_dest}: **{tarifa_dest:.2f} USD/kg** · CIF destino"
+                   if lang == "ES" else
+                   f"🚢 Freight rate {ped_dest}: **{tarifa_dest:.2f} USD/kg** · CIF destination")
+    st.caption(_flete_info)
 
     def hl(col):
         return ["background-color:#e8f5e9;font-weight:bold"] * len(col) if "Total" in col.name else [""] * len(col)
 
-    fmt = {
-        "Pallets":           "{:.2f}",
-        "Cajas":             "{:,.0f}",
-        "🚢 Flete/caja $":  "${:.2f}",
-        "Precio/caja $":     "${:.2f}",
-        "Total USD":         "${:.2f}",
-    }
+    fmt = {"Pallets": "{:.2f}", "Cajas": "{:,.0f}", "Precio/caja $": "${:.2f}", "Total USD": "${:.2f}"}
     if show_local:
         fmt[f"{dest_sym}/caja"] = f"{dest_sym}{{:.2f}}"
         fmt[loc_total_col]      = f"{dest_sym}{{:.2f}}"
