@@ -370,56 +370,63 @@ def render_order_form(cfg_data, products_list, standalone=False):
     st.markdown("---")
     st.markdown("#### 📦 Productos del pedido")
 
-    OPT_PAL  = "📦 Pallets"
-    OPT_CAJ  = "🗃️ Cajas"
+    OPT_PAL = "📦 Pallets"
+    OPT_CAJ = "🗃️ Cajas"
+    sfx     = "cl" if standalone else "adm"
 
-    order_df = pd.DataFrame([
-        {
-            "Producto":     p["producto"],
-            "Cajas/pallet": cfg_data["grupos"][p["grupo"]]["cajas_pallet"],
-            "▼ Unidad":     OPT_PAL,
-            "Cantidad":     0.0,
-        }
-        for p in products_list
-    ])
+    # Cabecera de columnas
+    h1, h2, h3, h4 = st.columns([3, 1.8, 1.4, 1])
+    h2.markdown("<small style='color:#888'>Unidad</small>", unsafe_allow_html=True)
+    h3.markdown("<small style='color:#888'>Cantidad</small>", unsafe_allow_html=True)
+    h4.markdown("<small style='color:#888'>= Cajas</small>", unsafe_allow_html=True)
 
-    edited = st.data_editor(
-        order_df,
-        use_container_width=True,
-        hide_index=True,
-        disabled=["Producto", "Cajas/pallet"],
-        column_config={
-            "Producto":     st.column_config.TextColumn("Producto", width="medium"),
-            "Cajas/pallet": st.column_config.NumberColumn(
-                "Cajas/pallet", width="small",
-                help="Cajas que caben en 1 pallet"),
-            "▼ Unidad":     st.column_config.SelectboxColumn(
-                "▼ Unidad", width="small",
-                options=[OPT_PAL, OPT_CAJ],
-                help="Haz clic para elegir si ingresas Pallets o Cajas"),
-            "Cantidad":     st.column_config.NumberColumn(
-                "Cantidad", min_value=0, step=1, format="%.1f", width="small",
-                help="📦 Pallets: decimales permitidos (ej: 0.5 = medio pallet)\n🗃️ Cajas: número exacto"),
-        },
-        key="cl_order_editor" if standalone else "order_editor",
-    )
+    st.markdown("<hr style='margin:4px 0 8px 0'>", unsafe_allow_html=True)
 
-    def row_to_cajas_fn(row, product):
-        if row["▼ Unidad"] == OPT_PAL:
-            return int(round(float(row["Cantidad"]) * cfg_data["grupos"][product["grupo"]]["cajas_pallet"]))
-        return int(round(float(row["Cantidad"])))
+    active_items = []
+    for p in products_list:
+        cajas_pal = cfg_data["grupos"][p["grupo"]]["cajas_pallet"]
+        cod       = p["codigo"]
 
-    active_items = [
-        (products_list[i], row_to_cajas_fn(edited.loc[i], products_list[i]))
-        for i in edited.index if edited.loc[i, "Cantidad"] > 0
-    ]
+        c1, c2, c3, c4 = st.columns([3, 1.8, 1.4, 1])
+
+        with c1:
+            st.markdown(f"**{p['producto']}**")
+
+        with c2:
+            unit = st.selectbox(
+                "u", [OPT_PAL, OPT_CAJ],
+                label_visibility="collapsed",
+                key=f"unit_{cod}_{sfx}",
+            )
+
+        with c3:
+            is_pal = unit == OPT_PAL
+            qty = st.number_input(
+                "q",
+                min_value=0.0,
+                step=0.5 if is_pal else 1.0,
+                format="%.1f" if is_pal else "%.0f",
+                label_visibility="collapsed",
+                key=f"qty_{cod}_{sfx}",
+            )
+
+        with c4:
+            if qty > 0:
+                cajas = int(round(qty * cajas_pal)) if is_pal else int(round(qty))
+                st.markdown(
+                    f"<span style='color:#2d6a4f;font-weight:bold'>{cajas}</span>",
+                    unsafe_allow_html=True,
+                )
+                active_items.append((p, cajas))
+            else:
+                st.markdown("<span style='color:#ccc'>—</span>", unsafe_allow_html=True)
 
     active_items = [(p, q) for p, q in active_items if q > 0]
 
     st.markdown("---")
 
     if not active_items:
-        st.caption("↑ Elige unidad y escribe la cantidad para cada producto que deseas ordenar.")
+        st.caption("↑ Elige **📦 Pallets** o **🗃️ Cajas** e ingresa la cantidad de cada producto.")
         return
 
     total_cajas = sum(q for _, q in active_items)
