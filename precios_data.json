@@ -129,7 +129,7 @@
       "kg_caja": 2.5,
       "costo_caja_manual": 0.03,
       "precio_compra": 6.5,
-      "margen_pct": 0.11,
+      "margen_pct": 0.1,
       "grupo": "C",
       "activo": true
     },
@@ -139,7 +139,7 @@
       "kg_caja": 2.5,
       "costo_caja_manual": null,
       "precio_compra": 13.5,
-      "margen_pct": 0.06,
+      "margen_pct": 0.08,
       "grupo": "B",
       "activo": true
     },
@@ -199,7 +199,7 @@
       "kg_caja": 3.0,
       "costo_caja_manual": 0.0,
       "precio_compra": 5.25,
-      "margen_pct": 0.09,
+      "margen_pct": 0.11,
       "grupo": "C",
       "activo": true
     },
@@ -209,7 +209,7 @@
       "kg_caja": 3.0,
       "costo_caja_manual": null,
       "precio_compra": 6.0,
-      "margen_pct": 0.11,
+      "margen_pct": 0.1,
       "grupo": "D",
       "activo": true
     },
