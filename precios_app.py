@@ -365,6 +365,7 @@ def gen_albaran_pdf(client_name, razon_social, destino, active_items, total_caja
                     total_pallets, total_usd, cfg_data,
                     total_eur=None, client_email="", telefono="",
                     dest_code="USD", dest_sym="$", dest_rate=1.0, lang="ES"):
+    Tp  = TR.get(lang, TR["ES"])   # ← traducción al inicio, antes de todo uso
     pdf = FPDF()
     pdf.add_page()
     pdf.set_margins(15, 15, 15)
@@ -396,7 +397,6 @@ def gen_albaran_pdf(client_name, razon_social, destino, active_items, total_caja
     pdf.ln(4)
 
     # ── Datos del cliente ──
-    Tp = TR.get(lang, TR["ES"])
     rate_label = cfg_data.get("_rate_label", "").replace("🟢","").replace("🟡","").strip()
     client_fields = [(Tp["pdf_client"],  client_name),
                      (Tp["pdf_company"], razon_social)]
