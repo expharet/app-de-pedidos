@@ -876,68 +876,161 @@ def render_order_form(cfg_data, products_list, standalone=False):
         st.markdown(T["title"])
         st.markdown("---")
 
-    # ── Datos del cliente ──
-    st.markdown(T["client_section"])
-    # Auto-relleno si el email ya existe en la base de clientes
-    def _on_email_change():
-        em = st.session_state.get("cl_email", "").strip().lower()
-        if not em:
-            return
-        existing = load_clients()
-        if em in existing:
-            c = existing[em]
-            st.session_state["cl_name"]  = c.get("nombre", "")
-            st.session_state["cl_razon"] = c.get("razon_social", "")
-            # Intentar precargar teléfono
-            tel = c.get("telefono", "")
-            if tel:
-                # Separar prefijo del número
-                parts = tel.split(" ", 1)
-                if len(parts) == 2:
-                    prefix, num = parts
-                    for idx, (_, code) in enumerate(PHONE_PREFIXES):
-                        if code == prefix:
-                            st.session_state["cl_phone_prefix"] = idx
-                            break
-                    st.session_state["cl_phone_num"] = num
+    # ── Acceso / Registro del cliente ─────────────────────────────────────────
+    _clients_db  = load_clients()
+    _sfx         = "cl" if standalone else "adm"
+    _verified_k  = f"client_verified_{_sfx}"
+    _cdata_k     = f"client_data_{_sfx}"
 
-    cc1, cc2 = st.columns(2)
-    with cc1:
-        client_email = st.text_input(T["email"],   key="cl_email",
-                                     placeholder=T["email_ph"],
-                                     on_change=_on_email_change)
+    if _verified_k not in st.session_state:
+        st.session_state[_verified_k] = False
+    if _cdata_k not in st.session_state:
+        st.session_state[_cdata_k]    = {}
 
-        # Mostrar bienvenida si cliente conocido
-        _em_key = client_email.strip().lower()
-        _known  = load_clients()
-        if _em_key and _em_key in _known:
-            _nc = len(_known[_em_key].get("pedidos", []))
-            _ul = _known[_em_key].get("ultimo_pedido", "")
-            if lang == "EN":
-                st.success(f"👋 Welcome back! **{_known[_em_key]['nombre']}** · {_nc} previous order{'s' if _nc!=1 else ''}")
-            else:
-                st.success(f"👋 ¡Bienvenido de nuevo! **{_known[_em_key]['nombre']}** · {_nc} pedido{'s' if _nc!=1 else ''} anterior{'es' if _nc!=1 else ''}")
-
-        client_name  = st.text_input(T["name"],    key="cl_name",         placeholder=T["name_ph"])
-        razon_social = st.text_input(T["company"], key="cl_razon",        placeholder=T["company_ph"])
-        prefix_labels = [f"{name}  {code}" for name, code in PHONE_PREFIXES]
-        prefix_idx    = st.selectbox(T["prefix"], range(len(PHONE_PREFIXES)),
-                                      format_func=lambda i: prefix_labels[i],
-                                      key="cl_phone_prefix")
-        phone_num  = st.text_input(T["phone"], key="cl_phone_num", placeholder=T["phone_ph"])
-        phone_full = f"{PHONE_PREFIXES[prefix_idx][1]} {phone_num}".strip()
-
-    with cc2:
-        ped_dest = st.selectbox(T["dest"], list(cfg_data["destinos"].keys()), key="cl_dest")
-        dest_code, dest_sym = DESTINO_DIVISA.get(ped_dest, ("USD", "$"))
-        dest_rate           = fetch_dest_rate(dest_code)
-        if dest_code == "USD":
-            st.info(T["min_order"].format(n=MIN_PALLETS) + "\n\n" + T["currency_usd"])
+    # ── PASO 1: Pantalla de acceso por email ──────────────────────────────────
+    if not st.session_state[_verified_k]:
+        st.markdown("---")
+        if lang == "EN":
+            st.markdown("#### 📧 Are you registered? Access with your email")
+            _email_label = "Your email"
+            _btn_access  = "🔑 Access"
+            _btn_new     = "📝 Register as new client"
+            _welcome_txt = lambda n, np_: f"👋 Welcome back, **{n}**!  You have **{np_}** previous order{'s' if np_!=1 else ''}."
+            _confirm_btn = "✅ Continue as"
+            _change_btn  = "↩️ Use different email"
+            _new_title   = "#### 📝 New client — complete your details"
         else:
-            st.info(
-                T["min_order"].format(n=MIN_PALLETS) + "\n\n" +
-                T["dest_currency"].format(code=dest_code, sym=dest_sym, rate=dest_rate)
-            )
+            st.markdown("#### 📧 ¿Estás registrado? Accede con tu correo")
+            _email_label = "Tu correo electrónico"
+            _btn_access  = "🔑 Acceder"
+            _btn_new     = "📝 Registrarme como nuevo cliente"
+            _welcome_txt = lambda n, np_: f"👋 ¡Hola de nuevo, **{n}**!  Tienes **{np_}** pedido{'s' if np_!=1 else ''} anterior{'es' if np_!=1 else ''}."
+            _confirm_btn = "✅ Continuar como"
+            _change_btn  = "↩️ Usar otro correo"
+            _new_title   = "#### 📝 Nuevo cliente — completa tus datos"
+
+        ea1, ea2 = st.columns([3, 1])
+        with ea1:
+            _email_input = st.text_input(_email_label, key=f"email_access_{_sfx}",
+                                         placeholder="nombre@empresa.com")
+        with ea2:
+            st.markdown("<br>", unsafe_allow_html=True)
+            _access_clicked = st.button(_btn_access, type="primary",
+                                        use_container_width=True, key=f"btn_access_{_sfx}")
+
+        _show_new_form = st.session_state.get(f"show_new_{_sfx}", False)
+        _email_clean   = _email_input.strip().lower()
+
+        if _access_clicked and _email_clean:
+            if _email_clean in _clients_db:
+                # Cliente conocido: mostrar tarjeta de bienvenida
+                st.session_state[f"found_email_{_sfx}"] = _email_clean
+            else:
+                # Email no encontrado: mostrar formulario de registro
+                st.session_state[f"show_new_{_sfx}"] = True
+                st.session_state[f"new_email_{_sfx}"] = _email_clean
+
+        # Tarjeta bienvenida cliente existente
+        _found_email = st.session_state.get(f"found_email_{_sfx}", "")
+        if _found_email and _found_email in _clients_db:
+            c = _clients_db[_found_email]
+            _np = len(c.get("pedidos", []))
+            st.markdown("<br>", unsafe_allow_html=True)
+
+            with st.container():
+                st.success(_welcome_txt(c["nombre"], _np))
+                st.markdown(
+                    f"🏢 **{c.get('razon_social','')}** &nbsp;|&nbsp; "
+                    f"📞 {c.get('telefono','—')} &nbsp;|&nbsp; "
+                    f"📅 Último pedido: {c.get('ultimo_pedido','—')}"
+                )
+                bc1, bc2 = st.columns([2, 1])
+                with bc1:
+                    if st.button(f"{_confirm_btn} **{c['nombre']}**",
+                                 type="primary", use_container_width=True,
+                                 key=f"btn_confirm_{_sfx}"):
+                        # Cargar datos del cliente en session_state
+                        st.session_state[_cdata_k] = {
+                            "nombre": c["nombre"], "razon_social": c["razon_social"],
+                            "email": _found_email, "telefono": c.get("telefono",""),
+                        }
+                        st.session_state[_verified_k] = True
+                        st.session_state.pop(f"found_email_{_sfx}", None)
+                        st.rerun()
+                with bc2:
+                    if st.button(_change_btn, use_container_width=True,
+                                 key=f"btn_change_{_sfx}"):
+                        st.session_state.pop(f"found_email_{_sfx}", None)
+                        st.rerun()
+
+        # Formulario de nuevo cliente
+        elif st.session_state.get(f"show_new_{_sfx}"):
+            _new_email = st.session_state.get(f"new_email_{_sfx}", "")
+            st.markdown("<br>", unsafe_allow_html=True)
+            st.markdown(_new_title)
+            if lang == "EN":
+                st.caption(f"Email: **{_new_email}** — fill in your details to continue")
+            else:
+                st.caption(f"Email: **{_new_email}** — completa tus datos para continuar")
+            nf1, nf2 = st.columns(2)
+            with nf1:
+                _nn  = st.text_input(T["name"],    key=f"new_name_{_sfx}",  placeholder=T["name_ph"])
+                _nr  = st.text_input(T["company"], key=f"new_razon_{_sfx}", placeholder=T["company_ph"])
+            with nf2:
+                _prefix_labels = [f"{name}  {code}" for name, code in PHONE_PREFIXES]
+                _pi  = st.selectbox(T["prefix"], range(len(PHONE_PREFIXES)),
+                                    format_func=lambda i: _prefix_labels[i],
+                                    key=f"new_prefix_{_sfx}")
+                _pn  = st.text_input(T["phone"], key=f"new_phone_{_sfx}", placeholder=T["phone_ph"])
+
+            if st.button(f"✅ {T['confirm_btn'].replace('Confirmar Pedido','').replace('Confirm Order','').strip()} — {'Continuar' if lang=='ES' else 'Continue'}",
+                         type="primary", disabled=not(_nn and _nr),
+                         key=f"btn_new_ok_{_sfx}"):
+                _ph = f"{PHONE_PREFIXES[_pi][1]} {_pn}".strip()
+                st.session_state[_cdata_k] = {
+                    "nombre": _nn, "razon_social": _nr,
+                    "email": _new_email, "telefono": _ph,
+                }
+                st.session_state[_verified_k] = True
+                st.session_state.pop(f"show_new_{_sfx}", None)
+                st.rerun()
+
+        st.markdown("---")
+        # No continuar hasta que el cliente se haya identificado
+        return
+
+    # ── PASO 2: Cliente identificado — mostrar resumen + destino ─────────────
+    _cd = st.session_state[_cdata_k]
+    client_name  = _cd["nombre"]
+    razon_social = _cd["razon_social"]
+    client_email = _cd["email"]
+    phone_full   = _cd.get("telefono", "")
+
+    # Cabecera con datos del cliente + botón cambiar
+    hc1, hc2 = st.columns([4, 1])
+    with hc1:
+        st.markdown(
+            f"**{client_name}** — {razon_social} &nbsp;|&nbsp; "
+            f"📧 {client_email} &nbsp;|&nbsp; 📞 {phone_full or '—'}"
+        )
+    with hc2:
+        if st.button("↩️ Cambiar" if lang=="ES" else "↩️ Change",
+                     key=f"btn_logout_{_sfx}", use_container_width=True):
+            st.session_state[_verified_k] = False
+            st.session_state[_cdata_k]    = {}
+            st.rerun()
+
+    # Destino
+    ped_dest = st.selectbox(T["dest"], list(cfg_data["destinos"].keys()), key="cl_dest")
+    dest_code, dest_sym = DESTINO_DIVISA.get(ped_dest, ("USD", "$"))
+    dest_rate           = fetch_dest_rate(dest_code)
+    if dest_code == "USD":
+        st.info(T["min_order"].format(n=MIN_PALLETS) + "\n\n" + T["currency_usd"])
+    else:
+        st.info(
+            T["min_order"].format(n=MIN_PALLETS) + "\n\n" +
+            T["dest_currency"].format(code=dest_code, sym=dest_sym, rate=dest_rate)
+        )
 
     st.markdown("---")
     st.markdown(T["products"])
