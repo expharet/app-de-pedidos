@@ -1693,7 +1693,7 @@ with tab2:
         )
         # Botones de compartir el enlace
         wa_share = "https://wa.me/?text=" + urllib.parse.quote(
-            f"Hola, aquí puedes hacer tu pedido a Export Haret:\n{client_url}"
+            f"¡Consulta los precios mediante una simulación de Orden!\n{client_url}"
         )
         mail_share = (
             "mailto:?subject=" + urllib.parse.quote("Formulario de pedido — Export Haret")
