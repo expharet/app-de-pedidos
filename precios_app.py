@@ -157,9 +157,17 @@ def get_network_url(port: int = 8501) -> str:
     except Exception:
         return f"http://localhost:{port}"
 
+def _load_page_icon():
+    """Carga el favicon personalizado si existe, si no usa el emoji."""
+    _fav = os.path.join(os.path.dirname(os.path.abspath(__file__)), "favicon.png")
+    if os.path.exists(_fav):
+        from PIL import Image as _PIL
+        return _PIL.open(_fav)
+    return "🌿"
+
 st.set_page_config(
     page_title="Export Haret — Pedidos",
-    page_icon="🌿",
+    page_icon=_load_page_icon(),
     layout="wide",
     initial_sidebar_state="expanded",
 )
@@ -1258,24 +1266,43 @@ with tab5:
             st.info("Sin logo configurado")
 
     with col_upload:
-        st.markdown("Sube tu logo en formato **PNG o JPG** (fondo transparente o blanco recomendado):")
+        st.markdown("**Logo principal** (PNG/JPG, fondo blanco o transparente):")
         uploaded = st.file_uploader(
-            "Seleccionar imagen",
+            "Logo principal",
             type=["png", "jpg", "jpeg", "webp"],
             key="logo_uploader",
             label_visibility="collapsed",
         )
         if uploaded:
-            img_bytes = uploaded.read()
-            # Convertir a PNG si no lo es
             from PIL import Image as PILImage
-            img_obj = PILImage.open(io.BytesIO(img_bytes)).convert("RGBA")
-            buf = io.BytesIO()
-            img_obj.save(buf, format="PNG")
-            with open(_logo_path, "wb") as f:
-                f.write(buf.getvalue())
-            st.success("✅ Logo guardado. Pulsa **🚀 Publicar en la nube** para que aparezca en la app.")
+            img_obj = PILImage.open(io.BytesIO(uploaded.read())).convert("RGBA")
+            buf = io.BytesIO(); img_obj.save(buf, format="PNG")
+            with open(_logo_path, "wb") as f: f.write(buf.getvalue())
+            st.success("✅ Logo guardado. Pulsa **🚀 Publicar en la nube**.")
             st.image(_logo_path, caption="Nuevo logo", width=200)
+
+        st.markdown("**Icono del navegador** (cuadrado PNG, mín. 64×64):")
+        _fav_path = os.path.join(os.path.dirname(__file__), "favicon.png")
+        fav_up = st.file_uploader(
+            "Icono navegador",
+            type=["png", "jpg", "jpeg"],
+            key="fav_uploader",
+            label_visibility="collapsed",
+        )
+        if fav_up:
+            from PIL import Image as PILImage
+            fav_obj = PILImage.open(io.BytesIO(fav_up.read())).convert("RGBA")
+            # Recortar a cuadrado y escalar
+            side = min(fav_obj.size)
+            w, h = fav_obj.size
+            fav_obj = fav_obj.crop(((w-side)//2,(h-side)//2,(w+side)//2,(h+side)//2))
+            fav_obj = fav_obj.resize((256,256))
+            buf2 = io.BytesIO(); fav_obj.save(buf2, format="PNG")
+            with open(_fav_path, "wb") as f: f.write(buf2.getvalue())
+            st.success("✅ Icono guardado. Pulsa **🚀 Publicar en la nube**.")
+            st.image(_fav_path, caption="Nuevo icono", width=80)
+        elif os.path.exists(_fav_path):
+            st.image(_fav_path, caption="Icono actual", width=80)
 
     # ── Publicar en la nube ────────────────────────────────────────────────────
     st.markdown("---")
@@ -1328,20 +1355,19 @@ with tab5:
                 }
                 r_put = requests.put(api_url, json=payload, headers=headers, timeout=20)
 
-                # También subir el logo si existe
-                _lp = os.path.join(os.path.dirname(__file__), "logo.png")
-                if os.path.exists(_lp):
-                    with open(_lp, "rb") as lf:
-                        logo_b64 = base64.b64encode(lf.read()).decode()
-                    logo_url = "https://api.github.com/repos/expharet/app-de-pedidos/contents/logo.png"
-                    r_logo_get = requests.get(logo_url, headers=headers, timeout=10)
-                    logo_sha = r_logo_get.json().get("sha", "") if r_logo_get.status_code == 200 else ""
-                    logo_payload = {
-                        "message": f"Actualizar logo — {date.today().strftime('%d/%m/%Y')}",
-                        "content": logo_b64,
-                        **({"sha": logo_sha} if logo_sha else {}),
-                    }
-                    requests.put(logo_url, json=logo_payload, headers=headers, timeout=20)
+                # También subir logo y favicon si existen
+                for _fname in ["logo.png", "favicon.png"]:
+                    _lp = os.path.join(os.path.dirname(__file__), _fname)
+                    if os.path.exists(_lp):
+                        with open(_lp, "rb") as lf:
+                            _img_b64 = base64.b64encode(lf.read()).decode()
+                        _img_url = f"https://api.github.com/repos/expharet/app-de-pedidos/contents/{_fname}"
+                        _rg = requests.get(_img_url, headers=headers, timeout=10)
+                        _sha = _rg.json().get("sha","") if _rg.status_code == 200 else ""
+                        _pl = {"message": f"Actualizar {_fname} — {date.today().strftime('%d/%m/%Y')}",
+                               "content": _img_b64}
+                        if _sha: _pl["sha"] = _sha
+                        requests.put(_img_url, json=_pl, headers=headers, timeout=20)
 
                 if r_put.status_code in (200, 201):
                     st.success(
