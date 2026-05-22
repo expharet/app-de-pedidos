@@ -191,7 +191,7 @@
       "precio_compra": 13.14,
       "margen_pct": 0.12,
       "grupo": "I",
-      "activo": true
+      "activo": false
     },
     {
       "codigo": "F-MPS03",
