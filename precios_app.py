@@ -2501,22 +2501,22 @@ with tab6:
                                     del st.session_state[f"confirm_del_{ped['id']}"]
                                     st.rerun()
                         with _c_cost:
-                            _ped_dest  = ped.get("destino", list(cfg_data["config"].get("destinos", {"?":0}).keys())[0])
+                            _ped_dest  = ped.get("destino", list(data["config"].get("destinos", {"?":0}).keys())[0])
                             _ped_cajas = max(sum(p.get("cajas",0) for p in ped.get("productos",[])), 1)
                             _tc = 0.0
                             for _p in ped.get("productos", []):
                                 _pcode  = _p.get("codigo", "")
-                                _pdata  = next((x for x in cfg_data.get("products",[]) if x.get("codigo")==_pcode), {})
+                                _pdata  = next((x for x in data.get("products",[]) if x.get("codigo")==_pcode), {})
                                 _pcajas = _p.get("cajas", 0)
                                 if not _pdata or not _pcajas: continue
-                                _cc         = _pdata.get("costo_caja_manual") or cfg_data["config"].get("costo_caja",0)/max(_pdata.get("kg_caja",1),0.001)
-                                _fob_m_pct  = cfg_data["config"].get("merma_pct", 0)
+                                _cc         = _pdata.get("costo_caja_manual") or data["config"].get("costo_caja",0)/max(_pdata.get("kg_caja",1),0.001)
+                                _fob_m_pct  = data["config"].get("merma_pct", 0)
                                 _fob_merma  = (_pdata.get("precio_compra",0)+_cc)/(1-_fob_m_pct) if _fob_m_pct<1 else _pdata.get("precio_compra",0)+_cc
-                                _tarifa     = cfg_data["config"].get("destinos",{}).get(_ped_dest, 0)
-                                _grp        = cfg_data["config"].get("grupos",{}).get(_pdata.get("grupo",""),{})
+                                _tarifa     = data["config"].get("destinos",{}).get(_ped_dest, 0)
+                                _grp        = data["config"].get("grupos",{}).get(_pdata.get("grupo",""),{})
                                 _cpallet    = _grp.get("cajas_pallet", 160) if isinstance(_grp,dict) else 160
-                                _flete_u    = _tarifa*(_pdata.get("kg_caja",0)+cfg_data["config"].get("tara_caja",0)+cfg_data["config"].get("peso_pallet",0)/max(_cpallet,1))
-                                _due_u      = cfg_data["config"].get("due",0)/max(_ped_cajas,1)
+                                _flete_u    = _tarifa*(_pdata.get("kg_caja",0)+data["config"].get("tara_caja",0)+data["config"].get("peso_pallet",0)/max(_cpallet,1))
+                                _due_u      = data["config"].get("due",0)/max(_ped_cajas,1)
                                 _tc        += (_fob_merma + _flete_u + _due_u) * _pcajas
                             _tv = ped.get("total_usd", 0)
                             _pct = ((_tv-_tc)/_tv*100) if _tv else 0
