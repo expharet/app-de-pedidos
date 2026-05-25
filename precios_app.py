@@ -1121,13 +1121,6 @@ def render_order_form(cfg_data, products_list, standalone=False,
     _dest_idx  = (_dest_options.index(_last_dest)
                   if _last_dest in _dest_options else 0)
     ped_dest = st.selectbox(T["dest"], _dest_options, index=_dest_idx, key="cl_dest")
-    # --- Mejora 4: FOB / CIF ---
-    _fob_cif = st.radio(
-        "Tipo de envío" if lang == "ES" else "Shipment type",
-        ["FOB", "CIF Destino"],
-        horizontal=True, key=f"fob_cif_{sfx}",
-        help="FOB: sin flete. CIF Destino: incluye flete al destino."
-    )
     dest_code, dest_sym = DESTINO_DIVISA.get(ped_dest, ("USD", "$"))
     dest_rate           = fetch_dest_rate(dest_code)
     if dest_code == "USD":
@@ -1151,6 +1144,13 @@ def render_order_form(cfg_data, products_list, standalone=False,
     OPT_PAL = T["opt_pal"]
     OPT_CAJ = T["opt_caj"]
     sfx     = "cl" if standalone else "adm"
+    # --- Mejora 4: FOB / CIF ---
+    _fob_cif = st.radio(
+        "Tipo de envío" if lang == "ES" else "Shipment type",
+        ["FOB", "CIF Destino"],
+        horizontal=True, key=f"fob_cif_{sfx}",
+        help="FOB: sin flete. CIF Destino: incluye flete al destino."
+    )
 
     # Solo productos activos (disponibles para pedido)
     products_list = [p for p in products_list if p.get("activo", True)]
