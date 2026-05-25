@@ -1121,6 +1121,13 @@ def render_order_form(cfg_data, products_list, standalone=False,
     _dest_idx  = (_dest_options.index(_last_dest)
                   if _last_dest in _dest_options else 0)
     ped_dest = st.selectbox(T["dest"], _dest_options, index=_dest_idx, key="cl_dest")
+    # --- Mejora 4: FOB / CIF ---
+    _fob_cif = st.radio(
+        "Tipo de envío" if lang == "ES" else "Shipment type",
+        ["FOB", "CIF Destino"],
+        horizontal=True, key=f"fob_cif_{sfx}",
+        help="FOB: sin flete. CIF Destino: incluye flete al destino."
+    )
     dest_code, dest_sym = DESTINO_DIVISA.get(ped_dest, ("USD", "$"))
     dest_rate           = fetch_dest_rate(dest_code)
     if dest_code == "USD":
@@ -2059,8 +2066,12 @@ with tab5:
         cfg["costo_caja"] = new_costo_caja
         cfg["peso_pallet"] = new_peso_pallet
         cfg["public_url"] = new_public_url.rstrip("/")
+        # Mejora 1: rebuild destinos (supports rename)
+        new_destinos = {}
         for _, row in edited_dest.iterrows():
-            cfg["destinos"][row["Destino"]] = float(row["Tarifa USD/kg"])
+            _dname = str(row["Destino"]).strip()
+            if _dname: new_destinos[_dname] = float(row["Tarifa USD/kg"])
+        cfg["destinos"] = new_destinos
         for _, row in edited_grupos.iterrows():
             cfg["grupos"][row["Grupo"]]["cajas_pallet"] = int(row["Cajas/Pallet"])
         save_data(data)
@@ -2409,6 +2420,31 @@ with tab6:
             fi3.markdown(f"📞 {c.get('telefono','—')}")
             fi4.markdown(f"📦 **{len(pedidos)}** pedido{'s' if len(pedidos)!=1 else ''}")
 
+            # --- Mejora 2: Bloquear / Eliminar cliente ---
+            st.markdown("---")
+            _cb1, _cb2 = st.columns(2)
+            _is_blocked = c.get("bloqueado", False)
+            with _cb1:
+                _lbl = "🔒 Desbloquear" if _is_blocked else "🔒 Bloquear"
+                if st.button(_lbl, key=f"block_{email_sel}", use_container_width=True):
+                    all_clients[email_sel]["bloqueado"] = not _is_blocked
+                    save_clients(all_clients); st.rerun()
+            if _is_blocked: st.warning("⚠️ Cliente bloqueado.")
+            with _cb2:
+                if st.button("🗑️ Eliminar cliente", key=f"del_cl_{email_sel}", type="secondary", use_container_width=True):
+                    st.session_state[f"confirm_del_cl_{email_sel}"] = True
+            if st.session_state.get(f"confirm_del_cl_{email_sel}", False):
+                st.error(f"¿Eliminar al cliente {email_sel} permanentemente?")
+                _cd1, _cd2 = st.columns(2)
+                with _cd1:
+                    if st.button("✅ Confirmar", key=f"yes_del_cl_{email_sel}", type="primary"):
+                        del all_clients[email_sel]; save_clients(all_clients)
+                        del st.session_state[f"confirm_del_cl_{email_sel}"]
+                        st.success("Cliente eliminado."); st.rerun()
+                with _cd2:
+                    if st.button("❌ Cancelar", key=f"cancel_del_cl_{email_sel}"):
+                        del st.session_state[f"confirm_del_cl_{email_sel}"]; st.rerun()
+
             if not pedidos:
                 st.caption("Este cliente aún no tiene pedidos registrados.")
             else:
@@ -2433,3 +2469,30 @@ with tab6:
                             f"**Total USD:** ${ped['total_usd']:,.2f}"
                             + (f"  ·  **Total {dc}:** {ds}{ped.get('total_loc', ped['total_usd']*dr):,.2f}" if dc != "USD" else "")
                         )
+                        # --- Mejora 3+5: Eliminar pedido / Coste-Beneficio ---
+                        st.markdown("---")
+                        _del_key = f"del_{ped['id']}"
+                        _c_del, _c_cost = st.columns([1, 2])
+                        with _c_del:
+                            if st.button("🗑️ Eliminar", key=_del_key, type="secondary", use_container_width=True):
+                                st.session_state[f"confirm_del_{ped['id']}"] = True
+                        if st.session_state.get(f"confirm_del_{ped['id']}", False):
+                            st.warning(f"¿Eliminar pedido {ped['id']}? No se puede deshacer.")
+                            _cc1, _cc2 = st.columns(2)
+                            with _cc1:
+                                if st.button("✅ Sí, eliminar", key=f"yes_{ped['id']}", type="primary"):
+                                    _ords = json.load(open(ORDERS_FILE)) if os.path.exists(ORDERS_FILE) else []
+                                    _ords = [o for o in _ords if o.get("id") != ped["id"]]
+                                    open(ORDERS_FILE, "w").write(__import__("json").dumps(_ords, ensure_ascii=False, indent=2))
+                                    del st.session_state[f"confirm_del_{ped['id']}"]
+                                    st.success("Pedido eliminado."); st.rerun()
+                            with _cc2:
+                                if st.button("❌ Cancelar", key=f"cancel_{ped['id']}"):
+                                    del st.session_state[f"confirm_del_{ped['id']}"]
+                                    st.rerun()
+                        if is_admin:
+                            with _c_cost:
+                                _tc = sum(p.get("precio_compra",0)*p.get("cajas",0) for p in ped.get("productos",[]) if p.get("precio_compra"))
+                                _tv = ped.get("total_usd", 0)
+                                _pct = ((_tv-_tc)/_tv*100) if _tv else 0
+                                st.markdown(f"💰 Coste: **${_tc:,.2f}** | Venta: **${_tv:,.2f}** | Beneficio: **${_tv-_tc:,.2f}** ({_pct:.1f}%)")
