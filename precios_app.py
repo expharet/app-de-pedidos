@@ -1812,6 +1812,7 @@ if not st.session_state.admin_ok:
     st.stop()
 
 # ── Sidebar (solo admin) ───────────────────────────────────────────────────────
+    cfg = load_data()
 with st.sidebar:
     # Logo: usa archivo local si existe, si no placeholder verde
     _logo_path = os.path.join(os.path.dirname(__file__), "logo.png")
