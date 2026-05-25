@@ -111,7 +111,18 @@
       }
     },
     "_rate_label": "🟢 En vivo BCE · 2026-05-25",
-    "public_url": "https://exportharet-pedidos.streamlit.app"
+    "public_url": "https://exportharet-pedidos.streamlit.app",
+    "destinos_moneda": {
+      "Madrid/España": "EUR",
+      "París/Francia": "EUR",
+      "Londres/UK": "GBP",
+      "Suiza": "CHF",
+      "Países Bajos": "EUR",
+      "Dubai/EAU": "AED",
+      "NY/USA": "USD",
+      "Miami/USA": "USD",
+      "Berlín/Alemania": "EUR"
+    }
   },
   "products": [
     {
