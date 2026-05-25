@@ -194,6 +194,26 @@
             "total_usd": 7463.53
           }
         ]
+      },
+      {
+        "id": "PED-20260525-008",
+        "fecha": "2026-05-25",
+        "destino": "Berlín/Alemania",
+        "total_usd": 8325.99,
+        "dest_code": "EUR",
+        "dest_sym": "€",
+        "dest_rate": 0.85889,
+        "total_loc": 7151.11,
+        "pallets": 3,
+        "cajas": 480,
+        "productos": [
+          {
+            "producto": "Maracuyá",
+            "cajas": 480,
+            "precio_usd": 17.3458,
+            "total_usd": 8325.99
+          }
+        ]
       }
     ]
   },
