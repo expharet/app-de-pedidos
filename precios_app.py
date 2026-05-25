@@ -209,6 +209,65 @@ def send_cancel_email(ped: dict) -> None:
     except Exception:
         pass  # silencioso si falla SMTP
 
+# ── Estados de pedido ────────────────────────────────────────────────────────
+ORDEN_ESTADOS = ["Recibido", "Confirmado", "En preparación", "Enviado", "Entregado"]
+ORDEN_ESTADOS_COLORES = {
+    "Recibido":       "🔵",
+    "Confirmado":     "🟡",
+    "En preparación": "🟠",
+    "Enviado":        "🚀",
+    "Entregado":      "✅",
+}
+ORDEN_ESTADOS_EN = {
+    "Recibido":       "Received",
+    "Confirmado":     "Confirmed",
+    "En preparación": "In preparation",
+    "Enviado":        "Shipped",
+    "Entregado":      "Delivered",
+}
+
+
+def send_status_email(ped: dict, new_status: str) -> None:
+    """Envía email al cliente cuando el admin cambia el estado del pedido."""
+    try:
+        smtp_user = st.secrets.get("SMTP_USER", "")
+        smtp_pass = st.secrets.get("SMTP_PASS", "")
+        smtp_host = st.secrets.get("SMTP_HOST", "smtp.gmail.com")
+        smtp_port = int(st.secrets.get("SMTP_PORT", "587"))
+        if not smtp_user or not smtp_pass:
+            return
+        import smtplib
+        from email.mime.multipart import MIMEMultipart
+        from email.mime.text import MIMEText as _MIMEText
+        client_email = ped.get("email", "")
+        client_name  = ped.get("client_name", "")
+        ped_id       = ped.get("id", "")[:8].upper()
+        icono        = ORDEN_ESTADOS_COLORES.get(new_status, "📦")
+        subject = f"[Export Haret] Tu pedido #{ped_id} — Estado: {icono} {new_status}"
+        body = f"""Hola {client_name},
+
+Tu pedido #{ped_id} ha cambiado de estado:
+
+  {icono} {new_status}
+
+Puedes consultar el detalle en:
+https://exportharet-pedidos.streamlit.app/?view=cliente
+
+Gracias por confiar en Export Haret.
+El equipo de Export Haret
+"""
+        msg = MIMEMultipart("alternative")
+        msg["Subject"] = subject
+        msg["From"]    = smtp_user
+        msg["To"]      = client_email
+        msg.attach(_MIMEText(body, "plain", "utf-8"))
+        with smtplib.SMTP(smtp_host, smtp_port, timeout=10) as srv:
+            srv.starttls()
+            srv.login(smtp_user, smtp_pass)
+            srv.sendmail(smtp_user, [client_email], msg.as_string())
+    except Exception:
+        pass  # silencioso
+
 
 def get_network_url(port: int = 8501) -> str:
     """Devuelve la URL accesible en red local (no localhost)."""
@@ -224,6 +283,7 @@ def get_network_url(port: int = 8501) -> str:
 # ── Base de datos de clientes ──────────────────────────────────────────────────
 CLIENTES_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "clientes.json")
 
+@st.cache_data(ttl=10)
 def load_clients() -> dict:
     if os.path.exists(CLIENTES_FILE):
         try:
@@ -234,6 +294,7 @@ def load_clients() -> dict:
     return {}
 
 def save_clients(clients: dict):
+    st.cache_data.clear()
     with open(CLIENTES_FILE, "w", encoding="utf-8") as f:
         json.dump(clients, f, indent=2, ensure_ascii=False)
 
@@ -515,6 +576,7 @@ INITIAL_DATA = {
 }
 
 
+@st.cache_data(ttl=10)
 def load_data():
     if os.path.exists(DATA_FILE):
         with open(DATA_FILE, encoding="utf-8") as f:
@@ -523,6 +585,7 @@ def load_data():
 
 
 def save_data(data):
+    st.cache_data.clear()
     with open(DATA_FILE, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
 
@@ -1544,10 +1607,11 @@ def render_order_form(cfg_data, products_list, standalone=False,
 
 
 # ── Historial de pedidos del cliente ─────────────────────────────────────────
+
 def render_order_history(client_email: str, lang: str = "ES"):
-    """Muestra los pedidos anteriores de un cliente."""
+    """Muestra los pedidos anteriores de un cliente con estados visuales."""
     clients = load_clients()
-    data        = load_data()
+    data    = load_data()
     c       = clients.get(client_email, {})
     pedidos = c.get("pedidos", [])
 
@@ -1558,73 +1622,186 @@ def render_order_history(client_email: str, lang: str = "ES"):
         lbl_pal   = "Pallets"
         lbl_cajas = "Boxes"
         lbl_prod  = "**Products:**"
-        lbl_box   = "boxes"
+        lbl_estado = "Status"
+        lbl_notas  = "Notes"
+        lbl_fecha  = "Date"
     else:
         titulo    = "### 📋 Mis Pedidos"
-        sin_ped   = "Todavía no tienes pedidos anteriores."
+        sin_ped   = "Aún no tienes pedidos anteriores."
         lbl_tot   = "Total USD"
         lbl_pal   = "Pallets"
         lbl_cajas = "Cajas"
         lbl_prod  = "**Productos:**"
-        lbl_box   = "cajas"
+        lbl_estado = "Estado"
+        lbl_notas  = "Notas"
+        lbl_fecha  = "Fecha"
 
     st.markdown(titulo)
-
     if not pedidos:
         st.info(sin_ped)
         return
 
-    # Mostrar del más reciente al más antiguo
     for ped in reversed(pedidos):
-        fecha      = ped.get("fecha", "—")
-        destino    = ped.get("destino", "—")
-        total_usd  = ped.get("total_usd", 0)
-        dest_code  = ped.get("dest_code", "USD")
-        dest_sym   = ped.get("dest_sym", "$")
-        total_loc  = ped.get("total_loc", total_usd)
-        pallets    = ped.get("pallets", 0)
-        cajas      = ped.get("cajas", 0)
-        productos  = ped.get("productos", [])
-
-        _est_val = ped.get("estado", "Recibido")
-        header = f"📦 {fecha} – {destino} – {pallets} pallets – ${total_usd:,.2f} USD | {_est_val}"
-        if dest_code != "USD":
-            header += f"  ({dest_sym}{total_loc:,.2f} {dest_code})"
-
-        with st.expander(header):
-            m1, m2, m3 = st.columns(3)
-            m1.metric(lbl_tot,   f"${total_usd:,.2f}")
-            m2.metric(lbl_pal,   pallets)
-            m3.metric(lbl_cajas, cajas)
-            _e_estado = ped.get("estado", "Recibido")
-            _e_colors = {"Recibido": "🟡", "En preparacion": "🔵", "Aprobado": "🟢", "Enviado": "🚚", "Completado": "✅", "Cancelado": "🔴"}
-            st.info(f'{_e_colors.get(_e_estado, "⚪")} Estado: {_e_estado}')
-
-            if productos:
+        ped_id   = ped.get("id", "")[:8].upper()
+        ped_dest = ped.get("destino", "")
+        ped_tot  = ped.get("total_usd", 0)
+        ped_pals = ped.get("num_pallets", ped.get("pallets", 0))
+        ped_caj  = sum(p.get("cajas", 0) for p in ped.get("productos", []))
+        ped_fecha= ped.get("fecha", ped.get("date", ""))[:10]
+        ped_notas= ped.get("notas", ped.get("notes", ""))
+        _e_estado = ped.get("estado", "Recibido")
+        icono_e  = ORDEN_ESTADOS_COLORES.get(_e_estado, "📦")
+        _e_colors = {
+            "Recibido":       "blue",
+            "Confirmado":     "orange",
+            "En preparación": "orange",
+            "Enviado":        "violet",
+            "Entregado":      "green",
+        }
+        badge_color = _e_colors.get(_e_estado, "blue")
+        # Barra de progreso
+        try:
+            prog_idx = ORDEN_ESTADOS.index(_e_estado)
+        except ValueError:
+            prog_idx = 0
+        prog_pct = int((prog_idx / (len(ORDEN_ESTADOS)-1)) * 100)
+        
+        lbl_en = ORDEN_ESTADOS_EN.get(_e_estado, _e_estado) if lang == "EN" else _e_estado
+        
+        with st.expander(f"{icono_e} **#{ped_id}** — {ped_dest} | {ped_fecha} | :{badge_color}[{lbl_en}]", expanded=False):
+            st.progress(prog_pct, text=f"{lbl_estado}: {lbl_en}")
+            col1, col2, col3 = st.columns(3)
+            col1.metric(lbl_tot,   f"${ped_tot:,.2f}")
+            col2.metric(lbl_pal,   ped_pals)
+            col3.metric(lbl_cajas, ped_caj)
+            prods = ped.get("productos", [])
+            if prods:
                 st.markdown(lbl_prod)
-                for pr in productos:
-                    nombre = pr.get("nombre") or pr.get("producto", "—")
-                    cajas_p = pr.get("cajas", 0)
-                    st.markdown(f"&nbsp;&nbsp;• {nombre} — **{cajas_p}** {lbl_box}")
+                for p in prods:
+                    pnom = p.get("nombre", p.get("name", p.get("codigo", "")))
+                    pcaj = p.get("cajas", 0)
+                    ppal = p.get("pallets", 0)
+                    st.markdown(f"  - {pnom}: {pcaj} cajas / {ppal} pallets")
+            if ped_notas:
+                st.caption(f"📝 {lbl_notas}: {ped_notas}")
+            # Botón eliminar (solo si no está entregado/enviado)
+            if _e_estado not in ("Enviado", "Entregado"):
+                _del_key = f"del_cl_{ped['id']}"
+                _c_del, _c_cost = st.columns([1, 2])
+                with _c_del:
+                    if st.button("🗑️ Eliminar", key=_del_key, type="secondary", use_container_width=True):
+                        st.session_state[f"confirm_del_cl_{ped['id']}"] = True
+                if st.session_state.get(f"confirm_del_cl_{ped['id']}", False):
+                    st.warning(f"¿Eliminar pedido #{ped_id}? No se puede deshacer.")
+                    _cc1, _cc2 = st.columns(2)
+                    with _cc1:
+                        if st.button("✅ Sí, eliminar", key=f"yes_cl_{ped['id']}", type="primary"):
+                            _cls2 = load_clients()
+                            if client_email in _cls2:
+                                _cls2[client_email]["pedidos"] = [o for o in _cls2[client_email].get("pedidos", []) if o.get("id") != ped["id"]]
+                                save_clients(_cls2)
+                            send_cancel_email(ped)
+                            del st.session_state[f"confirm_del_cl_{ped['id']}"]
+                            st.success("Pedido eliminado."); st.rerun()
+                    with _cc2:
+                        if st.button("❌ Cancelar", key=f"no_cl_{ped['id']}"):
+                            del st.session_state[f"confirm_del_cl_{ped['id']}"]
+                            st.rerun()
 
 
-# ── Load ──────────────────────────────────────────────────────────────────────
-if "data" not in st.session_state:
-    st.session_state.data = load_data()
-
-data = st.session_state.data
-cfg = data["config"]
-products = data["products"]
-minimos = data.get("minimos", INITIAL_DATA["minimos"])
-cfg["minimos"] = minimos
-
-# ── Tipo de cambio en vivo (BCE, actualizado cada hora) ───────────────────────
-_live_rate, _rate_label = fetch_live_eur_usd()
-if _live_rate:
-    cfg["eur_usd"] = _live_rate      # usada en calc(), calc_pedido() y albarán
-    cfg["_rate_label"] = _rate_label
-else:
-    cfg["_rate_label"] = f"🟡 Manual · {cfg['eur_usd']:.4f}"
+with tab7:
+    # ── GESTION DE PEDIDOS (estado + notas admin) ──────────────────────────────────
+    st.markdown("## 📦 Gestión de Pedidos")
+    _gp_clients = load_clients()
+    _gp_all = []
+    for _gce, _gcd in _gp_clients.items():
+        for _gp in _gcd.get("pedidos", []):
+            _gp_all.append({**_gp, "_client_email": _gce})
+    if not _gp_all:
+        st.info("No hay pedidos todavía.")
+    else:
+        # Filtros
+        _gf1, _gf2 = st.columns([2,2])
+        _filt_estado = _gf1.selectbox("Filtrar por estado", ["Todos"] + ORDEN_ESTADOS, key="gp_filt_est")
+        _filt_texto  = _gf2.text_input("Buscar cliente o ID", key="gp_filt_txt").strip().lower()
+        _gp_filtered = [
+            p for p in _gp_all
+            if (_filt_estado == "Todos" or p.get("estado","Recibido") == _filt_estado)
+            and (_filt_texto == "" or _filt_texto in p.get("client_name","").lower()
+                 or _filt_texto in p.get("id","").lower()
+                 or _filt_texto in p.get("_client_email","").lower())
+        ]
+        st.markdown(f"**{len(_gp_filtered)} pedidos** encontrados")
+        st.markdown("---")
+        for _ped in sorted(_gp_filtered, key=lambda x: x.get("fecha",""), reverse=True):
+            _pid   = _ped.get("id","")[:8].upper()
+            _pest  = _ped.get("estado","Recibido")
+            _pico  = ORDEN_ESTADOS_COLORES.get(_pest,"📦")
+            _pdest = _ped.get("destino","")
+            _pfech = _ped.get("fecha", _ped.get("date",""))[:10]
+            _pcli  = _ped.get("client_name", _ped.get("_client_email",""))
+            _ptot  = _ped.get("total_usd",0)
+            _pnotas_adm = _ped.get("notas_admin","")
+            _pce   = _ped.get("_client_email","")
+            with st.expander(f"{_pico} **#{_pid}** | {_pcli} | {_pdest} | {_pfech} | ${_ptot:,.2f}", expanded=False):
+                _col_est, _col_notas = st.columns([1,2])
+                with _col_est:
+                    st.markdown("**Cambiar estado:**")
+                    try:
+                        _cur_idx = ORDEN_ESTADOS.index(_pest)
+                    except ValueError:
+                        _cur_idx = 0
+                    _new_est = st.selectbox(
+                        "Estado",
+                        ORDEN_ESTADOS,
+                        index=_cur_idx,
+                        key=f"est_{_ped['id']}",
+                        label_visibility="collapsed"
+                    )
+                    if st.button("💾 Guardar estado", key=f"save_est_{_ped['id']}", type="primary"):
+                        _gu_cls = load_clients()
+                        if _pce in _gu_cls:
+                            for _o in _gu_cls[_pce].get("pedidos",[]):
+                                if _o.get("id") == _ped["id"]:
+                                    _old_est = _o.get("estado","Recibido")
+                                    _o["estado"] = _new_est
+                                    if "historial_estados" not in _o:
+                                        _o["historial_estados"] = []
+                                    import datetime as _dtt
+                                    _o["historial_estados"].append({
+                                        "de": _old_est,
+                                        "a":  _new_est,
+                                        "fecha": str(_dtt.datetime.now())[:19]
+                                    })
+                                    break
+                            save_clients(_gu_cls)
+                            if _new_est != _pest:
+                                send_status_email(_ped, _new_est)
+                        st.success(f"Estado actualizado: {_new_est}"); st.rerun()
+                with _col_notas:
+                    st.markdown("**Notas internas (solo admin):**")
+                    _nota_nueva = st.text_area(
+                        "Notas admin",
+                        value=_pnotas_adm,
+                        key=f"nota_{_ped['id']}",
+                        label_visibility="collapsed",
+                        height=80
+                    )
+                    if st.button("📝 Guardar nota", key=f"save_nota_{_ped['id']}"):
+                        _gn_cls = load_clients()
+                        if _pce in _gn_cls:
+                            for _o2 in _gn_cls[_pce].get("pedidos",[]):
+                                if _o2.get("id") == _ped["id"]:
+                                    _o2["notas_admin"] = _nota_nueva
+                                    break
+                            save_clients(_gn_cls)
+                        st.success("Nota guardada."); st.rerun()
+                # Historial de estados
+                _hist = _ped.get("historial_estados",[])
+                if _hist:
+                    st.markdown("**Historial de estados:**")
+                    for _h in _hist:
+                        st.caption(f"  {_h.get('fecha','')} — {_h.get('de','')} → {_h.get('a','')}")
 
 # ── Vista cliente (URL ?view=cliente) ─────────────────────────────────────────
 IS_CLIENT = st.query_params.get("view", "") == "cliente"
@@ -1763,11 +1940,64 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(["📋 Cotización", "🛒 Hacer pedido", "✏️ Actualizar precios", "🌐 Todos los destinos", "⚙️ Configuración", "👥 Clientes"])
+tab0, tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs(["📊 Dashboard", "📋 Cotización", "🛒 Hacer pedido", "✏️ Actualizar precios", "🌐 Todos los destinos", "⚙️ Configuración", "👥 Clientes", "📦 Pedidos"])
 
 # ══════════════════════════════════════════════════════════════════════════════
 # TAB 1 — COTIZACIÓN
 # ══════════════════════════════════════════════════════════════════════════════
+with tab0:
+    # ── DASHBOARD RESUMEN ────────────────────────────────────────────────────────────────────
+    st.markdown("## 📊 Dashboard de Pedidos")
+    _dash_clients = load_clients()
+    _all_peds = []
+    for _ce, _cd in _dash_clients.items():
+        for _p in _cd.get("pedidos", []):
+            _all_peds.append({**_p, "_client_email": _ce})
+    import datetime as _dt
+    _hoy      = _dt.date.today()
+    _semana   = _hoy - _dt.timedelta(days=7)
+    _mes      = _hoy - _dt.timedelta(days=30)
+    _peds_sem = [p for p in _all_peds if p.get("fecha", p.get("date",""))[:10] >= str(_semana)]
+    _peds_mes = [p for p in _all_peds if p.get("fecha", p.get("date",""))[:10] >= str(_mes)]
+    _pendientes = [p for p in _all_peds if p.get("estado","Recibido") in ("Recibido","Confirmado","En preparación")]
+    _enviados   = [p for p in _all_peds if p.get("estado","Recibido") == "Enviado"]
+    _entregados = [p for p in _all_peds if p.get("estado","Recibido") == "Entregado"]
+    _vol_sem  = sum(p.get("total_usd",0) for p in _peds_sem)
+    _vol_mes  = sum(p.get("total_usd",0) for p in _peds_mes)
+    _vol_tot  = sum(p.get("total_usd",0) for p in _all_peds)
+    # KPIs
+    st.markdown("### 📅 Resumen rápido")
+    _kc1, _kc2, _kc3, _kc4 = st.columns(4)
+    _kc1.metric("📦 Total pedidos",   len(_all_peds))
+    _kc2.metric("⏳ Esta semana",          len(_peds_sem), delta=f"${_vol_sem:,.0f}")
+    _kc3.metric("📆 Este mes",         len(_peds_mes), delta=f"${_vol_mes:,.0f}")
+    _kc4.metric("💵 Volumen total",    f"${_vol_tot:,.2f}")
+    st.markdown("---")
+    # Estado breakdown
+    st.markdown("### 📋 Estado de pedidos")
+    _ec1, _ec2, _ec3, _ec4, _ec5 = st.columns(5)
+    _cnt_e = {e: sum(1 for p in _all_peds if p.get("estado","Recibido")==e) for e in ORDEN_ESTADOS}
+    _ec1.metric("🔵 Recibidos",       _cnt_e.get("Recibido",0))
+    _ec2.metric("🟡 Confirmados",      _cnt_e.get("Confirmado",0))
+    _ec3.metric("🟠 En preparación", _cnt_e.get("En preparación",0))
+    _ec4.metric("🚀 Enviados",          _cnt_e.get("Enviado",0))
+    _ec5.metric("✅ Entregados",            _cnt_e.get("Entregado",0))
+    st.markdown("---")
+    # Pedidos pendientes urgentes
+    if _pendientes:
+        st.markdown(f"### ⚠️ Pedidos pendientes de gestión ({len(_pendientes)})")
+        for _pp in sorted(_pendientes, key=lambda x: x.get("fecha",""))[:10]:
+            _pid   = _pp.get("id","")[:8].upper()
+            _pest  = _pp.get("estado","Recibido")
+            _pico  = ORDEN_ESTADOS_COLORES.get(_pest,"📦")
+            _pdest = _pp.get("destino","")
+            _pfech = _pp.get("fecha", _pp.get("date",""))[:10]
+            _pcli  = _pp.get("client_name", _pp.get("_client_email",""))
+            _ptot  = _pp.get("total_usd",0)
+            st.markdown(f"- {_pico} **#{_pid}** | {_pcli} | {_pdest} | {_pfech} | `{_pest}` | **${_ptot:,.2f}**")
+    else:
+        st.success("✅ No hay pedidos pendientes. ¡Todo gestionado!")
+
 with tab1:
     pal_usd_col = f"USD {num_pallets} Pal"
     pal_eur_col = f"EUR {num_pallets} Pal"
