@@ -148,6 +148,47 @@ def send_order_email(saved: dict, ai_full: list, pdf_bytes: bytes,
         return False, str(e)
 
 
+
+def send_cancel_email(ped: dict) -> None:
+    """Notifica por email que un pedido fue eliminado/cancelado."""
+    try:
+        smtp_user = st.secrets.get("SMTP_USER", "")
+        smtp_pass = st.secrets.get("SMTP_PASS", "")
+        smtp_host = st.secrets.get("SMTP_HOST", "smtp.gmail.com")
+        smtp_port = int(st.secrets.get("SMTP_PORT", "587"))
+    except Exception:
+        smtp_user = smtp_pass = ""
+    if not smtp_user or not smtp_pass:
+        return
+    try:
+        import smtplib
+        from email.mime.text import MIMEText
+        ped_id   = ped.get("id", "?")
+        cliente  = ped.get("client_name", ped.get("email", "?"))
+        fecha    = ped.get("fecha", "")
+        destino  = ped.get("destino", "FOB")
+        total    = ped.get("total_usd", 0)
+        subject  = f"Pedido #{ped_id} CANCELADO/ELIMINADO - Export Haret"
+        body     = (
+            f"Se ha eliminado el pedido #{ped_id}.\n\n"
+            f"Cliente:  {cliente}\n"
+            f"Fecha:    {fecha}\n"
+            f"Destino:  {destino}\n"
+            f"Total USD: ${total:,.2f}\n\n"
+            f"Este pedido ya no aparece en el sistema."
+        )
+        msg = MIMEText(body, "plain", "utf-8")
+        msg["Subject"] = subject
+        msg["From"]    = smtp_user
+        msg["To"]      = "order@exportharet.com"
+        with smtplib.SMTP(smtp_host, smtp_port, timeout=10) as srv:
+            srv.starttls()
+            srv.login(smtp_user, smtp_pass)
+            srv.sendmail(smtp_user, ["order@exportharet.com"], msg.as_string())
+    except Exception:
+        pass  # silencioso si falla SMTP
+
+
 def get_network_url(port: int = 8501) -> str:
     """Devuelve la URL accesible en red local (no localhost)."""
     try:
@@ -1485,6 +1526,7 @@ def render_order_form(cfg_data, products_list, standalone=False,
 def render_order_history(client_email: str, lang: str = "ES"):
     """Muestra los pedidos anteriores de un cliente."""
     clients = load_clients()
+    data        = load_data()
     c       = clients.get(client_email, {})
     pedidos = c.get("pedidos", [])
 
@@ -2556,6 +2598,7 @@ with tab6:
                                     _ords = json.load(open(ORDERS_FILE)) if os.path.exists(ORDERS_FILE) else []
                                     _ords = [o for o in _ords if o.get("id") != ped["id"]]
                                     open(ORDERS_FILE, "w").write(__import__("json").dumps(_ords, ensure_ascii=False, indent=2))
+                                    send_cancel_email(ped)
                                     del st.session_state[f"confirm_del_{ped['id']}"]
                                     st.success("Pedido eliminado."); st.rerun()
                             with _cc2:
