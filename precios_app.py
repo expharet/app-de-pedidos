@@ -1711,7 +1711,8 @@ def render_order_history(client_email: str, lang: str = "ES"):
 # ── Vista cliente (URL ?view=cliente) ─────────────────────────────────────────
 
 # --- Cargar datos globales (disponibles en vista cliente y admin) ---
-cfg      = load_data()
+data     = load_data()
+cfg      = data["config"]
 products = list(cfg.get("grupos", {}).values())
 
 IS_CLIENT = st.query_params.get("view", "") == "cliente"
