@@ -2620,9 +2620,10 @@ with tab6:
                             _cc1, _cc2 = st.columns(2)
                             with _cc1:
                                 if st.button("✅ Sí, eliminar", key=f"yes_{ped['id']}", type="primary"):
-                                    _ords = json.load(open(ORDERS_FILE)) if os.path.exists(ORDERS_FILE) else []
-                                    _ords = [o for o in _ords if o.get("id") != ped["id"]]
-                                    open(ORDERS_FILE, "w").write(__import__("json").dumps(_ords, ensure_ascii=False, indent=2))
+                                    _cls = load_clients()
+                                    if client_email in _cls:
+                                        _cls[client_email]["pedidos"] = [o for o in _cls[client_email].get("pedidos", []) if o.get("id") != ped["id"]]
+                                        save_clients(_cls)
                                     send_cancel_email(ped)
                                     del st.session_state[f"confirm_del_{ped['id']}"]
                                     st.success("Pedido eliminado."); st.rerun()
