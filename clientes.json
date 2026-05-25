@@ -94,6 +94,26 @@
             "total_usd": 7463.53
           }
         ]
+      },
+      {
+        "id": "PED-20260525-003",
+        "fecha": "2026-05-25",
+        "destino": "Madrid/España",
+        "total_usd": 7463.53,
+        "dest_code": "EUR",
+        "dest_sym": "€",
+        "dest_rate": 0.85889,
+        "total_loc": 6410.35,
+        "pallets": 3,
+        "cajas": 480,
+        "productos": [
+          {
+            "producto": "Granadilla",
+            "cajas": 480,
+            "precio_usd": 15.549,
+            "total_usd": 7463.53
+          }
+        ]
       }
     ]
   },
