@@ -2490,9 +2490,8 @@ with tab6:
                                 if st.button("❌ Cancelar", key=f"cancel_{ped['id']}"):
                                     del st.session_state[f"confirm_del_{ped['id']}"]
                                     st.rerun()
-                        if is_admin:
-                            with _c_cost:
-                                _tc = sum(p.get("precio_compra",0)*p.get("cajas",0) for p in ped.get("productos",[]) if p.get("precio_compra"))
-                                _tv = ped.get("total_usd", 0)
-                                _pct = ((_tv-_tc)/_tv*100) if _tv else 0
-                                st.markdown(f"💰 Coste: **${_tc:,.2f}** | Venta: **${_tv:,.2f}** | Beneficio: **${_tv-_tc:,.2f}** ({_pct:.1f}%)")
+                        with _c_cost:
+                            _tc = sum(p.get("precio_compra",0)*p.get("cajas",0) for p in ped.get("productos",[]) if p.get("precio_compra"))
+                            _tv = ped.get("total_usd", 0)
+                            _pct = ((_tv-_tc)/_tv*100) if _tv else 0
+                            st.markdown(f"💰 Coste: **${_tc:,.2f}** | Venta: **${_tv:,.2f}** | Beneficio: **${_tv-_tc:,.2f}** ({_pct:.1f}%)")
