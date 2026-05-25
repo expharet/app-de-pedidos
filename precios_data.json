@@ -26,11 +26,11 @@
       },
       "E": {
         "cajas_pallet": 160,
-        "nombre": "Aguacate · Baby banano · Zapote · Caña"
+        "nombre": "Aguacate · Baby banano · Zapote"
       },
       "F": {
         "cajas_pallet": 120,
-        "nombre": "Roja P · Blanca P"
+        "nombre": "Roja P · Blanca P · Caña"
       },
       "G": {
         "cajas_pallet": 160,
@@ -52,9 +52,9 @@
       "Suiza": 2.95,
       "Países Bajos": 2.85,
       "Dubai/EAU": 4.5,
-      "Berlín/Alemania": 2.9,
+      "NY/USA": 2.9,
       "Miami/USA": 1.15,
-      "(otros)": 2.1
+      "Berlín/Alemania": 2.9
     },
     "minimos": {
       "F-TAS04": {
