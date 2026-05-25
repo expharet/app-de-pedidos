@@ -2031,7 +2031,7 @@ with tab5:
         dest_df,
         use_container_width=False,
         hide_index=True,
-        disabled=["Destino"],
+        num_rows="dynamic",
         column_config={
             "Tarifa USD/kg": st.column_config.NumberColumn("Tarifa USD/kg", min_value=0.0, step=0.05, format="%.2f")
         },
@@ -2050,7 +2050,7 @@ with tab5:
         grupo_df,
         use_container_width=True,
         hide_index=True,
-        disabled=["Grupo", "Productos"],
+        num_rows="dynamic",
         column_config={
             "Cajas/Pallet": st.column_config.NumberColumn("Cajas/Pallet", min_value=1, step=1)
         },
@@ -2072,8 +2072,18 @@ with tab5:
             _dname = str(row["Destino"]).strip()
             if _dname: new_destinos[_dname] = float(row["Tarifa USD/kg"])
         cfg["destinos"] = new_destinos
-        for _, row in edited_grupos.iterrows():
-            cfg["grupos"][row["Grupo"]]["cajas_pallet"] = int(row["Cajas/Pallet"])
+        new_grupos = {}
+        for _, _grow in edited_grupos.iterrows():
+            _gkey  = str(_grow.get("Grupo","")).strip().upper()
+            _gname = str(_grow.get("Productos","")).strip()
+            _gcaj  = int(_grow.get("Cajas/Pallet",160))
+            if _gkey:
+                _existing = cfg["grupos"].get(_gkey, {})
+                new_grupos[_gkey] = {
+                    "cajas_pallet": _gcaj,
+                    "nombre": _gname if _gname else _existing.get("nombre",_gkey),
+                }
+        cfg["grupos"] = new_grupos
         save_data(data)
         st.success("✅ Configuración guardada.")
         st.rerun()
@@ -2491,7 +2501,23 @@ with tab6:
                                     del st.session_state[f"confirm_del_{ped['id']}"]
                                     st.rerun()
                         with _c_cost:
-                            _tc = sum(p.get("precio_compra",0)*p.get("cajas",0) for p in ped.get("productos",[]) if p.get("precio_compra"))
+                            _ped_dest  = ped.get("destino", list(cfg_data["config"].get("destinos", {"?":0}).keys())[0])
+                            _ped_cajas = max(sum(p.get("cajas",0) for p in ped.get("productos",[])), 1)
+                            _tc = 0.0
+                            for _p in ped.get("productos", []):
+                                _pcode  = _p.get("codigo", "")
+                                _pdata  = next((x for x in cfg_data.get("products",[]) if x.get("codigo")==_pcode), {})
+                                _pcajas = _p.get("cajas", 0)
+                                if not _pdata or not _pcajas: continue
+                                _cc         = _pdata.get("costo_caja_manual") or cfg_data["config"].get("costo_caja",0)/max(_pdata.get("kg_caja",1),0.001)
+                                _fob_m_pct  = cfg_data["config"].get("merma_pct", 0)
+                                _fob_merma  = (_pdata.get("precio_compra",0)+_cc)/(1-_fob_m_pct) if _fob_m_pct<1 else _pdata.get("precio_compra",0)+_cc
+                                _tarifa     = cfg_data["config"].get("destinos",{}).get(_ped_dest, 0)
+                                _grp        = cfg_data["config"].get("grupos",{}).get(_pdata.get("grupo",""),{})
+                                _cpallet    = _grp.get("cajas_pallet", 160) if isinstance(_grp,dict) else 160
+                                _flete_u    = _tarifa*(_pdata.get("kg_caja",0)+cfg_data["config"].get("tara_caja",0)+cfg_data["config"].get("peso_pallet",0)/max(_cpallet,1))
+                                _due_u      = cfg_data["config"].get("due",0)/max(_ped_cajas,1)
+                                _tc        += (_fob_merma + _flete_u + _due_u) * _pcajas
                             _tv = ped.get("total_usd", 0)
                             _pct = ((_tv-_tc)/_tv*100) if _tv else 0
                             st.markdown(f"💰 Coste: **${_tc:,.2f}** | Venta: **${_tv:,.2f}** | Beneficio: **${_tv-_tc:,.2f}** ({_pct:.1f}%)")
