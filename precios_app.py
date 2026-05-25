@@ -1709,6 +1709,11 @@ def render_order_history(client_email: str, lang: str = "ES"):
                             st.rerun()
 
 # ── Vista cliente (URL ?view=cliente) ─────────────────────────────────────────
+
+# --- Cargar datos globales (disponibles en vista cliente y admin) ---
+cfg      = load_data()
+products = list(cfg.get("grupos", {}).values())
+
 IS_CLIENT = st.query_params.get("view", "") == "cliente"
 
 if IS_CLIENT:
@@ -1812,7 +1817,6 @@ if not st.session_state.admin_ok:
     st.stop()
 
 # ── Sidebar (solo admin) ───────────────────────────────────────────────────────
-    cfg = load_data()
 with st.sidebar:
     # Logo: usa archivo local si existe, si no placeholder verde
     _logo_path = os.path.join(os.path.dirname(__file__), "logo.png")
