@@ -1251,12 +1251,15 @@ def render_order_form(cfg_data, products_list, standalone=False,
         if active_items:
             st.markdown("---")
             st.markdown("### 🛒 " + ("Resumen pedido" if lang == "ES" else "Order Summary"))
-            _tot_pallets_rt = sum(x[0] if x else 0 for x in active_items)
-            _tot_cajas_rt   = sum(x[1] if x else 0 for x in active_items)
+            _tot_cajas_rt  = sum(q for p, q in active_items)
+            _tot_pallets_rt = sum(
+                math.ceil(q / cfg_data["grupos"].get(p["grupo"], {}).get("cajas_pallet", 1))
+                for p, q in active_items
+            )
             st.metric("📦 Pallets", f"{_tot_pallets_rt:.1f}")
             st.metric("📦 Cajas totales", f"{_tot_cajas_rt:,}")
-            for _nm, _cj, _nm2, *_ in active_items:
-                st.caption(f"✅ {_nm2}: {_cj:,} cajas")
+            for _p, _cj in active_items:
+                st.caption(f"\U0001f4e6 {_p['nombre']}: {_cj:,} cajas")
 
     if not active_items:
         st.caption(T["hint"])
