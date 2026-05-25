@@ -1713,7 +1713,7 @@ def render_order_history(client_email: str, lang: str = "ES"):
 # --- Cargar datos globales (disponibles en vista cliente y admin) ---
 data     = load_data()
 cfg      = data["config"]
-products = list(cfg.get("grupos", {}).values())
+products = data.get("products", [])
 
 IS_CLIENT = st.query_params.get("view", "") == "cliente"
 
