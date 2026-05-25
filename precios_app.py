@@ -1708,101 +1708,6 @@ def render_order_history(client_email: str, lang: str = "ES"):
                             del st.session_state[f"confirm_del_cl_{ped['id']}"]
                             st.rerun()
 
-
-with tab7:
-    # ── GESTION DE PEDIDOS (estado + notas admin) ──────────────────────────────────
-    st.markdown("## 📦 Gestión de Pedidos")
-    _gp_clients = load_clients()
-    _gp_all = []
-    for _gce, _gcd in _gp_clients.items():
-        for _gp in _gcd.get("pedidos", []):
-            _gp_all.append({**_gp, "_client_email": _gce})
-    if not _gp_all:
-        st.info("No hay pedidos todavía.")
-    else:
-        # Filtros
-        _gf1, _gf2 = st.columns([2,2])
-        _filt_estado = _gf1.selectbox("Filtrar por estado", ["Todos"] + ORDEN_ESTADOS, key="gp_filt_est")
-        _filt_texto  = _gf2.text_input("Buscar cliente o ID", key="gp_filt_txt").strip().lower()
-        _gp_filtered = [
-            p for p in _gp_all
-            if (_filt_estado == "Todos" or p.get("estado","Recibido") == _filt_estado)
-            and (_filt_texto == "" or _filt_texto in p.get("client_name","").lower()
-                 or _filt_texto in p.get("id","").lower()
-                 or _filt_texto in p.get("_client_email","").lower())
-        ]
-        st.markdown(f"**{len(_gp_filtered)} pedidos** encontrados")
-        st.markdown("---")
-        for _ped in sorted(_gp_filtered, key=lambda x: x.get("fecha",""), reverse=True):
-            _pid   = _ped.get("id","")[:8].upper()
-            _pest  = _ped.get("estado","Recibido")
-            _pico  = ORDEN_ESTADOS_COLORES.get(_pest,"📦")
-            _pdest = _ped.get("destino","")
-            _pfech = _ped.get("fecha", _ped.get("date",""))[:10]
-            _pcli  = _ped.get("client_name", _ped.get("_client_email",""))
-            _ptot  = _ped.get("total_usd",0)
-            _pnotas_adm = _ped.get("notas_admin","")
-            _pce   = _ped.get("_client_email","")
-            with st.expander(f"{_pico} **#{_pid}** | {_pcli} | {_pdest} | {_pfech} | ${_ptot:,.2f}", expanded=False):
-                _col_est, _col_notas = st.columns([1,2])
-                with _col_est:
-                    st.markdown("**Cambiar estado:**")
-                    try:
-                        _cur_idx = ORDEN_ESTADOS.index(_pest)
-                    except ValueError:
-                        _cur_idx = 0
-                    _new_est = st.selectbox(
-                        "Estado",
-                        ORDEN_ESTADOS,
-                        index=_cur_idx,
-                        key=f"est_{_ped['id']}",
-                        label_visibility="collapsed"
-                    )
-                    if st.button("💾 Guardar estado", key=f"save_est_{_ped['id']}", type="primary"):
-                        _gu_cls = load_clients()
-                        if _pce in _gu_cls:
-                            for _o in _gu_cls[_pce].get("pedidos",[]):
-                                if _o.get("id") == _ped["id"]:
-                                    _old_est = _o.get("estado","Recibido")
-                                    _o["estado"] = _new_est
-                                    if "historial_estados" not in _o:
-                                        _o["historial_estados"] = []
-                                    import datetime as _dtt
-                                    _o["historial_estados"].append({
-                                        "de": _old_est,
-                                        "a":  _new_est,
-                                        "fecha": str(_dtt.datetime.now())[:19]
-                                    })
-                                    break
-                            save_clients(_gu_cls)
-                            if _new_est != _pest:
-                                send_status_email(_ped, _new_est)
-                        st.success(f"Estado actualizado: {_new_est}"); st.rerun()
-                with _col_notas:
-                    st.markdown("**Notas internas (solo admin):**")
-                    _nota_nueva = st.text_area(
-                        "Notas admin",
-                        value=_pnotas_adm,
-                        key=f"nota_{_ped['id']}",
-                        label_visibility="collapsed",
-                        height=80
-                    )
-                    if st.button("📝 Guardar nota", key=f"save_nota_{_ped['id']}"):
-                        _gn_cls = load_clients()
-                        if _pce in _gn_cls:
-                            for _o2 in _gn_cls[_pce].get("pedidos",[]):
-                                if _o2.get("id") == _ped["id"]:
-                                    _o2["notas_admin"] = _nota_nueva
-                                    break
-                            save_clients(_gn_cls)
-                        st.success("Nota guardada."); st.rerun()
-                # Historial de estados
-                _hist = _ped.get("historial_estados",[])
-                if _hist:
-                    st.markdown("**Historial de estados:**")
-                    for _h in _hist:
-                        st.caption(f"  {_h.get('fecha','')} — {_h.get('de','')} → {_h.get('a','')}")
-
 # ── Vista cliente (URL ?view=cliente) ─────────────────────────────────────────
 IS_CLIENT = st.query_params.get("view", "") == "cliente"
 
@@ -2882,3 +2787,99 @@ with tab6:
                             _tv = ped.get("total_usd", 0)
                             _pct = ((_tv-_tc)/_tv*100) if _tv else 0
                             st.markdown(f"💰 Coste: **${_tc:,.2f}** | Venta: **${_tv:,.2f}** | Beneficio: **${_tv-_tc:,.2f}** ({_pct:.1f}%)")
+
+with tab7:
+    # ── GESTION DE PEDIDOS (estado + notas admin) ──────────────────────────────────
+    st.markdown("## 📦 Gestión de Pedidos")
+    _gp_clients = load_clients()
+    _gp_all = []
+    for _gce, _gcd in _gp_clients.items():
+        for _gp in _gcd.get("pedidos", []):
+            _gp_all.append({**_gp, "_client_email": _gce})
+    if not _gp_all:
+        st.info("No hay pedidos todavía.")
+    else:
+        # Filtros
+        _gf1, _gf2 = st.columns([2,2])
+        _filt_estado = _gf1.selectbox("Filtrar por estado", ["Todos"] + ORDEN_ESTADOS, key="gp_filt_est")
+        _filt_texto  = _gf2.text_input("Buscar cliente o ID", key="gp_filt_txt").strip().lower()
+        _gp_filtered = [
+            p for p in _gp_all
+            if (_filt_estado == "Todos" or p.get("estado","Recibido") == _filt_estado)
+            and (_filt_texto == "" or _filt_texto in p.get("client_name","").lower()
+                 or _filt_texto in p.get("id","").lower()
+                 or _filt_texto in p.get("_client_email","").lower())
+        ]
+        st.markdown(f"**{len(_gp_filtered)} pedidos** encontrados")
+        st.markdown("---")
+        for _ped in sorted(_gp_filtered, key=lambda x: x.get("fecha",""), reverse=True):
+            _pid   = _ped.get("id","")[:8].upper()
+            _pest  = _ped.get("estado","Recibido")
+            _pico  = ORDEN_ESTADOS_COLORES.get(_pest,"📦")
+            _pdest = _ped.get("destino","")
+            _pfech = _ped.get("fecha", _ped.get("date",""))[:10]
+            _pcli  = _ped.get("client_name", _ped.get("_client_email",""))
+            _ptot  = _ped.get("total_usd",0)
+            _pnotas_adm = _ped.get("notas_admin","")
+            _pce   = _ped.get("_client_email","")
+            with st.expander(f"{_pico} **#{_pid}** | {_pcli} | {_pdest} | {_pfech} | ${_ptot:,.2f}", expanded=False):
+                _col_est, _col_notas = st.columns([1,2])
+                with _col_est:
+                    st.markdown("**Cambiar estado:**")
+                    try:
+                        _cur_idx = ORDEN_ESTADOS.index(_pest)
+                    except ValueError:
+                        _cur_idx = 0
+                    _new_est = st.selectbox(
+                        "Estado",
+                        ORDEN_ESTADOS,
+                        index=_cur_idx,
+                        key=f"est_{_ped['id']}",
+                        label_visibility="collapsed"
+                    )
+                    if st.button("💾 Guardar estado", key=f"save_est_{_ped['id']}", type="primary"):
+                        _gu_cls = load_clients()
+                        if _pce in _gu_cls:
+                            for _o in _gu_cls[_pce].get("pedidos",[]):
+                                if _o.get("id") == _ped["id"]:
+                                    _old_est = _o.get("estado","Recibido")
+                                    _o["estado"] = _new_est
+                                    if "historial_estados" not in _o:
+                                        _o["historial_estados"] = []
+                                    import datetime as _dtt
+                                    _o["historial_estados"].append({
+                                        "de": _old_est,
+                                        "a":  _new_est,
+                                        "fecha": str(_dtt.datetime.now())[:19]
+                                    })
+                                    break
+                            save_clients(_gu_cls)
+                            if _new_est != _pest:
+                                send_status_email(_ped, _new_est)
+                        st.success(f"Estado actualizado: {_new_est}"); st.rerun()
+                with _col_notas:
+                    st.markdown("**Notas internas (solo admin):**")
+                    _nota_nueva = st.text_area(
+                        "Notas admin",
+                        value=_pnotas_adm,
+                        key=f"nota_{_ped['id']}",
+                        label_visibility="collapsed",
+                        height=80
+                    )
+                    if st.button("📝 Guardar nota", key=f"save_nota_{_ped['id']}"):
+                        _gn_cls = load_clients()
+                        if _pce in _gn_cls:
+                            for _o2 in _gn_cls[_pce].get("pedidos",[]):
+                                if _o2.get("id") == _ped["id"]:
+                                    _o2["notas_admin"] = _nota_nueva
+                                    break
+                            save_clients(_gn_cls)
+                        st.success("Nota guardada."); st.rerun()
+                # Historial de estados
+                _hist = _ped.get("historial_estados",[])
+                if _hist:
+                    st.markdown("**Historial de estados:**")
+                    for _h in _hist:
+                        st.caption(f"  {_h.get('fecha','')} — {_h.get('de','')} → {_h.get('a','')}")
+
+
