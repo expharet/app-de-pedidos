@@ -881,6 +881,7 @@ def render_order_form(cfg_data, products_list, standalone=False,
     else:
         lang = "EN" if "EN" in st.session_state.get(lang_key, "🇪🇸 ES") else "ES"
     T = TR[lang]
+    MIN_PALLETS = cfg_data.get("config", {}).get("min_pallets", MIN_PALLETS)
 
     if standalone and show_header:
         _logo_path_s = os.path.join(os.path.dirname(__file__), "logo.png")
@@ -1120,9 +1121,23 @@ def render_order_form(cfg_data, products_list, standalone=False,
     _last_dest = _cd.get("last_destino", "") if standalone else ""
     _dest_idx  = (_dest_options.index(_last_dest)
                   if _last_dest in _dest_options else 0)
-    ped_dest = st.selectbox(T["dest"], _dest_options, index=_dest_idx, key="cl_dest")
-    dest_code, dest_sym = DESTINO_DIVISA.get(ped_dest, ("USD", "$"))
-    dest_rate           = fetch_dest_rate(dest_code)
+    # --- Tipo de envio: FOB (sin flete) o CIF (con flete a destino)
+    _fob_cif = st.radio(
+        "Tipo de envío" if lang == "ES" else "Shipment type",
+        ["FOB", "CIF Destino"],
+        horizontal=True, key=f"fob_cif_{sfx}",
+        help="FOB: sin flete. CIF Destino: incluye flete al destino."
+    )
+
+    if _fob_cif == "CIF Destino":
+        ped_dest = st.selectbox(T["dest"], _dest_options, index=_dest_idx, key="cl_dest")
+        dest_code, dest_sym = DESTINO_DIVISA.get(ped_dest, ("USD", "$"))
+        dest_rate           = fetch_dest_rate(dest_code)
+    else:
+        ped_dest = None  # FOB: sin destino
+        dest_code, dest_sym = "USD", "$"
+        dest_rate = 1.0
+        st.info("✅ " + ("Precio FOB — sin flete incluido" if lang == "ES" else "FOB price — freight not included"))
     if dest_code == "USD":
         st.info(T["min_order"].format(n=MIN_PALLETS) + "\n\n" + T["currency_usd"])
     else:
@@ -1144,13 +1159,6 @@ def render_order_form(cfg_data, products_list, standalone=False,
     OPT_PAL = T["opt_pal"]
     OPT_CAJ = T["opt_caj"]
     sfx     = "cl" if standalone else "adm"
-    # --- Mejora 4: FOB / CIF ---
-    _fob_cif = st.radio(
-        "Tipo de envío" if lang == "ES" else "Shipment type",
-        ["FOB", "CIF Destino"],
-        horizontal=True, key=f"fob_cif_{sfx}",
-        help="FOB: sin flete. CIF Destino: incluye flete al destino."
-    )
 
     # Solo productos activos (disponibles para pedido)
     products_list = [p for p in products_list if p.get("activo", True)]
@@ -1230,6 +1238,26 @@ def render_order_form(cfg_data, products_list, standalone=False,
 
     st.markdown("---")
 
+
+    # — Notas del cliente (opcional)
+    _notas_lbl = "📋 Notas / Observaciones (opcional)" if lang == "ES" else "📋 Notes / Comments (optional)"
+    st.text_area(_notas_lbl, key=f"notas_cl_{sfx}", height=80,
+                 placeholder="Fecha preferida de entrega, instrucciones especiales..." if lang == "ES"
+                 else "Preferred delivery date, special instructions...")
+
+
+    # ==== Resumen en tiempo real (sidebar) ====
+    with st.sidebar:
+        if active_items:
+            st.markdown("---")
+            st.markdown("### 🛒 " + ("Resumen pedido" if lang == "ES" else "Order Summary"))
+            _tot_pallets_rt = sum(x[0] if x else 0 for x in active_items)
+            _tot_cajas_rt   = sum(x[1] if x else 0 for x in active_items)
+            st.metric("📦 Pallets", f"{_tot_pallets_rt:.1f}")
+            st.metric("📦 Cajas totales", f"{_tot_cajas_rt:,}")
+            for _nm, _cj, _nm2, *_ in active_items:
+                st.caption(f"✅ {_nm2}: {_cj:,} cajas")
+
     if not active_items:
         st.caption(T["hint"])
         return
@@ -1259,7 +1287,7 @@ def render_order_form(cfg_data, products_list, standalone=False,
     show_local          = dest_code not in ("USD",)
     loc_total_col       = f"Total {dest_sym}{dest_code}" if show_local else None
 
-    tarifa_dest = cfg_data["destinos"].get(ped_dest, 0)
+    tarifa_dest = cfg_data["destinos"].get(ped_dest, 0) if ped_dest else 0
 
     rows = []
     for p, cajas in active_items:
@@ -1298,10 +1326,11 @@ def render_order_form(cfg_data, products_list, standalone=False,
         c4.metric("Total USD",    f"${total_usd:,.2f}")
 
     # Tarifa de flete del destino — info complementaria
-    _flete_info = (f"🚢 Tarifa flete {ped_dest}: **{tarifa_dest:.2f} USD/kg** · CIF destino"
-                   if lang == "ES" else
-                   f"🚢 Freight rate {ped_dest}: **{tarifa_dest:.2f} USD/kg** · CIF destination")
-    st.caption(_flete_info)
+    if ped_dest:  # solo mostrar tarifa cuando es CIF
+        _flete_info = (f"🚢 Tarifa flete {ped_dest}: **{tarifa_dest:.2f} USD/kg** · CIF destino"
+                       if lang == "ES" else
+                       f"🚢 Freight rate {ped_dest}: **{tarifa_dest:.2f} USD/kg** · CIF destination")
+        st.caption(_flete_info)
 
     def hl(col):
         return ["background-color:#e8f5e9;font-weight:bold"] * len(col) if "Total" in col.name else [""] * len(col)
@@ -1348,14 +1377,17 @@ def render_order_form(cfg_data, products_list, standalone=False,
     can_confirm = can_confirm and len(below_minimum) == 0
 
     if st.button(T["confirm_btn"], type="primary", disabled=not can_confirm, key=confirm_key):
-        # Guardar todo lo necesario en session_state — independiente del estado del formulario
-        cod_map = {p["codigo"]: p for p in products_list}
-        st.session_state[albaran_key] = {
+        with st.spinner("Procesando pedido..."):
+            # Guardar todo lo necesario en session_state — independiente del estado del formulario
+            cod_map = {p["codigo"]: p for p in products_list}
+            st.session_state[albaran_key] = {
             "client_name":  client_name,
             "razon_social": razon_social,
             "email":        client_email,
             "telefono":     phone_full,
             "destino":      ped_dest,
+            "notas_cliente":   st.session_state.get(f"notas_cl_{sfx}", ""),
+            "estado":          "Recibido",
             "ai_codigos":   [(p["codigo"], q) for p, q in active_items],
             "total_cajas":  total_cajas,
             "total_pallets": total_pallets,
@@ -1365,13 +1397,15 @@ def render_order_form(cfg_data, products_list, standalone=False,
             "dest_sym":     dest_sym,
             "dest_rate":    dest_rate,
             "lang":         lang,
-        }
+            }
 
     # ── Mostrar albarán (persiste aunque el formulario cambie) ──
     saved = st.session_state.get(albaran_key)
     if saved:
         _Ts = TR.get(saved.get("lang","ES"), TR["ES"])
         st.success(_Ts["confirmed_ok"].format(name=saved["client_name"], dest=saved["destino"]))
+        st.info("📋 Pedido #" + str(saved.get("id", "")) + " registrado correctamente.")
+        st.balloons()
 
         cod_map = {p["codigo"]: p for p in products_list}
         ai_full = [(cod_map[c], q) for c, q in saved["ai_codigos"] if c in cod_map]
@@ -1482,7 +1516,8 @@ def render_order_history(client_email: str, lang: str = "ES"):
         cajas      = ped.get("cajas", 0)
         productos  = ped.get("productos", [])
 
-        header = f"📦 {fecha} — {destino} — {pallets} pallets — ${total_usd:,.2f} USD"
+        _est_val = ped.get("estado", "Recibido")
+        header = f"📦 {fecha} – {destino} – {pallets} pallets – ${total_usd:,.2f} USD | {_est_val}"
         if dest_code != "USD":
             header += f"  ({dest_sym}{total_loc:,.2f} {dest_code})"
 
@@ -1491,6 +1526,9 @@ def render_order_history(client_email: str, lang: str = "ES"):
             m1.metric(lbl_tot,   f"${total_usd:,.2f}")
             m2.metric(lbl_pal,   pallets)
             m3.metric(lbl_cajas, cajas)
+            _e_estado = ped.get("estado", "Recibido")
+            _e_colors = {"Recibido": "🟡", "En preparacion": "🔵", "Aprobado": "🟢", "Enviado": "🚚", "Completado": "✅", "Cancelado": "🔴"}
+            st.info(f'{_e_colors.get(_e_estado, "⚪")} Estado: {_e_estado}')
 
             if productos:
                 st.markdown(lbl_prod)
@@ -2014,6 +2052,14 @@ with tab5:
         new_merma = st.number_input("Merma (%)", value=cfg["merma_pct"] * 100, step=0.1, format="%.2f")
         new_costo_caja = st.number_input("Costo de caja (USD / caja, base)", value=cfg["costo_caja"], step=0.01)
         new_peso_pallet = st.number_input("Peso pallet + plástico (kg)", value=cfg["peso_pallet"], step=0.1)
+
+        # Mínimo de pallets por pedido
+        new_min_pallets = st.number_input(
+            "📦 Mínimo de pallets por pedido",
+            min_value=1, max_value=20,
+            value=int(cfg.get("min_pallets", 3)),
+            step=1, key="cfg_min_pallets"
+        )
 
     st.markdown("---")
     new_public_url = st.text_input(
