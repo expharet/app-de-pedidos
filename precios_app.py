@@ -2621,8 +2621,8 @@ with tab6:
                             with _cc1:
                                 if st.button("✅ Sí, eliminar", key=f"yes_{ped['id']}", type="primary"):
                                     _cls = load_clients()
-                                    if client_email in _cls:
-                                        _cls[client_email]["pedidos"] = [o for o in _cls[client_email].get("pedidos", []) if o.get("id") != ped["id"]]
+                                    if email_sel in _cls:
+                                        _cls[email_sel]["pedidos"] = [o for o in _cls[email_sel].get("pedidos", []) if o.get("id") != ped["id"]]
                                         save_clients(_cls)
                                     send_cancel_email(ped)
                                     del st.session_state[f"confirm_del_{ped['id']}"]
