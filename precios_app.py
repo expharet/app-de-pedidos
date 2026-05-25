@@ -334,7 +334,7 @@ def register_order(saved: dict, ai_full: list, cfg_data: dict):
             "total_usd":  round(r["precio_caja_usd"] * cajas, 2),
         })
 
-    pedido_id = f"PED-{today.replace('-','')}-{len(clients[email]['pedidos'])+1:03d}"
+    pedido_id  = f'PED-{today.replace("-","")}-{datetime.datetime.now().strftime("%H%M%S")}'
     clients[email]["pedidos"].append({
         "id":         pedido_id,
         "fecha":      today,
