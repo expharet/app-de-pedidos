@@ -1259,7 +1259,7 @@ def render_order_form(cfg_data, products_list, standalone=False,
             st.metric("📦 Pallets", f"{_tot_pallets_rt:.1f}")
             st.metric("📦 Cajas totales", f"{_tot_cajas_rt:,}")
             for _p, _cj in active_items:
-                st.caption(f"\U0001f4e6 {_p['nombre']}: {_cj:,} cajas")
+                st.caption(f"\U0001f4e6 {_p['producto']}: {_cj:,} cajas")
 
     if not active_items:
         st.caption(T["hint"])
