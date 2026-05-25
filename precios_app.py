@@ -1365,6 +1365,7 @@ def render_order_form(cfg_data, products_list, standalone=False,
     # ── Confirmar ──
     confirm_key   = "confirm_cl" if standalone else "confirm_admin"
     albaran_key   = f"albaran_{confirm_key}"
+    _email_sent_key = f"email_sent_{confirm_key}"
     can_confirm   = (total_pallets >= MIN_PALLETS
                      and bool(client_name) and bool(razon_social)
                      and bool(client_email))
@@ -1408,7 +1409,6 @@ def render_order_form(cfg_data, products_list, standalone=False,
         _Ts = TR.get(saved.get("lang","ES"), TR["ES"])
         st.success(_Ts["confirmed_ok"].format(name=saved["client_name"], dest=saved["destino"]))
         st.info("📋 Pedido #" + str(saved.get("id", "")) + " registrado correctamente.")
-        st.balloons()
 
         cod_map = {p["codigo"]: p for p in products_list}
         ai_full = [(cod_map[c], q) for c, q in saved["ai_codigos"] if c in cod_map]
@@ -1451,14 +1451,17 @@ def render_order_form(cfg_data, products_list, standalone=False,
             # ── Registrar cliente y pedido ────────────────────────────────────
             register_order(saved, ai_full, cfg_data)
 
-            # ── Envío automático por SMTP ──────────────────────────────────────
-            email_ok, email_msg = send_order_email(saved, ai_full, pdf_bytes, cfg_data, wa_text)
-            if email_ok:
-                st.success(_Ts["email_auto_ok"])
-            elif email_msg == "sin_smtp":
-                st.info(_Ts["email_no_smtp"])
-            else:
-                st.warning(_Ts["email_error"].format(e=email_msg))
+            # — Envío automático por SMTP (solo una vez) ————————————————————
+            if not st.session_state.get(_email_sent_key, False):
+                email_ok, email_msg = send_order_email(saved, ai_full, pdf_bytes, cfg_data, wa_text)
+                if email_ok:
+                    st.success(_Ts["email_auto_ok"])
+                    st.session_state[_email_sent_key] = True
+                elif email_msg == "sin_smtp":
+                    st.info(_Ts["email_no_smtp"])
+                    st.session_state[_email_sent_key] = True
+                else:
+                    st.warning(_Ts["email_error"].format(e=email_msg))
 
             ba1, ba2, ba3, ba4 = st.columns([2, 2, 2, 1])
             with ba1:
@@ -1472,6 +1475,7 @@ def render_order_form(cfg_data, products_list, standalone=False,
             with ba4:
                 if st.button(_Ts["new_btn"], key=f"new_{confirm_key}", use_container_width=True):
                     del st.session_state[albaran_key]
+                    st.session_state.pop(_email_sent_key, None)
                     st.rerun()
         except Exception as e:
             st.error(f"Error generando el albarán: {e}")
@@ -2074,7 +2078,14 @@ with tab5:
     st.markdown("---")
     st.markdown("### Tarifas por destino (USD/kg aéreo)")
 
-    dest_rows = [{"Destino": k, "Tarifa USD/kg": v} for k, v in cfg["destinos"].items()]
+    dest_rows = [
+        {
+            "Destino": k,
+            "Tarifa USD/kg": v,
+            "Moneda": DESTINO_DIVISA.get(k, ("USD", "$"))[0],
+        }
+        for k, v in cfg["destinos"].items()
+    ]
     dest_df = pd.DataFrame(dest_rows)
     edited_dest = st.data_editor(
         dest_df,
@@ -2082,11 +2093,13 @@ with tab5:
         hide_index=True,
         num_rows="dynamic",
         column_config={
-            "Tarifa USD/kg": st.column_config.NumberColumn("Tarifa USD/kg", min_value=0.0, step=0.05, format="%.2f")
+            "Tarifa USD/kg": st.column_config.NumberColumn("Tarifa USD/kg", min_value=0.0, step=0.05, format="%.2f"),
+                "Moneda": st.column_config.TextColumn("Moneda", disabled=True),
         },
         key="dest_editor",
     )
 
+    st.caption("💡 La columna Moneda se detecta automáticamente por el nombre del destino (DESTINO_DIVISA).")
     st.markdown("---")
     st.markdown("### Grupos de producto (cajas / pallet)")
 
