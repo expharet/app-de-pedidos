@@ -174,6 +174,44 @@
             "total_usd": 4225.06
           }
         ]
+      },
+      {
+        "id": "PED-20260525-002",
+        "fecha": "2026-05-25",
+        "destino": "Suiza",
+        "total_usd": 18014.97,
+        "dest_code": "CHF",
+        "dest_sym": "Fr",
+        "dest_rate": 0.78646,
+        "total_loc": 14168.05,
+        "pallets": 5,
+        "cajas": 800,
+        "productos": [
+          {
+            "producto": "Granadilla",
+            "cajas": 160,
+            "precio_usd": 16.8178,
+            "total_usd": 2690.85
+          },
+          {
+            "producto": "Yellow Pitahaya",
+            "cajas": 360,
+            "precio_usd": 24.7313,
+            "total_usd": 8903.28
+          },
+          {
+            "producto": "Cacao",
+            "cajas": 120,
+            "precio_usd": 18.2982,
+            "total_usd": 2195.78
+          },
+          {
+            "producto": "Cane sugar",
+            "cajas": 160,
+            "precio_usd": 26.4066,
+            "total_usd": 4225.06
+          }
+        ]
       }
     ]
   }
