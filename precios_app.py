@@ -241,7 +241,7 @@ def send_status_email(ped: dict, new_status: str) -> None:
         from email.mime.text import MIMEText as _MIMEText
         client_email = ped.get("email", "")
         client_name  = ped.get("client_name", "")
-        ped_id       = ped.get("id", "")[:8].upper()
+        ped_id       = ped.get("id", "").upper()
         icono        = ORDEN_ESTADOS_COLORES.get(new_status, "📦")
         subject = f"[Export Haret] Tu pedido #{ped_id} — Estado: {icono} {new_status}"
         body = f"""Hola {client_name},
@@ -1642,7 +1642,7 @@ def render_order_history(client_email: str, lang: str = "ES"):
         return
 
     for ped in reversed(pedidos):
-        ped_id   = ped.get("id", "")[:8].upper()
+        ped_id   = ped.get("id", "").upper()
         ped_dest = ped.get("destino", "")
         ped_tot  = ped.get("total_usd", 0)
         ped_pals = ped.get("num_pallets", ped.get("pallets", 0))
@@ -1898,7 +1898,7 @@ with tab0:
     if _pendientes:
         st.markdown(f"### ⚠️ Pedidos pendientes de gestión ({len(_pendientes)})")
         for _pp in sorted(_pendientes, key=lambda x: x.get("fecha",""))[:10]:
-            _pid   = _pp.get("id","")[:8].upper()
+            _pid   = _pp.get("id","").upper()
             _pest  = _pp.get("estado","Recibido")
             _pico  = ORDEN_ESTADOS_COLORES.get(_pest,"📦")
             _pdest = _pp.get("destino","")
@@ -2819,7 +2819,7 @@ with tab7:
         st.markdown(f"**{len(_gp_filtered)} pedidos** encontrados")
         st.markdown("---")
         for _ped in sorted(_gp_filtered, key=lambda x: x.get("fecha",""), reverse=True):
-            _pid   = _ped.get("id","")[:8].upper()
+            _pid   = _ped.get("id","").upper()
             _pest  = _ped.get("estado","Recibido")
             _pico  = ORDEN_ESTADOS_COLORES.get(_pest,"📦")
             _pdest = _ped.get("destino","")
