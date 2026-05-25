@@ -1125,7 +1125,7 @@ def render_order_form(cfg_data, products_list, standalone=False,
     _fob_cif = st.radio(
         "Tipo de envío" if lang == "ES" else "Shipment type",
         ["FOB", "CIF Destino"],
-        horizontal=True, key=f"fob_cif_{sfx}",
+        horizontal=True, key=f"fob_cif_{_sfx}",
         help="FOB: sin flete. CIF Destino: incluye flete al destino."
     )
 
@@ -1202,7 +1202,7 @@ def render_order_form(cfg_data, products_list, standalone=False,
             unit = st.selectbox(
                 "u", [OPT_PAL, OPT_CAJ],
                 label_visibility="collapsed",
-                key=f"unit_{cod}_{sfx}",
+                key=f"unit_{cod}_{_sfx}",
             )
 
         with c3:
@@ -1213,7 +1213,7 @@ def render_order_form(cfg_data, products_list, standalone=False,
                 step=1,
                 format="%d",
                 label_visibility="collapsed",
-                key=f"qty_{cod}_{sfx}",
+                key=f"qty_{cod}_{_sfx}",
             )
 
         with c4:
@@ -1241,7 +1241,7 @@ def render_order_form(cfg_data, products_list, standalone=False,
 
     # — Notas del cliente (opcional)
     _notas_lbl = "📋 Notas / Observaciones (opcional)" if lang == "ES" else "📋 Notes / Comments (optional)"
-    st.text_area(_notas_lbl, key=f"notas_cl_{sfx}", height=80,
+    st.text_area(_notas_lbl, key=f"notas_cl_{_sfx}", height=80,
                  placeholder="Fecha preferida de entrega, instrucciones especiales..." if lang == "ES"
                  else "Preferred delivery date, special instructions...")
 
@@ -1386,7 +1386,7 @@ def render_order_form(cfg_data, products_list, standalone=False,
             "email":        client_email,
             "telefono":     phone_full,
             "destino":      ped_dest,
-            "notas_cliente":   st.session_state.get(f"notas_cl_{sfx}", ""),
+            "notas_cliente":   st.session_state.get(f"notas_cl_{_sfx}", ""),
             "estado":          "Recibido",
             "ai_codigos":   [(p["codigo"], q) for p, q in active_items],
             "total_cajas":  total_cajas,
