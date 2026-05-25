@@ -55,6 +55,27 @@ DESTINO_DIVISA = {
     "(otros)":         ("EUR", "€"),
 }
 
+# Simbolos por codigo de moneda
+CURRENCY_SYMBOLS = {
+    "USD": "$",
+    "EUR": "€",
+    "GBP": "£",
+    "JPY": "¥",
+    "AED": "د.إ",
+    "CNY": "¥",
+    "RUB": "₽",
+    "CHF": "Fr",
+}
+
+
+def get_dest_currency(dest_name: str, cfg_data: dict):
+    """Retorna (dest_code, dest_sym) para un destino, usando destinos_moneda si existe."""
+    override = cfg_data.get("destinos_moneda", {}).get(dest_name) if dest_name else None
+    if override:
+        sym = CURRENCY_SYMBOLS.get(override, "$")
+        return override, sym
+    return DESTINO_DIVISA.get(dest_name, ("USD", "$"))
+
 @st.cache_data(ttl=3600)
 def fetch_dest_rate(dest_code: str) -> float:
     """USD → dest_code exchange rate (live BCE/Frankfurter)."""
@@ -1172,7 +1193,7 @@ def render_order_form(cfg_data, products_list, standalone=False,
 
     if _fob_cif == "CIF Destino":
         ped_dest = st.selectbox(T["dest"], _dest_options, index=_dest_idx, key="cl_dest")
-        dest_code, dest_sym = DESTINO_DIVISA.get(ped_dest, ("USD", "$"))
+        dest_code, dest_sym = get_dest_currency(ped_dest, cfg_data)
         dest_rate           = fetch_dest_rate(dest_code)
     else:
         ped_dest = None  # FOB: sin destino
@@ -1326,7 +1347,7 @@ def render_order_form(cfg_data, products_list, standalone=False,
         st.progress(1.0, text=T["progress_ok"].format(n=total_pallets))
 
     # Divisa local del destino
-    dest_code, dest_sym = DESTINO_DIVISA.get(ped_dest, ("USD", "$"))
+    dest_code, dest_sym = get_dest_currency(ped_dest, cfg_data)
     dest_rate           = fetch_dest_rate(dest_code)
     show_local          = dest_code not in ("USD",)
     loc_total_col       = f"Total {dest_sym}{dest_code}" if show_local else None
@@ -2124,7 +2145,7 @@ with tab5:
         {
             "Destino": k,
             "Tarifa USD/kg": v,
-            "Moneda": DESTINO_DIVISA.get(k, ("USD", "$"))[0],
+            "Moneda": cfg.get("destinos_moneda", {}).get(k, DESTINO_DIVISA.get(k, ("USD", "$"))[0]),
         }
         for k, v in cfg["destinos"].items()
     ]
@@ -2136,7 +2157,7 @@ with tab5:
         num_rows="dynamic",
         column_config={
             "Tarifa USD/kg": st.column_config.NumberColumn("Tarifa USD/kg", min_value=0.0, step=0.05, format="%.2f"),
-                "Moneda": st.column_config.TextColumn("Moneda", disabled=True),
+                "Moneda": st.column_config.SelectboxColumn("Moneda", options=["USD","EUR","GBP","JPY","AED","CNY","RUB","CHF"], required=True),
         },
         key="dest_editor",
     )
@@ -2172,10 +2193,14 @@ with tab5:
         cfg["public_url"] = new_public_url.rstrip("/")
         # Mejora 1: rebuild destinos (supports rename)
         new_destinos = {}
+        new_destinos_moneda = {}
         for _, row in edited_dest.iterrows():
             _dname = str(row["Destino"]).strip()
-            if _dname: new_destinos[_dname] = float(row["Tarifa USD/kg"])
+            if _dname:
+                new_destinos[_dname] = float(row["Tarifa USD/kg"])
+                new_destinos_moneda[_dname] = str(row.get("Moneda", "USD")).strip() or "USD"
         cfg["destinos"] = new_destinos
+        cfg["destinos_moneda"] = new_destinos_moneda
         new_grupos = {}
         for _, _grow in edited_grupos.iterrows():
             _gkey  = str(_grow.get("Grupo","")).strip().upper()
