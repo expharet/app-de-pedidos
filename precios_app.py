@@ -478,7 +478,7 @@ def calc(product, cfg, destino, num_pallets):
     mgn = product["margen_pct"]
     fob_final = fob_merma / (1 - mgn)
     cajas = cfg["grupos"][product["grupo"]]["cajas_pallet"]
-    tarifa = cfg["destinos"][destino]
+    tarifa = cfg["destinos"].get(destino, 0) if destino else 0
     flete = tarifa * (product["kg_caja"] + cfg["tara_caja"] + cfg["peso_pallet"] / cajas)
     cif = fob_final + flete
     due_c = cfg["due"] / (num_pallets * cajas)
