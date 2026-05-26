@@ -537,12 +537,12 @@ def render_gestion_pedidos():
                         columns={'codigo':'Código','producto':'Producto','cajas':'Cajas','pallets':'Pallets','precio_usd':'Precio USD','total':'Total USD'}
                     ),use_container_width=True,hide_index=True)
             if ped.get('notas'): st.markdown(f"**Notas:** {ped['notas']}")
-                # PDF albarán del pedido
-                if REPORTLAB_OK:
-                    try:
-                        _pdf_b, _pdf_m, _pdf_x = build_order_pdf(ped)
-                        st.download_button('⬇️ Albarán PDF', data=_pdf_b, file_name=f"{ped.get('id','ped')}{_pdf_x}", mime=_pdf_m, key=f'pdf_adm_{ped.get("id","")}', use_container_width=True)
-                    except: pass
+            # PDF albarán del pedido
+            if REPORTLAB_OK:
+                try:
+                    _pdf_b, _pdf_m, _pdf_x = build_order_pdf(ped)
+                    st.download_button('⬇️ Albarán PDF', data=_pdf_b, file_name=f"{ped.get('id','ped')}{_pdf_x}", mime=_pdf_m, key=f'pdf_adm_{ped.get("id","")}', use_container_width=True)
+                except: pass
             st.markdown('**Cambiar Estado — clic rápido:**')
             estado_actual = ped.get('estado','Recibido')
             qb_cols = st.columns(len(ORDEN_ESTADOS))
