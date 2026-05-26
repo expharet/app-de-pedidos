@@ -941,11 +941,11 @@ def render_portal_pedido():
     # Campos del cliente (auto-relleno si ya está registrado, editables siempre)
     if email_input:
         c1, c2 = st.columns(2)
-        nombre  = c1.text_input('U0001f464 Nombre completo', key='portal_nombre')
-        empresa = c2.text_input('U0001f3e2 Empresa', key='portal_empresa')
+        nombre  = c1.text_input('👤 Nombre completo', key='portal_nombre')
+        empresa = c2.text_input('🏢 Empresa', key='portal_empresa')
         c3, c4 = st.columns(2)
-        telefono = c3.text_input('U0001f4f1 Teléfono / WhatsApp', placeholder='+34 600 000 000', key='portal_telefono')
-        pais    = c4.text_input('U0001f30d País', key='portal_pais')
+        telefono = c3.text_input('📱 Teléfono / WhatsApp', placeholder='+34 600 000 000', key='portal_telefono')
+        pais    = c4.text_input('🌍 País', key='portal_pais')
         if show_register:
             st.caption('Al guardar el pedido, tu cuenta quedará registrada automáticamente.')
     else:
