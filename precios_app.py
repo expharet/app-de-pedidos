@@ -699,9 +699,9 @@ def render_hacer_pedido():
         elif not st.session_state.carrito: st.error('❌ Agrega productos al carrito')
         else:
             _tod_h=load_pedidos()
-        _yn_h=datetime.now().strftime('%Y')
-        _pc_h=[p for p in _tod_h if p.get('id','').startswith(f'PED-{_yn_h}')]
-        pid=f'PED-{_yn_h}-{len(_pc_h)+1:04d}'
+            _yn_h=datetime.now().strftime('%Y')
+            _pc_h=[p for p in _tod_h if p.get('id','').startswith(f'PED-{_yn_h}')]
+            pid=f'PED-{_yn_h}-{len(_pc_h)+1:04d}'
             tot=sum(i['total'] for i in st.session_state.carrito)
             ped={'id':pid,'client_email':c_email,'client_name':c_name,'destino':destino,'moneda':moneda,'productos':list(st.session_state.carrito),'total_usd':round(tot,2),'estado':'Recibido','fecha':datetime.now().isoformat(),'notas':notas,'terminos_pago':hp_term,'fecha_entrega':hp_ent,'historial_estados':[{'estado':'Recibido','fecha':datetime.now().isoformat(),'usuario':st.session_state.user_email}],'creado_por':st.session_state.user_email}
             todos=load_pedidos(); todos.append(ped); save_pedidos(todos)
