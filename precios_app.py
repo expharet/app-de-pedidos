@@ -207,53 +207,114 @@ def render_dashboard():
         st.dataframe(df,use_container_width=True,hide_index=True)
 
 # ─── TAB COTIZACION ───────────────────────────────────────────────────
+
+def parse_excel_file(xl_path):
+    """Parses Cotizaciones.xlsx and returns (products, destinos_cfg) or raises exception."""
+    xl = pd.ExcelFile(xl_path)
+    snl = {s.lower(): s for s in xl.sheet_names}
+    products = []; destinos_cfg = {}
+    # ── Leer hoja de precios ──
+    ps = snl.get('tabla precios', snl.get('precios', xl.sheet_names[0]))
+    sheet_name = snl.get(ps.lower(), xl.sheet_names[0])
+    df = pd.read_excel(xl_path, sheet_name=sheet_name)
+    df.columns = [str(c).strip().lower() for c in df.columns]
+    dc = next((c for c in df.columns if 'desc' in c or 'producto' in c or 'nombre' in c), df.columns[1] if len(df.columns) > 1 else None)
+    pc = next((c for c in df.columns if 'precio' in c or 'cif' in c or 'usd' in c), df.columns[2] if len(df.columns) > 2 else None)
+    cc = next((c for c in df.columns if 'caja' in c or 'pallet' in c), None)
+    for _, row in df.iterrows():
+        cod = str(row.iloc[0]).strip()
+        if not cod or cod == 'nan' or cod == 'None': continue
+        # Skip header/note rows: code should look like a product code (not a long sentence)
+        if len(cod) > 30 or ' ' in cod.strip() and len(cod.split()) > 4: continue
+        # Safely convert price to float
+        raw_precio = row.get(pc, None) if pc else None
+        precio_num = pd.to_numeric(raw_precio, errors='coerce')
+        if pd.isna(precio_num): continue  # skip rows with non-numeric price
+        raw_cajas = row.get(cc, 200) if cc else 200
+        cajas_num = int(pd.to_numeric(raw_cajas, errors='coerce') or 200)
+        desc = str(row.get(dc, '') if dc else '').strip()
+        if desc == 'nan': desc = ''
+        products.append({
+            'codigo': cod,
+            'descripcion': desc,
+            'precio_cif_usd': round(float(precio_num), 4),
+            'cajas_pallet': cajas_num,
+            'activo': True
+        })
+    # ── Leer hoja de destinos ──
+    dk = next((k for k in snl if 'destino' in k), None)
+    if dk:
+        dd = pd.read_excel(xl_path, sheet_name=snl[dk])
+        dd.columns = [str(c).strip().lower() for c in dd.columns]
+        mc = next((c for c in dd.columns if 'moneda' in c or 'currency' in c), None)
+        fc = next((c for c in dd.columns if 'factor' in c or 'cif' in c or 'precio' in c), None)
+        for _, row in dd.iterrows():
+            dn = str(row.iloc[0]).strip()
+            if not dn or dn == 'nan' or dn == 'None': continue
+            raw_factor = row.get(fc, 1.0) if fc else 1.0
+            factor_num = pd.to_numeric(raw_factor, errors='coerce')
+            if pd.isna(factor_num): continue
+            moneda = str(row.get(mc, 'USD')).strip() if mc else 'USD'
+            if moneda == 'nan': moneda = 'USD'
+            destinos_cfg[dn] = {'moneda': moneda, 'factor': round(float(factor_num), 4)}
+    return products, destinos_cfg
+
+
+def auto_load_excel():
+    """Auto-loads Cotizaciones.xlsx on startup if products are not yet loaded."""
+    data = load_data()
+    if data.get('products'):
+        return  # already loaded
+    xl_path = 'Cotizaciones.xlsx'
+    if not os.path.exists(xl_path):
+        return  # file not found, wait for manual upload
+    try:
+        products, destinos_cfg = parse_excel_file(xl_path)
+        if products:
+            nueva = {'products': products, 'config': {'destinos': destinos_cfg, 'grupos': {}, 'minimos': {}}, 'pedidos': []}
+            save_data(nueva)
+    except Exception:
+        pass  # silently ignore auto-load errors
+
+
 def render_cotizacion():
     st.markdown('## 📄 Cotización - Gestión de Datos')
-    st.info('Sube tu archivo Cotizaciones.xlsx con las hojas: CONFIGURACION, TABLA PRECIOS, TODOS DESTINOS')
-    uploaded=st.file_uploader('Selecciona tu archivo Excel',type=['xlsx','xls'],key='xl_up')
+    data = load_data()
+    prods = data.get('products', [])
+    dests = data.get('config', {}).get('destinos', {})
+    # Show current status
+    if prods:
+        st.success(f'✅ Datos cargados: **{len(prods)} productos** y **{len(dests)} destinos** listos para usar.')
+    else:
+        st.warning('⚠️ No hay datos cargados. Sube tu archivo Excel para importar productos y destinos.')
+    st.info('📎 Sube tu archivo Cotizaciones.xlsx con las hojas: CONFIGURACION, TABLA PRECIOS, TODOS DESTINOS')
+    uploaded = st.file_uploader('Actualizar archivo Excel (reemplaza los datos actuales)', type=['xlsx', 'xls'], key='xl_up')
     if uploaded:
         try:
-            with open('Cotizaciones.xlsx','wb') as f: f.write(uploaded.getvalue())
-            xl=pd.ExcelFile('Cotizaciones.xlsx')
-            st.success(f'✅ Archivo cargado. Hojas: {", ".join(xl.sheet_names)}')
-            products=[]; destinos_cfg={}; snl={s.lower():s for s in xl.sheet_names}
-            # Leer precios
-            ps=snl.get('tabla precios',snl.get('precios',xl.sheet_names[0]))
-            df=pd.read_excel('Cotizaciones.xlsx',sheet_name=xl.sheet_names[[s.lower() for s in xl.sheet_names].index(ps.lower()) if ps.lower() in [s.lower() for s in xl.sheet_names] else 0])
-            df.columns=[str(c).strip().lower() for c in df.columns]
-            for _,row in df.dropna(subset=[df.columns[0]]).iterrows():
-                cod=str(row.iloc[0]).strip()
-                if not cod or cod=='nan': continue
-                dc=next((c for c in df.columns if 'desc' in c or 'producto' in c or 'nombre' in c),df.columns[1] if len(df.columns)>1 else None)
-                pc=next((c for c in df.columns if 'precio' in c or 'cif' in c or 'usd' in c),df.columns[2] if len(df.columns)>2 else None)
-                cc=next((c for c in df.columns if 'caja' in c or 'pallet' in c),None)
-                products.append({'codigo':cod,'descripcion':str(row.get(dc,'') if dc else '').strip(),'precio_cif_usd':float(row.get(pc,0) or 0 if pc else 0),'cajas_pallet':int(row.get(cc,200) or 200 if cc else 200),'activo':True})
-            # Leer destinos
-            dk=next((k for k in snl if 'destino' in k),None)
-            if dk:
-                dd=pd.read_excel('Cotizaciones.xlsx',sheet_name=snl[dk])
-                dd.columns=[str(c).strip().lower() for c in dd.columns]
-                for _,row in dd.dropna(subset=[dd.columns[0]]).iterrows():
-                    dn=str(row.iloc[0]).strip()
-                    if not dn or dn=='nan': continue
-                    mc=next((c for c in dd.columns if 'moneda' in c or 'currency' in c),None)
-                    fc=next((c for c in dd.columns if 'factor' in c or 'cif' in c or 'precio' in c),None)
-                    destinos_cfg[dn]={'moneda':str(row.get(mc,'USD')).strip() if mc else 'USD','factor':float(row.get(fc,1.0) or 1.0 if fc else 1.0)}
-            nueva={'products':products,'config':{'destinos':destinos_cfg,'grupos':{},'minimos':{}},'pedidos':[]}
-            save_data(nueva)
-            st.success(f'✅ {len(products)} productos y {len(destinos_cfg)} destinos importados!')
-            st.rerun()
-        except Exception as e: st.error(f'❌ Error: {e}')
-    data=load_data(); prods=data.get('products',[]); dests=data.get('config',{}).get('destinos',{})
+            xl_bytes = uploaded.getvalue()
+            with open('Cotizaciones.xlsx', 'wb') as f: f.write(xl_bytes)
+            import io as _io
+            xl = pd.ExcelFile(_io.BytesIO(xl_bytes))
+            st.success(f'✅ Archivo recibido. Hojas encontradas: {", ".join(xl.sheet_names)}')
+            products, destinos_cfg = parse_excel_file('Cotizaciones.xlsx')
+            if not products:
+                st.error('❌ No se encontraron productos válidos. Verifica que la hoja tenga códigos y precios numéricos.')
+            else:
+                nueva = {'products': products, 'config': {'destinos': destinos_cfg, 'grupos': {}, 'minimos': {}}, 'pedidos': []}
+                save_data(nueva)
+                st.success(f'✅ {len(products)} productos y {len(destinos_cfg)} destinos importados correctamente.')
+                st.rerun()
+        except Exception as e:
+            st.error(f'❌ Error procesando el archivo: {e}')
+    data = load_data(); prods = data.get('products', []); dests = data.get('config', {}).get('destinos', {})
     if prods:
         st.markdown('---')
         st.markdown(f'### 📋 Productos ({len(prods)})')
-        st.dataframe(pd.DataFrame([{'Código':p.get('codigo',''),'Descripción':p.get('descripcion',''),'Precio CIF USD':p.get('precio_cif_usd',0),'Cajas/Pallet':p.get('cajas_pallet',200)} for p in prods]),use_container_width=True,hide_index=True)
+        st.dataframe(pd.DataFrame([{'Código': p.get('codigo', ''), 'Descripción': p.get('descripcion', ''), 'Precio CIF USD': p.get('precio_cif_usd', 0), 'Cajas/Pallet': p.get('cajas_pallet', 200)} for p in prods]), use_container_width=True, hide_index=True)
     if dests:
         st.markdown(f'### 🌍 Destinos ({len(dests)})')
-        st.dataframe(pd.DataFrame([{'Destino':k,'Moneda':v.get('moneda','USD') if isinstance(v,dict) else 'USD','Factor':v.get('factor',1.0) if isinstance(v,dict) else float(v) if isinstance(v,(int,float)) else 1.0} for k,v in dests.items()]),use_container_width=True,hide_index=True)
+        st.dataframe(pd.DataFrame([{'Destino': k, 'Moneda': v.get('moneda', 'USD') if isinstance(v, dict) else 'USD', 'Factor': v.get('factor', 1.0) if isinstance(v, dict) else float(v) if isinstance(v, (int, float)) else 1.0} for k, v in dests.items()]), use_container_width=True, hide_index=True)
 
-# ─── TAB HACER PEDIDO ────────────────────────────────────────────────
 def render_hacer_pedido():
     st.markdown('## 🛒 Crear Nuevo Pedido')
     data=load_data(); prods=data.get('products',[]); dests=data.get('config',{}).get('destinos',{})
@@ -483,6 +544,7 @@ def render_reportes():
 # ─── MAIN ─────────────────────────────────────────────────────────────────
 def main():
     init_session()
+    auto_load_excel()
     if not st.session_state.logged_in:
         login_page()
         return
