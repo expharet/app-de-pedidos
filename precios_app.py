@@ -1409,91 +1409,104 @@ def render_portal_pedido():
         t2.info('**FOB** — Precio en origen. El flete corre por cuenta del comprador.')
 
     st.markdown('---')
-    # ── PASO 3: Selección de Productos ───────────────────────────
+    # ── PASO 3: Selección de Productos ───────────────────────────────
     st.markdown('### 3️⃣ Selecciona tus Productos')
-    # Mostrar tramo de volumen actual
+    # Banner de volumen y mínimo
     _current_pallets = sum(i.get('pallets',0) for i in st.session_state.portal_carrito)
     if _current_pallets > 0:
-        _tramo = get_tramo_label(_current_pallets)
         _disc = get_descuento_volumen(_current_pallets)
         if _disc > 0:
-            st.success(f'📉 Descuento por volumen activo: **{_tramo}** — {_disc*100:.0f}% de descuento en todos los precios 🎉')
+            _tramo = get_tramo_label(_current_pallets)
+            st.success(f'📉 Descuento activo: **{_tramo}** — {_disc*100:.0f}% sobre todos los precios 🎉')
         else:
-            st.info(f'📦 Carrito actual: **{_current_pallets:.1f} pallets** | Agrega más para activar descuentos de volumen')
+            st.info(f'📦 Pedido actual: **{_current_pallets:.1f} pallets** | Desde 3 pallets activas descuentos de volumen')
     else:
-        st.caption('💡 Descuentos por volumen: 3-5 pallets -5% | 6-9 pallets -10% | 10-19 pallets -12% | 20+ pallets -15%')
-    st.markdown('Ingresa la cantidad para cada producto que deseas agregar al carrito:')
+        st.warning('📋 **Pedido mínimo: 3 pallets** | Descuentos: 3-5 plt −5% | 6-9 plt −10% | 10-19 plt −12% | 20+ plt −15%')
 
-    # Cabecera de la grilla
-    hc = st.columns([4, 2, 2, 2, 1])
-    hc[0].markdown('**Producto**')
-    hc[1].markdown('**Precio USD/caja**')
-    hc[2].markdown('**Cantidad**')
-    hc[3].markdown('**Unidad**')
-    hc[4].markdown('**+**')
-    st.markdown('<hr style="margin:4px 0 8px">', unsafe_allow_html=True)
+    st.markdown('<hr style="margin:6px 0 10px">', unsafe_allow_html=True)
 
     for idx, p in enumerate(prods):
         cod = p.get('codigo','')
         nombre_prod = p.get('descripcion','') or p.get('producto','') or cod
-        cxp = int(p.get('cajas_pallet', 200) or 200)
-        # Precio con descuento por volumen acumulado en carrito
+        _grp_x = p.get('grupo','')
+        _gi_x = data.get('config',{}).get('grupos',{}).get(_grp_x,{})
+        cxp = int(_gi_x.get('cajas_pallet',p.get('cajas_pallet',160))) if isinstance(_gi_x,dict) else 160
+        _kg_x = float(p.get('kg_caja',0) or 0)
+        # Precio con descuento acumulado
         _total_pallets = sum(i.get('pallets',0) for i in st.session_state.portal_carrito)
         precio_u = get_precio_con_volumen(cod, destino, tipo_precio, data, max(_total_pallets, 1))
-
-        gc = st.columns([4, 2, 2, 2, 1])
-        _grp_x=p.get('grupo','')
-        _gi_x=data.get('config',{}).get('grupos',{}).get(_grp_x,{})
-        _cxp_x=int(_gi_x.get('cajas_pallet',p.get('cajas_pallet',160))) if isinstance(_gi_x,dict) else 160
-        _kg_x=float(p.get('kg_caja',0) or 0)
-        _sp_x=cod+(f' | {_kg_x}kg/cj' if _kg_x else '')+(f' | {_cxp_x}cj/plt' if _cxp_x else '')
-        gc[0].markdown(f'**{nombre_prod}**  \n<small style="color:#888">{_sp_x}</small>',unsafe_allow_html=True)
         _disc = get_descuento_volumen(max(_total_pallets,1))
-        _disc_txt = f' <span style="color:#28a745;font-size:0.8em">-{_disc*100:.0f}%</span>' if _disc>0 else ''
-        _mon_x=data.get('config',{}).get('destinos_moneda',{}).get(destino,'USD') if tipo_precio=='CIF' else 'USD'
-        _rate_x=get_exchange_rates().get(_mon_x,1.0)
-        _sym_x=MONEDA_SIMBOLO.get(_mon_x,_mon_x)
-        _fob_x=get_fob_price(cod,data)
-        _dv_x=data.get('config',{}).get('destinos',{}).get(destino,0)
-        _fl_x=float(_dv_x.get('factor',_dv_x) if isinstance(_dv_x,dict) else _dv_x if isinstance(_dv_x,(int,float)) else 0)
-        _ds_x=get_descuento_volumen(max(_total_pallets,1))
-        if _mon_x!='USD' and tipo_precio=='CIF' and _rate_x!=1.0:
-            _lp_x=round(precio_u*_rate_x,4)
-            _ph_x=f'<span style="color:#003E8C;font-weight:bold">{_sym_x}{_lp_x:.4f}</span><br><small style="color:#888">${precio_u:.4f} USD{_disc_txt}</small>'
-        else:
-            _ph_x=f'<span style="color:#0066CC;font-weight:bold">${precio_u:.4f}</span>{_disc_txt}'
-        if tipo_precio=='CIF' and _fob_x>0 and _fl_x>0:
-            _ph_x+=f'<br><small style="color:#aaa">FOB ${_fob_x:.3f}+Flete ${_fl_x:.3f}'+('-'+f'{_ds_x*100:.0f}%' if _ds_x>0 else '')+'</small>'
-        gc[1].markdown(_ph_x,unsafe_allow_html=True)
+        _mon_x = data.get('config',{}).get('destinos_moneda',{}).get(destino,'USD') if tipo_precio=='CIF' else 'USD'
+        _rate_x = get_exchange_rates().get(_mon_x,1.0)
+        _sym_x = MONEDA_SIMBOLO.get(_mon_x,_mon_x)
+        _fob_x = get_fob_price(cod,data)
+        _dv_x = data.get('config',{}).get('destinos',{}).get(destino,0)
+        _fl_x = float(_dv_x.get('factor',_dv_x) if isinstance(_dv_x,dict) else _dv_x if isinstance(_dv_x,(int,float)) else 0)
         qty_key = f'portal_qty_{cod}_{idx}'
         unit_key = f'portal_unit_{cod}_{idx}'
+        # Layout: nombre | precio | cantidad | unidad | info+boton
+        gc = st.columns([4, 2, 2, 2, 2])
+        # Col 0: Nombre + specs
+        _kg_str = f' · {_kg_x}kg/cj' if _kg_x else ''
+        _cxp_str = f' · {cxp}cj/plt' if cxp else ''
+        _specs = cod + _kg_str + _cxp_str
+        gc[0].markdown(f'**{nombre_prod}**  \n<small style="color:#888">{_specs}</small>', unsafe_allow_html=True)
+        # Col 1: Precio/caja con desglose
+        if _mon_x != 'USD' and tipo_precio == 'CIF' and _rate_x != 1.0:
+            _lp_x = round(precio_u * _rate_x, 4)
+            _ph_x = f'<span style="color:#003E8C;font-weight:bold">{_sym_x}{_lp_x:.4f}</span><br><small style="color:#aaa">≈${precio_u:.4f}</small>'
+        else:
+            _ph_x = f'<span style="color:#003E8C;font-weight:bold">${precio_u:.4f}</span><br><small style="color:#aaa">/caja</small>'
+        if tipo_precio == 'CIF' and _fob_x > 0 and _fl_x > 0:
+            _ds_str = '-' + f'{_disc*100:.0f}%' if _disc > 0 else ''
+            _ph_x += f'<br><small style="color:#aaa">FOB ${_fob_x:.3f}+Flete ${_fl_x:.3f}{_ds_str}</small>'
+        gc[1].markdown(_ph_x, unsafe_allow_html=True)
+        # Col 2: Cantidad
         qty_val = gc[2].number_input('Cant', min_value=0, value=0, step=1, key=qty_key, label_visibility='collapsed')
+        # Col 3: Unidad
         unit_sel_raw = gc[3].selectbox('Unidad', ['📦 Pallets', '📦 Cajas'], key=unit_key, label_visibility='collapsed')
         unit_sel = 'Pallets' if unit_sel_raw.endswith('Pallets') else 'Cajas'
-        if gc[4].button('➕', key=f'portal_add_{cod}_{idx}', help=f'Agregar {nombre_prod}'):
-            if qty_val > 0:
-                # Convertir a cajas
-                if unit_sel == 'Pallets':
-                    cajas_add = int(qty_val * cxp)
-                    pallets_add = float(qty_val)
-                else:
-                    cajas_add = int(qty_val)
-                    pallets_add = round(cajas_add / cxp, 2)
-                total_item = round(cajas_add * precio_u, 2)
-                item = {'codigo':cod,'producto':nombre_prod,'cajas':cajas_add,'pallets':pallets_add,'precio_usd':precio_u,'total':total_item,'unidad':unit_sel,'fob_usd':get_fob_price(cod,data),'flete_usd':float(dests.get(destino,0) if isinstance(dests.get(destino,0),(int,float)) else dests.get(destino,{}).get('factor',0) if isinstance(dests.get(destino,{}),dict) else 0),'descuento_vol':get_descuento_volumen(max(_total_pallets,1))}
+        # Col 4: Preview dinámico + botón Agregar
+        if qty_val > 0:
+            if unit_sel == 'Pallets':
+                _prev_cajas = int(qty_val * cxp)
+                _prev_pallets = float(qty_val)
+            else:
+                _prev_cajas = int(qty_val)
+                _prev_pallets = round(_prev_cajas / cxp, 2)
+            _prev_total = round(_prev_cajas * precio_u, 2)
+            gc[4].markdown(
+                f'<div style="font-size:0.78rem;color:#444;line-height:1.5">'
+                f'<b>{_prev_cajas:,} cj</b> · <b>{_prev_pallets:.1f} plt</b><br>'
+                f'<span style="color:#003E8C;font-weight:bold">${_prev_total:,.2f}</span></div>',
+                unsafe_allow_html=True
+            )
+            if gc[4].button('Agregar ✔', key=f'portal_add_{cod}_{idx}', use_container_width=True, type='primary'):
+                item = {
+                    'codigo': cod, 'producto': nombre_prod,
+                    'cajas': _prev_cajas, 'pallets': _prev_pallets,
+                    'precio_usd': precio_u, 'total': _prev_total,
+                    'unidad': unit_sel,
+                    'fob_usd': get_fob_price(cod,data),
+                    'flete_usd': float(
+                        _dv_x.get('factor',_dv_x) if isinstance(_dv_x,dict)
+                        else _dv_x if isinstance(_dv_x,(int,float)) else 0
+                    ),
+                    'descuento_vol': get_descuento_volumen(max(_total_pallets,1))
+                }
                 ex = next((i for i, x in enumerate(st.session_state.portal_carrito) if x['codigo'] == cod), None)
                 if ex is not None:
-                    st.session_state.portal_carrito[ex]['cajas'] += cajas_add
-                    new_pallets = round(st.session_state.portal_carrito[ex]['cajas'] / cxp, 2)
-                    st.session_state.portal_carrito[ex]['pallets'] = new_pallets
+                    st.session_state.portal_carrito[ex]['cajas'] += _prev_cajas
+                    st.session_state.portal_carrito[ex]['pallets'] = round(st.session_state.portal_carrito[ex]['cajas'] / cxp, 2)
                     st.session_state.portal_carrito[ex]['total'] = round(st.session_state.portal_carrito[ex]['cajas'] * precio_u, 2)
                 else:
                     st.session_state.portal_carrito.append(item)
-                st.toast(f'✅ {nombre_prod} agregado: {cajas_add:,} cajas ({pallets_add:.1f} pallets) — ${total_item:,.2f} USD', icon='✅')
+                st.toast(f'✅ {nombre_prod}: {_prev_cajas:,} cj ({_prev_pallets:.1f} plt) — ${_prev_total:,.2f}', icon='✅')
                 st.rerun()
-            else:
-                st.toast(f'Ingresa una cantidad mayor a 0 para {nombre_prod}', icon='⚠️')
+        else:
+            gc[4].caption('Ingresa cantidad')
 
+        st.markdown('<hr style="margin:2px 0 4px;border-color:#f0f0f0">', unsafe_allow_html=True)
     # Carrito
     if st.session_state.portal_carrito:
         st.markdown('---')
@@ -1505,17 +1518,16 @@ def render_portal_pedido():
             f'{n_items} producto(s) — Total: ${tot:,.2f} USD</span>',
             unsafe_allow_html=True)
         # Cabecera tabla carrito
-        ch = st.columns([4, 2, 2, 2, 1])
-        for hdr, lbl in zip(ch, ['**Producto**','**Cajas**','**Pallets**','**Total USD**','']):
+        ch = st.columns([4, 3, 2, 1])
+        for hdr, lbl in zip(ch, ['**Producto**','**Cajas / Pallets**','**Total USD**','']):
             hdr.markdown(lbl)
         to_remove = None
         for ci, item in enumerate(st.session_state.portal_carrito):
-            cc = st.columns([4, 2, 2, 2, 1])
-            cc[0].markdown(f'{item["producto"]}  \n<small style="color:#888">{item["codigo"]}</small>', unsafe_allow_html=True)
-            cc[1].markdown(str(item['cajas']))
-            cc[2].markdown(f'{item["pallets"]:.2f}')
-            cc[3].markdown(f'<strong style="color:#003E8C">${item["total"]:,.2f}</strong>', unsafe_allow_html=True)
-            if cc[4].button('✕', key=f'portal_rem_{ci}', help='Eliminar producto'):
+            cc = st.columns([4, 3, 2, 1])
+            cc[0].markdown(f'**{item["producto"]}**  \n<small style="color:#888">{item["codigo"]} | ${item["precio_usd"]:.4f}/cj</small>', unsafe_allow_html=True)
+            cc[1].markdown(f'<b>{item["cajas"]:,} cj</b> &nbsp;|&nbsp; <b>{item["pallets"]:.2f} plt</b>', unsafe_allow_html=True)
+            cc[2].markdown(f'<strong style="color:#003E8C;font-size:1.05em">${item["total"]:,.2f}</strong>', unsafe_allow_html=True)
+            if cc[3].button('✕', key=f'portal_rem_{ci}', help='Eliminar producto'):
                 to_remove = ci
         if to_remove is not None:
             st.session_state.portal_carrito.pop(to_remove)
@@ -1535,11 +1547,11 @@ def render_portal_pedido():
         st.caption(f'Precios CIF — Destino: {destino} | Moneda: {_moneda} | Total equiv.: {_sym}{_tot_conv:,.2f} {_moneda} (1 USD = {_rate:.4f} {_moneda})')
     else:
         st.caption('Precios FOB — El flete corre por cuenta del comprador')
-        rem_col, _ = st.columns([1, 3])
-        if rem_col.button('🗑️ Vaciar Carrito', key='portal_vaciar'):
-            st.session_state.portal_carrito = []
-            st.rerun()
-        st.markdown('---')
+    rem_col2, _ = st.columns([1, 3])
+    if rem_col2.button('🗑️ Vaciar Carrito', key='portal_vaciar'):
+        st.session_state.portal_carrito = []
+        st.rerun()
+    st.markdown('---')
     # ── PASO 4: Confirmar y Enviar Pedido ────────────────────────────────────
     st.markdown('### 4️⃣ Confirmar Pedido')
     notas = st.text_area('📝 Notas / instrucciones especiales', placeholder='Ej: Entrega en almacén X, condiciones especiales...', key='portal_notas')
@@ -1676,27 +1688,6 @@ def render_portal_pedido():
     st.markdown('<div style="text-align:center;color:#888"><small>Export Haret © 2026 | order@exportharet.com | Frutas Exóticas Premium</small></div>', unsafe_allow_html=True)
 
 # ─── MAIN ────────────────────────────────────────────────────────────────────
-    # Solicitud cotizacion especial (#12)
-    st.markdown("---")
-    with st.expander('\U0001F4AC Solicitar Cotizaci\xf3n Especial', expanded=False):
-        st.markdown('\U0001F4E7 Env\xedanos tu solicitud y te preparamos una cotizaci\xf3n a medida.')
-        sq1,sq2=st.columns(2)
-        sq_nom=sq1.text_input('Nombre/Empresa',key='sq_nom')
-        sq_email=sq2.text_input('Email',key='sq_email')
-        sq3,sq4=st.columns(2)
-        sq_dest=sq3.text_input('Destino',key='sq_dest')
-        sq_vol=sq4.text_input('Volumen estimado (pallets)',key='sq_vol')
-        sq_prods=st.text_area('Productos de inter\xe9s',placeholder='ej: 10 pallets Granadilla + 5 pallets Pitahaya...',key='sq_prods',height=80)
-        sq_tel=st.text_input('Tel\xe9fono/WhatsApp',key='sq_tel')
-        if st.button('\U0001F680 Enviar Solicitud de Cotizaci\xf3n',type='primary',key='btn_solicitud',use_container_width=True):
-            if sq_nom and sq_email:
-                _sol={'id':f'SOL-{datetime.now().strftime("%Y%m%d-%H%M%S")}','client_name':sq_nom,'client_email':sq_email,'destino':sq_dest,'tipo_precio':'CIF','productos':[{'codigo':'SOL','producto':sq_prods,'cajas':0,'pallets':0,'precio_usd':0,'total':0}],'total_usd':0,'estado':'Recibido','notas':f'SOLICITUD COTIZACION - Vol:{sq_vol} - Tel:{sq_tel}','fecha':datetime.now().isoformat(),'historial_estados':[{'estado':'Recibido','fecha':datetime.now().isoformat(),'usuario':'portal-solicitud'}],'creado_por':'portal-solicitud'}
-                _tods=load_pedidos(); _tods.append(_sol); save_pedidos(_tods)
-                log_email(sq_email,f'Solicitud cotizacion {sq_dest}','portal_solicitud')
-                send_order_email(_sol)
-                st.success(f'\u2705 Solicitud enviada a order@exportharet.com - Te contactaremos en 24h a {sq_email}')
-            else:
-                st.warning('Por favor completa nombre y email')
 def main():
     init_session()
     auto_load_excel()
