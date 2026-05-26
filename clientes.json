@@ -106,6 +106,38 @@
             "total_usd": 2257.11
           }
         ]
+      },
+      {
+        "id": "PED-20260526-003",
+        "fecha": "2026-05-26",
+        "destino": "Madrid/España",
+        "total_usd": 16254.11,
+        "dest_code": "EUR",
+        "dest_sym": "€",
+        "dest_rate": 0.85889,
+        "total_loc": 13960.5,
+        "pallets": 7,
+        "cajas": 1040,
+        "productos": [
+          {
+            "producto": "Granadilla",
+            "cajas": 640,
+            "precio_usd": 14.9089,
+            "total_usd": 9541.71
+          },
+          {
+            "producto": "Babaco",
+            "cajas": 240,
+            "precio_usd": 18.5637,
+            "total_usd": 4455.3
+          },
+          {
+            "producto": "Physalis",
+            "cajas": 160,
+            "precio_usd": 14.1069,
+            "total_usd": 2257.11
+          }
+        ]
       }
     ]
   },
