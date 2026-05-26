@@ -465,7 +465,7 @@ def render_hacer_pedido():
             el=load_email_log(); el.append({'id':f'EMAIL-{len(el)+1:05d}','destinatario':c_email,'asunto':f'Pedido {pid} recibido','tipo':'confirmacion','fecha':datetime.now().isoformat(),'estado':'simulado'}); save_email_log(el)
             st.session_state.carrito=[]
             st.success(f'✅ Pedido {pid} creado por ${tot:,.2f}')
-            st.balloons(); st.cache_data.clear()
+            st.cache_data.clear()
 
 # ─── TAB PRECIOS ─────────────────────────────────────────────────────────
 def render_actualizar_precios():
@@ -800,6 +800,97 @@ def log_email(destinatario, asunto, tipo_email):
     save_email_log(el)
 
 # ─── PORTAL PÚBLICO DE PEDIDOS ───────────────────────────────────────────────
+def send_order_email(ped):
+    """Envia el pedido por email a orden@exportharet.com usando SMTP configurado en st.secrets.
+    Requiere en .streamlit/secrets.toml:
+      [email]
+      smtp_host = '...'
+      smtp_port = 587
+      smtp_user = '...'
+      smtp_pass = '...'
+      from_addr = 'noreply@exportharet.com'
+    Si no está configurado, solo registra en log."""
+    import smtplib
+    from email.mime.multipart import MIMEMultipart
+    from email.mime.text import MIMEText
+    DEST = 'orden@exportharet.com'
+    pid = ped.get('id','')
+    nombre = ped.get('client_name','')
+    email_c = ped.get('client_email','')
+    empresa = ped.get('empresa','')
+    telefono = ped.get('telefono','')
+    pais = ped.get('pais','')
+    tipo = ped.get('tipo_precio','FOB')
+    destino = ped.get('destino','')
+    total_usd = ped.get('total_usd',0)
+    fecha = ped.get('fecha','')[:10]
+    notas = ped.get('notas','')
+    # Build HTML body
+    rows_html = ''
+    for item in ped.get('productos', []):
+        rows_html += (f'<tr><td style="padding:6px 10px;border:1px solid #ddd">{item.get("codigo","")}</td>'
+            f'<td style="padding:6px 10px;border:1px solid #ddd">{item.get("producto","")}</td>'
+            f'<td style="padding:6px 10px;border:1px solid #ddd;text-align:center">{item.get("cajas",0)}</td>'
+            f'<td style="padding:6px 10px;border:1px solid #ddd;text-align:center">{item.get("pallets",0)}</td>'
+            f'<td style="padding:6px 10px;border:1px solid #ddd;text-align:right">${item.get("precio_usd",0):.2f}</td>'
+            f'<td style="padding:6px 10px;border:1px solid #ddd;text-align:right;font-weight:bold">${item.get("total",0):,.2f}</td></tr>')
+    dest_str = f'{tipo} → {destino}' if tipo == 'CIF' and destino else tipo
+    html = f'''<html><body style="font-family:Arial,sans-serif;color:#333">
+<div style="background:#003E8C;padding:16px 24px;border-radius:8px">
+  <h2 style="color:white;margin:0">U0001F680 Export Haret — Nueva Orden Recibida</h2>
+</div>
+<div style="padding:16px 0">
+  <table style="width:100%;border-collapse:collapse;font-size:14px">
+    <tr><td style="padding:6px"><b>Nº Pedido:</b></td><td>{pid}</td>
+        <td style="padding:6px"><b>Fecha:</b></td><td>{fecha}</td></tr>
+    <tr><td style="padding:6px"><b>Cliente:</b></td><td>{nombre}</td>
+        <td style="padding:6px"><b>Empresa:</b></td><td>{empresa or "-"}</td></tr>
+    <tr><td style="padding:6px"><b>Email:</b></td><td>{email_c}</td>
+        <td style="padding:6px"><b>Teléfono:</b></td><td>{telefono or "-"}</td></tr>
+    <tr><td style="padding:6px"><b>País:</b></td><td>{pais or "-"}</td>
+        <td style="padding:6px"><b>Destino:</b></td><td>{dest_str}</td></tr>
+  </table>
+  <h3 style="color:#003E8C;border-bottom:2px solid #003E8C;padding-bottom:6px">Productos</h3>
+  <table style="width:100%;border-collapse:collapse;font-size:13px">
+    <thead><tr style="background:#003E8C;color:white">
+      <th style="padding:8px">Código</th><th style="padding:8px">Producto</th>
+      <th style="padding:8px">Cajas</th><th style="padding:8px">Pallets</th>
+      <th style="padding:8px">Precio/caja</th><th style="padding:8px">Total</th>
+    </tr></thead>
+    <tbody>{rows_html}</tbody>
+  </table>
+  <p style="text-align:right;font-size:16px;font-weight:bold;color:#003E8C">
+    TOTAL: ${total_usd:,.2f} USD</p>
+  {f'<p><b>Notas:</b> {notas}</p>' if notas else ''}
+</div>
+<p style="color:#888;font-size:11px">Export Haret © 2026 | orden@exportharet.com</p>
+</body></html>'''
+    subject = f'U0001F4E6 Nuevo Pedido {pid} — {nombre} ({empresa or email_c}) | ${total_usd:,.2f} USD'
+    # Try SMTP send
+    try:
+        cfg = st.secrets.get('email', {})
+        smtp_host = cfg.get('smtp_host', '')
+        smtp_port = int(cfg.get('smtp_port', 587))
+        smtp_user = cfg.get('smtp_user', '')
+        smtp_pass = cfg.get('smtp_pass', '')
+        from_addr = cfg.get('from_addr', smtp_user)
+        if smtp_host and smtp_user and smtp_pass:
+            msg = MIMEMultipart('alternative')
+            msg['Subject'] = subject
+            msg['From'] = from_addr
+            msg['To'] = DEST
+            msg['Reply-To'] = email_c
+            msg.attach(MIMEText(html, 'html', 'utf-8'))
+            with smtplib.SMTP(smtp_host, smtp_port) as server:
+                server.starttls()
+                server.login(smtp_user, smtp_pass)
+                server.sendmail(from_addr, [DEST], msg.as_string())
+            log_email(DEST, subject, 'smtp_enviado')
+        else:
+            log_email(DEST, subject, 'smtp_sin_config')
+    except Exception as e:
+        log_email(DEST, subject, f'smtp_error:{str(e)[:80]}')
+
 def render_portal_pedido():
     """Página pública para que los clientes hagan pedidos. No requiere login de staff."""
     data = load_data()
@@ -953,7 +1044,8 @@ def render_portal_pedido():
         qty_key = f'portal_qty_{cod}_{idx}'
         unit_key = f'portal_unit_{cod}_{idx}'
         qty_val = gc[2].number_input('Cant', min_value=0, value=0, step=1, key=qty_key, label_visibility='collapsed')
-        unit_sel = gc[3].radio('Unidad', ['Cajas','Pallets'], key=unit_key, horizontal=True, label_visibility='collapsed')
+        unit_sel_raw = gc[3].selectbox('Unidad', ['📦 Pallets', '📦 Cajas'], key=unit_key, label_visibility='collapsed')
+        unit_sel = 'Pallets' if unit_sel_raw.endswith('Pallets') else 'Cajas'
         if gc[4].button('➕', key=f'portal_add_{cod}_{idx}', help=f'Agregar {nombre_prod}'):
             if qty_val > 0:
                 # Convertir a cajas
@@ -1047,16 +1139,15 @@ def render_portal_pedido():
                 'pedidos': portal_clients.get(email_input, {}).get('pedidos', []) + [pid],
             }
             save_portal_clients(portal_clients)
-            # Log email
+            # Log email y envio real a orden@exportharet.com
             log_email(email_input, f'Confirmación pedido {pid}', 'portal_cliente')
-            log_email('orden@exportharet.com', f'Nuevo pedido {pid} de {nombre}', 'portal_orden')
+            send_order_email(ped)
             st.cache_data.clear()
 
             # Guardar pedido en session para acciones post-guardado
             st.session_state['ultimo_pedido'] = ped
             st.session_state.portal_carrito = []
             st.success(f'✅ **Pedido {pid} enviado correctamente!** Recibirás confirmación en {email_input}.')
-            st.balloons()
 
     # ── Acciones post-pedido ─────────────────────────────────────────────────
     if st.session_state.get('ultimo_pedido'):
