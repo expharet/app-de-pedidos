@@ -607,32 +607,368 @@ def render_reportes():
         if xb: st.download_button('📥 Exportar Reporte',data=xb,file_name=f'reporte_{fd}_{fh}.xlsx',mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',type='primary')
 
 # ─── MAIN ─────────────────────────────────────────────────────────────────
+
+
+# ─── PORTAL CLIENT FILES ─────────────────────────────────────────────────────
+PORTAL_CLIENTS_FILE = 'portal_clientes.json'
+
+def load_portal_clients():
+    return _load(PORTAL_CLIENTS_FILE, {})
+
+def save_portal_clients(c):
+    _save(PORTAL_CLIENTS_FILE, c)
+
+def get_fob_price(codigo, data):
+    for p in data.get('products', []):
+        if p.get('codigo') == codigo:
+            return round(float(p.get('precio_cif_usd', 0) or p.get('precio_compra', 0)), 2)
+    return 0.0
+
+def get_cif_price(codigo, destino, data):
+    return get_precio(codigo, destino, data)
+
+def build_order_html(ped):
+    rows = ''
+    for item in ped.get('productos', []):
+        cod = item.get('codigo','')
+        prod = item.get('producto','')
+        cajas = item.get('cajas', 0)
+        pallets = item.get('pallets', 0)
+        precio = item.get('precio_usd', 0)
+        total = item.get('total', 0)
+        rows += f'<tr><td style="padding:8px;border:1px solid #ddd">{cod}</td><td style="padding:8px;border:1px solid #ddd">{prod}</td><td style="padding:8px;border:1px solid #ddd;text-align:center">{cajas}</td><td style="padding:8px;border:1px solid #ddd;text-align:center">{pallets}</td><td style="padding:8px;border:1px solid #ddd;text-align:right">${precio:.2f}</td><td style="padding:8px;border:1px solid #ddd;text-align:right;font-weight:bold">${total:.2f}</td></tr>'
+    tipo = ped.get('tipo_precio','CIF')
+    destino_str = ped.get('destino','') if tipo == 'CIF' else 'Sin destino (FOB)'
+    pid = ped.get('id','')
+    fecha = ped.get('fecha','')[:10]
+    estado = ped.get('estado','Recibido')
+    nombre = ped.get('client_name','')
+    email_c = ped.get('client_email','')
+    empresa = ped.get('empresa','')
+    telefono = ped.get('telefono','')
+    total_usd = ped.get('total_usd', 0)
+    return f'''<!DOCTYPE html><html><head><meta charset="utf-8">
+<style>body{{font-family:Arial,sans-serif;margin:40px;color:#333}}h1{{color:#003E8C}}table{{border-collapse:collapse;width:100%}}th{{background:#003E8C;color:white;padding:10px}}.total{{font-size:1.3em;font-weight:bold;color:#003E8C}}</style></head>
+<body><h1>Export Haret — Orden de Pedido</h1><hr>
+<p><b>N° Pedido:</b> {pid} | <b>Fecha:</b> {fecha} | <b>Estado:</b> {estado}</p>
+<p><b>Cliente:</b> {nombre} | <b>Email:</b> {email_c} | <b>Empresa:</b> {empresa} | <b>Tel:</b> {telefono}</p>
+<p><b>Tipo Precio:</b> {tipo} | <b>Destino:</b> {destino_str}</p>
+<table><thead><tr><th>Código</th><th>Producto</th><th>Cajas</th><th>Pallets</th><th>Precio/caja</th><th>Total</th></tr></thead><tbody>{rows}</tbody></table>
+<div style="text-align:right;margin-top:20px"><span class="total">TOTAL: ${total_usd:,.2f} USD</span></div>
+<p style="color:#888;font-size:0.9em">Export Haret © 2026 | orden@exportharet.com</p></body></html>'''
+
+def log_email(destinatario, asunto, tipo_email):
+    el = load_email_log()
+    el.append({'id': f'EMAIL-{len(el)+1:05d}', 'destinatario': destinatario, 'asunto': asunto, 'tipo': tipo_email, 'fecha': datetime.now().isoformat(), 'estado': 'simulado'})
+    save_email_log(el)
+
+# ─── PORTAL PÚBLICO DE PEDIDOS ───────────────────────────────────────────────
+def render_portal_pedido():
+    """Página pública para que los clientes hagan pedidos. No requiere login de staff."""
+    data = load_data()
+    prods = [p for p in data.get('products', []) if p.get('activo', True)]
+    dests = data.get('config', {}).get('destinos', {})
+
+    # Header
+    st.markdown('<div style="background:linear-gradient(135deg,#003E8C,#0066CC,#0099FF);padding:20px 30px;border-radius:12px;margin-bottom:24px;text-align:center"><h1 style="color:white;margin:0;font-size:1.8em">🚀 Export Haret</h1><p style="color:rgba(255,255,255,0.85);margin:4px 0 0">Sistema de Pedidos — Frutas Exóticas Premium</p></div>',unsafe_allow_html=True)
+
+    if not prods:
+        st.warning('⚠️ Catálogo no disponible. Contacte a orden@exportharet.com')
+        return
+
+    portal_clients = load_portal_clients()
+
+    # Init session state for portal
+    for k, v in [('portal_email',''),('portal_registered',False),('portal_client_data',{}),('portal_carrito',[])]:
+        if k not in st.session_state: st.session_state[k] = v
+
+    # ── PASO 1: Identificación del cliente ────────────────────────────────────
+    st.markdown('### 1️⃣ Tus Datos')
+    col_email, col_btn = st.columns([3, 1])
+    email_input = col_email.text_input('📧 Tu correo electrónico', placeholder='tu@empresa.com', key='portal_email_input', value=st.session_state.portal_email)
+
+    client_data = {}
+    is_registered = False
+    show_register = False
+
+    if email_input:
+        st.session_state.portal_email = email_input
+        if email_input in portal_clients:
+            is_registered = True
+            client_data = dict(portal_clients[email_input])
+            st.success(f'✅ Bienvenido de vuelta, **{client_data.get("nombre",email_input)}**!')
+        else:
+            st.info('📝 Correo no registrado — completa tus datos para continuar.')
+            show_register = True
+
+    # Campos del cliente (auto-relleno si ya está registrado, editables siempre)
+    if email_input:
+        c1, c2 = st.columns(2)
+        nombre_val = client_data.get('nombre', '') if is_registered else ''
+        empresa_val = client_data.get('empresa', '') if is_registered else ''
+        c3, c4 = st.columns(2)
+        telefono_val = client_data.get('telefono', '') if is_registered else ''
+        pais_val = client_data.get('pais', '') if is_registered else ''
+        nombre  = c1.text_input('👤 Nombre completo', value=nombre_val, key='portal_nombre')
+        empresa = c2.text_input('🏢 Empresa', value=empresa_val, key='portal_empresa')
+        telefono = c3.text_input('📱 Teléfono / WhatsApp', value=telefono_val, placeholder='+34 600 000 000', key='portal_telefono')
+        pais    = c4.text_input('🌍 País', value=pais_val, key='portal_pais')
+        if show_register:
+            st.caption('Al guardar el pedido, tu cuenta quedará registrada automáticamente.')
+    else:
+        nombre = empresa = telefono = pais = ''
+        st.markdown('---')
+        st.markdown('**Ingresa tu correo para continuar** 👆')
+        return
+
+    st.markdown('---')
+
+    # ── PASO 2: Tipo de precio + Destino ─────────────────────────────────────
+    st.markdown('### 2️⃣ Tipo de Precio y Destino')
+    t1, t2 = st.columns([1, 2])
+    tipo_precio = t1.radio('💲 Tipo de precio', ['FOB', 'CIF'], key='portal_tipo', horizontal=True,
+        help='FOB = Precio en origen (sin flete). CIF = Precio incluye flete al destino.')
+    destino = ''
+    dest_flete = 0.0
+    if tipo_precio == 'CIF':
+        dest_opts = list(dests.keys()) if dests else []
+        if not dest_opts:
+            t2.warning('No hay destinos configurados')
+        else:
+            destino = t2.selectbox('🌍 Destino', dest_opts, key='portal_dest')
+            dest_val = dests.get(destino, 0)
+            dest_flete = float(dest_val) if isinstance(dest_val, (int, float)) else dest_val.get('factor', 0) if isinstance(dest_val, dict) else 0
+            t2.caption(f'Flete incluido: ${dest_flete:.2f} USD/caja hacia {destino}')
+    else:
+        t2.info('**FOB** — Precio en origen. El flete corre por cuenta del comprador.')
+
+    st.markdown('---')
+    # ── PASO 3: Catálogo de Productos ────────────────────────────────────────
+    st.markdown('### 3️⃣ Catálogo de Productos')
+
+    # Mostrar catálogo completo con precios según FOB/CIF
+    st.markdown('Selecciona los productos y cantidades que deseas ordenar:')
+
+    # Tabla de catálogo
+    cat_rows = []
+    for p in prods:
+        fob = get_fob_price(p.get('codigo',''), data)
+        if tipo_precio == 'CIF' and destino:
+            precio_mostrar = get_cif_price(p.get('codigo',''), destino, data)
+            precio_label = f'CIF {destino}'
+        else:
+            precio_mostrar = fob
+            precio_label = 'FOB'
+        cat_rows.append({'Código': p.get('codigo',''), 'Producto': p.get('descripcion','') or p.get('producto',''), f'Precio {precio_label} (USD/caja)': precio_mostrar, 'Cajas/Pallet': p.get('cajas_pallet', 200)})
+
+    if cat_rows:
+        st.dataframe(pd.DataFrame(cat_rows), use_container_width=True, hide_index=True)
+
+    st.markdown('##### ➕ Agregar producto al carrito')
+    pa1, pa2, pa3 = st.columns([3, 1, 1])
+    prod_opts = ['Seleccionar...'] + [p.get('codigo','') + ' — ' + (p.get('descripcion','') or p.get('producto','')) for p in prods]
+    psel = pa1.selectbox('Producto', prod_opts, key='portal_prod')
+    cajas_add = pa2.number_input('Cajas', min_value=1, value=100, step=50, key='portal_cajas')
+    pa3.markdown('<br>', unsafe_allow_html=True)
+
+    if pa3.button('➕ Agregar', key='portal_add') and psel != 'Seleccionar...':
+        cod = psel.split(' — ')[0]
+        pd_ = next((p for p in prods if p.get('codigo') == cod), {})
+        if tipo_precio == 'CIF' and destino:
+            precio = get_cif_price(cod, destino, data)
+        else:
+            precio = get_fob_price(cod, data)
+        cxp = pd_.get('cajas_pallet', 200) or 200
+        pallets = round(cajas_add / cxp, 2)
+        nombre_prod = pd_.get('descripcion','') or pd_.get('producto','')
+        item = {'codigo': cod, 'producto': nombre_prod, 'cajas': cajas_add, 'pallets': pallets, 'precio_usd': precio, 'total': round(cajas_add * precio, 2)}
+        ex = next((i for i, x in enumerate(st.session_state.portal_carrito) if x['codigo'] == cod), None)
+        if ex is not None:
+            st.session_state.portal_carrito[ex]['cajas'] += cajas_add
+            new_pallets = round(st.session_state.portal_carrito[ex]['cajas'] / cxp, 2)
+            st.session_state.portal_carrito[ex]['pallets'] = new_pallets
+            st.session_state.portal_carrito[ex]['total'] = round(st.session_state.portal_carrito[ex]['cajas'] * precio, 2)
+        else:
+            st.session_state.portal_carrito.append(item)
+        st.rerun()
+
+    # Carrito
+    if st.session_state.portal_carrito:
+        st.markdown('---')
+        st.markdown('#### 🛒 Mi Carrito')
+        df_cart = pd.DataFrame(st.session_state.portal_carrito)
+        st.dataframe(df_cart[['codigo','producto','cajas','pallets','precio_usd','total']], use_container_width=True, hide_index=True)
+        tot = sum(i['total'] for i in st.session_state.portal_carrito)
+        m1, m2, m3 = st.columns(3)
+        m1.metric('📦 Total Cajas', f"{sum(i['cajas'] for i in st.session_state.portal_carrito):,}")
+        m2.metric('📍 Total Pallets', f"{sum(i['pallets'] for i in st.session_state.portal_carrito):.2f}")
+        m3.metric('💰 Total', f'${tot:,.2f} USD')
+        st.caption(f'Precios en {tipo_precio}' + (f' — Destino: {destino}' if tipo_precio=='CIF' and destino else ''))
+        rem_col, _ = st.columns([1, 3])
+        if rem_col.button('🗑️ Vaciar Carrito', key='portal_vaciar'):
+            st.session_state.portal_carrito = []
+            st.rerun()
+    st.markdown('---')
+    # ── PASO 4: Confirmar y Enviar Pedido ────────────────────────────────────
+    st.markdown('### 4️⃣ Confirmar Pedido')
+    notas = st.text_area('📝 Notas / instrucciones especiales', placeholder='Ej: Entrega en almacén X, condiciones especiales...', key='portal_notas')
+
+    # Mostrar resumen antes de confirmar
+    if st.session_state.portal_carrito and email_input and nombre:
+        tot_final = sum(i['total'] for i in st.session_state.portal_carrito)
+        st.markdown(f'**Resumen:** {len(st.session_state.portal_carrito)} producto(s) | {tipo_precio}' + (f' a {destino}' if tipo_precio=="CIF" and destino else '') + f' | **Total: ${tot_final:,.2f} USD**')
+
+    btn_guardar = st.button('📤 CONFIRMAR Y ENVIAR PEDIDO', type='primary', use_container_width=True, key='portal_guardar')
+
+    if btn_guardar:
+        if not email_input:
+            st.error('❌ Ingresa tu correo electrónico')
+        elif not nombre:
+            st.error('❌ Ingresa tu nombre completo')
+        elif not st.session_state.portal_carrito:
+            st.error('❌ Agrega al menos un producto al carrito')
+        elif tipo_precio == 'CIF' and not destino:
+            st.error('❌ Selecciona un destino para precio CIF')
+        else:
+            pid = 'PED-' + datetime.now().strftime('%Y%m%d-%H%M%S')
+            tot = sum(i['total'] for i in st.session_state.portal_carrito)
+            ped = {
+                'id': pid,
+                'client_email': email_input,
+                'client_name': nombre,
+                'empresa': empresa,
+                'telefono': telefono,
+                'pais': pais,
+                'tipo_precio': tipo_precio,
+                'destino': destino if tipo_precio == 'CIF' else 'FOB',
+                'moneda': 'USD',
+                'productos': list(st.session_state.portal_carrito),
+                'total_usd': round(tot, 2),
+                'estado': 'Recibido',
+                'fecha': datetime.now().isoformat(),
+                'notas': notas,
+                'historial_estados': [{'estado': 'Recibido', 'fecha': datetime.now().isoformat(), 'usuario': 'portal'}],
+                'creado_por': 'portal',
+            }
+            # Guardar pedido
+            todos = load_pedidos()
+            todos.append(ped)
+            save_pedidos(todos)
+            # Registrar / actualizar cliente en portal
+            portal_clients[email_input] = {
+                'nombre': nombre, 'empresa': empresa, 'telefono': telefono,
+                'pais': pais, 'email': email_input,
+                'fecha_registro': portal_clients.get(email_input, {}).get('fecha_registro', datetime.now().isoformat()),
+                'pedidos': portal_clients.get(email_input, {}).get('pedidos', []) + [pid],
+            }
+            save_portal_clients(portal_clients)
+            # Log email
+            log_email(email_input, f'Confirmación pedido {pid}', 'portal_cliente')
+            log_email('orden@exportharet.com', f'Nuevo pedido {pid} de {nombre}', 'portal_orden')
+            st.cache_data.clear()
+
+            # Guardar pedido en session para acciones post-guardado
+            st.session_state['ultimo_pedido'] = ped
+            st.session_state.portal_carrito = []
+            st.success(f'✅ **Pedido {pid} enviado correctamente!** Recibirás confirmación en {email_input}.')
+            st.balloons()
+
+    # ── Acciones post-pedido ─────────────────────────────────────────────────
+    if st.session_state.get('ultimo_pedido'):
+        ped_saved = st.session_state['ultimo_pedido']
+        pid_saved = ped_saved.get('id','')
+        st.markdown('---')
+        st.markdown(f'#### ✅ Pedido **{pid_saved}** guardado')
+        html_content = build_order_html(ped_saved)
+        # Acciones en columnas
+        ac1, ac2, ac3 = st.columns(3)
+        # Descargar HTML como archivo
+        ac1.download_button(
+            label='⬇️ Descargar Pedido',
+            data=html_content.encode('utf-8'),
+            file_name=f'{pid_saved}.html',
+            mime='text/html',
+            use_container_width=True,
+            key='dl_pedido'
+        )
+        # WhatsApp
+        tot_wa = ped_saved.get('total_usd', 0)
+        _prods_str = ', '.join([str(i.get('cajas','')) + ' cajas ' + str(i.get('producto','')) for i in ped_saved.get('productos',[])])
+        _tipo_wa = ped_saved.get('tipo_precio', '')
+        _dest_wa = ped_saved.get('destino', '')
+        wa_text = f'Pedido {pid_saved} Export Haret | ${tot_wa:,.2f} USD | {_tipo_wa} {_dest_wa} | {_prods_str}'
+        wa_encoded = wa_text.replace(' ', '%20').replace('\n', '%0A')
+        wa_url = f'https://wa.me/+1?text={wa_encoded}'
+        ac2.link_button('💬 Compartir por WhatsApp', wa_url, use_container_width=True)
+        # Email
+        subject = f'Pedido {pid_saved} — Export Haret'
+        body = f'Mi pedido {pid_saved} por ${tot_wa:,.2f} USD ha sido confirmado.'
+        mailto_url = f'mailto:orden@exportharet.com?subject={subject.replace(" ","%20")}&body={body.replace(" ","%20")}'
+        ac3.link_button('📧 Enviar por Email', mailto_url, use_container_width=True)
+
+        if st.button('🆕 Hacer otro pedido', key='nuevo_portal'):
+            st.session_state['ultimo_pedido'] = None
+            st.rerun()
+
+    st.markdown('---')
+    st.markdown('<div style="text-align:center;color:#888"><small>Export Haret © 2026 | orden@exportharet.com | Frutas Exóticas Premium</small></div>', unsafe_allow_html=True)
+
+# ─── MAIN ────────────────────────────────────────────────────────────────────
 def main():
     init_session()
     auto_load_excel()
-    if not st.session_state.logged_in:
-        login_page()
+
+    # Determine mode: 'portal' (public) or 'admin' (staff)
+    if 'app_mode' not in st.session_state:
+        st.session_state.app_mode = 'portal'
+
+    # ── MODO PORTAL (PÚBLICO) ─────────────────────────────────────────────────
+    if st.session_state.app_mode == 'portal':
+        # Small admin access link in sidebar
+        st.sidebar.markdown('### 🚀 Export Haret')
+        st.sidebar.caption('Portal de Pedidos')
+        st.sidebar.markdown('---')
+        if st.sidebar.button('🔐 Acceso Administración', use_container_width=True, key='go_admin'):
+            st.session_state.app_mode = 'admin'
+            st.rerun()
+        st.sidebar.caption('Export Haret © 2026')
+        render_portal_pedido()
         return
 
-    # Header
-    st.markdown('<div style="background:linear-gradient(90deg,#003E8C,#0066CC);padding:16px 24px;border-radius:8px;margin-bottom:20px;"><h2 style="color:white;margin:0">🚀 EXPORT HARET - Sistema de Gestión de Pedidos v5.0</h2></div>', unsafe_allow_html=True)
+    # ── MODO ADMIN (STAFF LOGIN REQUERIDO) ────────────────────────────────────
+    if not st.session_state.logged_in:
+        # Show back to portal button
+        col_back, col_form = st.columns([1, 3])
+        with col_back:
+            if st.button('← Portal Clientes', key='go_portal'):
+                st.session_state.app_mode = 'portal'
+                st.rerun()
+        with col_form:
+            login_page()
+        return
 
-    # Sidebar
+    # Admin panel
+    st.markdown('<div style="background:linear-gradient(90deg,#003E8C,#0066CC);padding:16px 24px;border-radius:8px;margin-bottom:20px;"><h2 style="color:white;margin:0">🚀 EXPORT HARET — Administración v5.0</h2></div>', unsafe_allow_html=True)
     st.sidebar.markdown(f'# 🚀 Export Haret v5.0')
     st.sidebar.markdown(f'**{st.session_state.user_nombre}** | {st.session_state.user_rol}')
     st.sidebar.markdown('---')
-    pedidos=load_pedidos(); clients=load_clients()
-    st.sidebar.metric('📦 Pedidos',len(pedidos))
-    st.sidebar.metric('💵 Facturación',f"${sum(p.get('total_usd',0) for p in pedidos):,.0f}")
-    st.sidebar.metric('👥 Clientes',len(clients))
-    pending=len([p for p in pedidos if p.get('estado') in ['Recibido','Confirmado','Preparando']])
-    st.sidebar.metric('⏳ En proceso',pending)
+    pedidos = load_pedidos()
+    clients = load_clients()
+    st.sidebar.metric('📦 Pedidos', len(pedidos))
+    st.sidebar.metric('💵 Facturación', f"${sum(p.get('total_usd',0) for p in pedidos):,.0f}")
+    st.sidebar.metric('👥 Clientes', len(clients))
+    pending = len([p for p in pedidos if p.get('estado') in ['Recibido','Confirmado','Preparando']])
+    st.sidebar.metric('⏳ En proceso', pending)
     st.sidebar.markdown('---')
-    if st.sidebar.button('🚪 Cerrar Sesión',use_container_width=True):
-        st.session_state.logged_in=False; st.rerun()
+    if st.sidebar.button('🚪 Cerrar Sesión', use_container_width=True):
+        st.session_state.logged_in = False
+        st.rerun()
+    if st.sidebar.button('🌐 Ver Portal Clientes', use_container_width=True, key='admin_go_portal'):
+        st.session_state.app_mode = 'portal'
+        st.session_state.logged_in = False
+        st.rerun()
     st.sidebar.caption('Export Haret © 2026')
 
-    # Tabs
     tab1,tab2,tab3,tab4,tab5,tab6,tab7,tab8=st.tabs([
         '📊 Dashboard',
         '📄 Cotización',
@@ -643,7 +979,6 @@ def main():
         '📦 Pedidos',
         '👥 Clientes',
     ])
-
     with tab1: render_dashboard()
     with tab2: render_cotizacion()
     with tab3: render_hacer_pedido()
@@ -652,7 +987,6 @@ def main():
     with tab6: render_configuracion()
     with tab7: render_gestion_pedidos()
     with tab8: render_clientes()
-
     st.markdown('---')
     st.markdown('<div style="text-align:center;color:#888;"><small>🚀 Export Haret v5.0 © 2026 | Sistema Profesional de Gestión de Pedidos</small></div>',unsafe_allow_html=True)
 
