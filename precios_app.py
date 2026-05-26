@@ -935,7 +935,7 @@ def render_portal_pedido():
         else:
             if st.session_state.get('portal_last_email') != email_input:
                 st.session_state['portal_last_email'] = email_input
-            st.info('U0001f4dd Correo no registrado — completa tus datos para continuar.')
+            st.info('📝 Correo no registrado — completa tus datos para continuar.')
             show_register = True
 
     # Campos del cliente (auto-relleno si ya está registrado, editables siempre)
@@ -1070,7 +1070,7 @@ def render_portal_pedido():
                     st.session_state.portal_carrito[ex]['total'] = round(st.session_state.portal_carrito[ex]['cajas'] * precio_u, 2)
                 else:
                     st.session_state.portal_carrito.append(item)
-                st.toast(f'✅ {nombre_prod} agregado: {cajas_add:,} cajas ({pallets_add:.1f} pallets) — ${total_item:,.2f} USD', icon='U0001f6d2')
+                st.toast(f'✅ {nombre_prod} agregado: {cajas_add:,} cajas ({pallets_add:.1f} pallets) — ${total_item:,.2f} USD', icon='✅')
                 st.rerun()
             else:
                 st.toast(f'Ingresa una cantidad mayor a 0 para {nombre_prod}', icon='⚠️')
@@ -1081,7 +1081,7 @@ def render_portal_pedido():
         n_items = len(st.session_state.portal_carrito)
         tot = sum(i['total'] for i in st.session_state.portal_carrito)
         st.markdown(
-            f'#### U0001f6d2 Mi Carrito '
+            f'#### 🛒 Mi Carrito '
             f'<span style="background:#003E8C;color:white;padding:2px 10px;border-radius:20px;font-size:0.9em">'
             f'{n_items} producto(s) — Total: ${tot:,.2f} USD</span>',
             unsafe_allow_html=True)
@@ -1102,12 +1102,12 @@ def render_portal_pedido():
             st.session_state.portal_carrito.pop(to_remove)
             st.rerun()
         m1, m2, m3 = st.columns(3)
-        m1.metric('U0001f4e6 Total Cajas', f"{sum(i['cajas'] for i in st.session_state.portal_carrito):,}")
-        m2.metric('U0001f4cd Total Pallets', f"{sum(i['pallets'] for i in st.session_state.portal_carrito):.2f}")
-        m3.metric('U0001f4b0 Total', f'${tot:,.2f} USD')
+        m1.metric('📦 Total Cajas', f"{sum(i['cajas'] for i in st.session_state.portal_carrito):,}")
+        m2.metric('📍 Total Pallets', f"{sum(i['pallets'] for i in st.session_state.portal_carrito):.2f}")
+        m3.metric('💰 Total', f'${tot:,.2f} USD')
         st.caption(f'Precios en {tipo_precio}' + (f' — Destino: {destino}' if tipo_precio=='CIF' and destino else ''))
         rem_col, _ = st.columns([1, 3])
-        if rem_col.button('U0001f5d1️ Vaciar Carrito', key='portal_vaciar'):
+        if rem_col.button('🗑️ Vaciar Carrito', key='portal_vaciar'):
             st.session_state.portal_carrito = []
             st.rerun()
         st.markdown('---')
@@ -1121,11 +1121,11 @@ def render_portal_pedido():
         tipo_str = tipo_precio + (f' → {destino}' if tipo_precio == 'CIF' and destino else '')
         st.markdown(f'''
 <div style="background:#f0f7ff;border:1px solid #003E8C;border-radius:8px;padding:12px 18px;margin:8px 0">
-U0001f4cb <b>Resumen del Pedido</b><br>
+📋 <b>Resumen del Pedido</b><br>
 &bull; Cliente: <b>{nombre}</b> ({email_input})<br>
 &bull; Productos: <b>{len(st.session_state.portal_carrito)}</b><br>
 &bull; Modalidad: <b>{tipo_str}</b><br>
-&bull; <span style="font-size:1.1em">U0001f4b0 Total: <b style="color:#003E8C">${tot_final:,.2f} USD</b></span>
+&bull; <span style="font-size:1.1em">💰 Total: <b style="color:#003E8C">${tot_final:,.2f} USD</b></span>
 </div>''', unsafe_allow_html=True)
 
     btn_guardar = st.button('📤 CONFIRMAR Y ENVIAR PEDIDO', type='primary', use_container_width=True, key='portal_guardar')
