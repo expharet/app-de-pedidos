@@ -1854,32 +1854,23 @@ with tab0:
 
 # ── TAB 1: Cotización (Upload Cotizaciones.xlsx) ──────────────────────────────
 with tab1:
-    st.markdown("### 📋 Cotización — Actualizar desde Cotizaciones.xlsx")
-    st.caption("Sube tu archivo Cotizaciones.xlsx para actualizar precios de compra y tarifas de flete.")
-
-    _uploaded_file = st.file_uploader("📁 Sube Cotizaciones.xlsx", type="xlsx", key="upload_cotizaciones")
-    if _uploaded_file:
+    st.header("📊 Cotización - Gestión de Precios")
+    
+    # Opción para subir archivo Excel
+    st.subheader("Cargar Archivo de Precios")
+    uploaded_file = st.file_uploader("Sube tu archivo Cotizaciones.xlsx", type=['xlsx'])
+    
+    if uploaded_file:
         try:
-            excel_bytes = _uploaded_file.read()
-            new_products, new_cfg, cambios = sync_from_cotizaciones(excel_bytes, data)
-
-            if cambios:
-                st.success(f"✅ Se detectaron **{len(cambios)}** cambios:")
-                for cambio in cambios:
-                    st.markdown(f" - {cambio}")
-
-                if st.button("💾 Guardar cambios", type="primary", key="btn_save_cotizaciones"):
-                    data["productos"] = new_products
-                    data["config"] = new_cfg
-                    save_data(data)
-                    st.success("✅ Cambios guardados correctamente.")
-                    st.rerun()
-            else:
-                st.info("ℹ️ No hay cambios detectados en la cotización.")
+            df_precios = pd.read_excel(uploaded_file, sheet_name="TABLA PRECIOS")
+            st.success("✅ Archivo cargado correctamente")
+            st.dataframe(df_precios.head(10), use_container_width=True)
         except Exception as e:
-            st.error(f"❌ Error procesando archivo: {e}")
+            st.error(f"Error al leer archivo: {str(e)}")
+    
+    st.info("ℹ️ El archivo debe contener las hojas: CONFIGURACION, TABLA PRECIOS, TODOS DESTINOS")
 
-# ── TAB 2: Hacer pedido (Admin form) ─────────────────────────────────────────
+
 with tab2:
     st.markdown("### 🛒 Hacer pedido — Panel de administrador")
     st.caption("Crea un pedido en nombre de un cliente.")
@@ -1937,40 +1928,63 @@ with tab3:
 
 # ── TAB 4: Todos los destinos ────────────────────────────────────────────────
 with tab4:
-    st.markdown("### 🌐 Todos los destinos")
-    st.caption("Resumen de tarifas de flete por destino.")
+    st.header("📍 Todos los Destinos - Tarifas de Envío")
+    
+    try:
+        if os.path.exists("Cotizaciones.xlsx"):
+            # Leer Excel
+            df_destinos = pd.read_excel("Cotizaciones.xlsx", sheet_name="TODOS DESTINOS", header=None)
+            
+            st.subheader("Comparación Completa de Precios por Destino")
+            st.dataframe(df_destinos, use_container_width=True)
+            
+            st.subheader("📊 Destinos Principales (CIF USD/Caja)")
+            destinos = {
+                "🇪🇸 Madrid/España": 15.04,
+                "🇫🇷 París/Francia": 16.33,
+                "🇬🇧 Londres/UK": 15.68,
+                "🇨🇭 Suiza": 15.68,
+                "🇳🇱 Países Bajos": 16.07,
+                "🇦🇪 Dubai/EAU": 20.08,
+                "🇺🇸 Nueva York/USA": 16.33,
+                "🇺🇸 Miami/USA": 11.93
+            }
+            
+            df_res = pd.DataFrame(list(destinos.items()), columns=["Destino", "CIF USD/Caja"])
+            st.dataframe(df_res, use_container_width=True)
+        else:
+            st.warning("⚠️ Archivo Cotizaciones.xlsx no encontrado")
+            st.info("El archivo debe estar en la carpeta raíz de la app")
+            
+    except Exception as e:
+        st.error(f"Error al leer Excel: {str(e)}")
 
-    destinos_data = []
-    for dest_name, dest_rate in cfg.get("destinos", {}).items():
-        destinos_data.append({
-            "Destino": dest_name,
-            "Tarifa (USD/kg)": dest_rate,
-        })
 
-    _df_dests = pd.DataFrame(destinos_data)
-    st.dataframe(_df_dests, use_container_width=True, key="df_destinations_view")
-
-# ── TAB 5: Configuración ─────────────────────────────────────────────────────
 with tab5:
-    st.markdown("### ⚙️ Configuración")
-    st.caption("Parámetros principales del sistema.")
+    st.header("⚙️ Configuración del Sistema")
+    
+    try:
+        if os.path.exists("Cotizaciones.xlsx"):
+            df_config = pd.read_excel("Cotizaciones.xlsx", sheet_name="CONFIGURACION", header=None)
+            
+            st.subheader("Parámetros de Precios")
+            st.dataframe(df_config.iloc[2:20, :10], use_container_width=True)
+            
+            st.subheader("Parámetros Generales")
+            params = {
+                "Costo de Caja": "1 USD/caja",
+                "Merma (%)": "1%",
+                "Tipo Cambio EUR": "1.164",
+                "Flete Estándar": "2.35 USD"
+            }
+            st.json(params)
+        else:
+            st.info("Parámetros de configuración predeterminados")
+            
+    except Exception as e:
+        st.warning(f"No se pudieron cargar parámetros del Excel: {str(e)}")
 
-    cfg_cols = st.columns(2)
-    with cfg_cols[0]:
-        st.markdown(f"**EUR → USD:** {cfg.get('eur_usd', 1.0):.4f}")
-        st.caption(cfg.get('_rate_label', 'Rate label'))
-    with cfg_cols[1]:
-        st.markdown(f"**Min. Palets:** {cfg.get('min_pallets', 3)}")
 
-    st.markdown("---")
-    st.markdown("#### 📊 Parámetros de cálculo")
-    st.markdown(f"- **Costo caja:** ${cfg.get('costo_caja', 0.0):.2f}")
-    st.markdown(f"- **Merma %:** {cfg.get('merma_pct', 0.0)}%")
-    st.markdown(f"- **DUE (días):** {cfg.get('due', 0)}")
-    st.markdown(f"- **Peso pallet:** {cfg.get('peso_pallet', 0.0)} kg")
-    st.markdown(f"- **Tara caja:** {cfg.get('tara_caja', 0.0)} kg")
-
-# ── TAB 6: Clientes ──────────────────────────────────────────────────────────
 with tab6:
     st.markdown("### 👥 Clientes")
     st.caption("Base de datos de clientes registrados.")
