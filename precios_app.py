@@ -266,15 +266,17 @@ def parse_excel_file(xl_path):
     for col, cod in sorted(COL_MAP.items()):
         precio = latest_prices.get(cod, 0.0)
         existing = products_existing.get(cod, {})
-        products.append({
+        # Preserve all existing product metadata, only update price
+        prod_data = dict(existing) if existing else {}
+        prod_data.update({
             'codigo': cod,
-            'descripcion': existing.get('producto', existing.get('descripcion', '')),
+            'descripcion': existing.get('descripcion', '') or existing.get('producto', ''),
             'precio_cif_usd': precio,
             'precio_compra': precio,
-            'cajas_pallet': existing.get('cajas_pallet', 200),
-            'grupo': existing.get('grupo', ''),
-            'activo': existing.get('activo', True),
         })
+        if 'cajas_pallet' not in prod_data:
+            prod_data['cajas_pallet'] = 200
+        products.append(prod_data)
 
     # ── Leer destinos y config de CONFIGURACION ──────────────────
     destinos_cfg = {}
@@ -407,7 +409,7 @@ def render_hacer_pedido():
     # Paso 3: Productos
     st.markdown('### 3️⃣ Agregar Productos')
     pc1,pc2,pc3=st.columns([3,1,1])
-    prod_opts=[p.get('codigo','')+' - '+p.get('descripcion','') for p in prods]
+    prod_opts=[p.get('codigo','')+' - '+(p.get('descripcion','') or p.get('producto','')) for p in prods]
     psel=pc1.selectbox('Producto',['Seleccionar...']+prod_opts,key='hp_prod')
     cajas=pc2.number_input('Cajas',min_value=1,value=100,step=50,key='hp_cajas')
     pc3.markdown('<br>',unsafe_allow_html=True)
