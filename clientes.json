@@ -53,7 +53,7 @@
     "razon_social": "Prueba",
     "telefono": "+34 666666666",
     "primer_pedido": "2026-05-22",
-    "ultimo_pedido": "2026-05-25",
+    "ultimo_pedido": "2026-05-26",
     "pedidos": [
       {
         "id": "PED-20260522-001",
@@ -76,142 +76,34 @@
         ]
       },
       {
-        "id": "PED-20260525-002",
-        "fecha": "2026-05-25",
+        "id": "PED-20260526-002",
+        "fecha": "2026-05-26",
         "destino": "Madrid/España",
-        "total_usd": 7463.53,
+        "total_usd": 16254.11,
         "dest_code": "EUR",
         "dest_sym": "€",
         "dest_rate": 0.85889,
-        "total_loc": 6410.35,
-        "pallets": 3,
-        "cajas": 480,
+        "total_loc": 13960.5,
+        "pallets": 7,
+        "cajas": 1040,
         "productos": [
           {
             "producto": "Granadilla",
-            "cajas": 480,
-            "precio_usd": 15.549,
-            "total_usd": 7463.53
-          }
-        ]
-      },
-      {
-        "id": "PED-20260525-003",
-        "fecha": "2026-05-25",
-        "destino": "Madrid/España",
-        "total_usd": 7463.53,
-        "dest_code": "EUR",
-        "dest_sym": "€",
-        "dest_rate": 0.85889,
-        "total_loc": 6410.35,
-        "pallets": 3,
-        "cajas": 480,
-        "productos": [
+            "cajas": 640,
+            "precio_usd": 14.9089,
+            "total_usd": 9541.71
+          },
           {
-            "producto": "Granadilla",
-            "cajas": 480,
-            "precio_usd": 15.549,
-            "total_usd": 7463.53
-          }
-        ]
-      },
-      {
-        "id": "PED-20260525-004",
-        "fecha": "2026-05-25",
-        "destino": "Madrid/España",
-        "total_usd": 7463.53,
-        "dest_code": "EUR",
-        "dest_sym": "€",
-        "dest_rate": 0.85889,
-        "total_loc": 6410.35,
-        "pallets": 3,
-        "cajas": 480,
-        "productos": [
+            "producto": "Babaco",
+            "cajas": 240,
+            "precio_usd": 18.5637,
+            "total_usd": 4455.3
+          },
           {
-            "producto": "Granadilla",
-            "cajas": 480,
-            "precio_usd": 15.549,
-            "total_usd": 7463.53
-          }
-        ]
-      },
-      {
-        "id": "PED-20260525-005",
-        "fecha": "2026-05-25",
-        "destino": "Madrid/España",
-        "total_usd": 7463.53,
-        "dest_code": "EUR",
-        "dest_sym": "€",
-        "dest_rate": 0.85889,
-        "total_loc": 6410.35,
-        "pallets": 3,
-        "cajas": 480,
-        "productos": [
-          {
-            "producto": "Granadilla",
-            "cajas": 480,
-            "precio_usd": 15.549,
-            "total_usd": 7463.53
-          }
-        ]
-      },
-      {
-        "id": "PED-20260525-006",
-        "fecha": "2026-05-25",
-        "destino": "Madrid/España",
-        "total_usd": 7463.53,
-        "dest_code": "EUR",
-        "dest_sym": "€",
-        "dest_rate": 0.85889,
-        "total_loc": 6410.35,
-        "pallets": 3,
-        "cajas": 480,
-        "productos": [
-          {
-            "producto": "Granadilla",
-            "cajas": 480,
-            "precio_usd": 15.549,
-            "total_usd": 7463.53
-          }
-        ]
-      },
-      {
-        "id": "PED-20260525-007",
-        "fecha": "2026-05-25",
-        "destino": "Madrid/España",
-        "total_usd": 7463.53,
-        "dest_code": "EUR",
-        "dest_sym": "€",
-        "dest_rate": 0.85889,
-        "total_loc": 6410.35,
-        "pallets": 3,
-        "cajas": 480,
-        "productos": [
-          {
-            "producto": "Granadilla",
-            "cajas": 480,
-            "precio_usd": 15.549,
-            "total_usd": 7463.53
-          }
-        ]
-      },
-      {
-        "id": "PED-20260525-008",
-        "fecha": "2026-05-25",
-        "destino": "Berlín/Alemania",
-        "total_usd": 8325.99,
-        "dest_code": "EUR",
-        "dest_sym": "€",
-        "dest_rate": 0.85889,
-        "total_loc": 7151.11,
-        "pallets": 3,
-        "cajas": 480,
-        "productos": [
-          {
-            "producto": "Maracuyá",
-            "cajas": 480,
-            "precio_usd": 17.3458,
-            "total_usd": 8325.99
+            "producto": "Physalis",
+            "cajas": 160,
+            "precio_usd": 14.1069,
+            "total_usd": 2257.11
           }
         ]
       }
@@ -265,129 +157,6 @@
             "cajas": 120,
             "precio_usd": 19.8176,
             "total_usd": 2378.11
-          }
-        ]
-      }
-    ]
-  },
-  "info@realfruits.ch": {
-    "nombre": "Mauro Augustin",
-    "razon_social": "Realfruits.ch",
-    "telefono": "+41797412959",
-    "primer_pedido": "2026-05-25",
-    "ultimo_pedido": "2026-05-25",
-    "pedidos": [
-      {
-        "id": "PED-20260525-001",
-        "fecha": "2026-05-25",
-        "destino": "Suiza",
-        "total_usd": 18014.97,
-        "dest_code": "CHF",
-        "dest_sym": "Fr",
-        "dest_rate": 0.78646,
-        "total_loc": 14168.05,
-        "pallets": 5,
-        "cajas": 800,
-        "productos": [
-          {
-            "producto": "Granadilla",
-            "cajas": 160,
-            "precio_usd": 16.8178,
-            "total_usd": 2690.85
-          },
-          {
-            "producto": "Yellow Pitahaya",
-            "cajas": 360,
-            "precio_usd": 24.7313,
-            "total_usd": 8903.28
-          },
-          {
-            "producto": "Cacao",
-            "cajas": 120,
-            "precio_usd": 18.2982,
-            "total_usd": 2195.78
-          },
-          {
-            "producto": "Cane sugar",
-            "cajas": 160,
-            "precio_usd": 26.4066,
-            "total_usd": 4225.06
-          }
-        ]
-      },
-      {
-        "id": "PED-20260525-002",
-        "fecha": "2026-05-25",
-        "destino": "Suiza",
-        "total_usd": 18014.97,
-        "dest_code": "CHF",
-        "dest_sym": "Fr",
-        "dest_rate": 0.78646,
-        "total_loc": 14168.05,
-        "pallets": 5,
-        "cajas": 800,
-        "productos": [
-          {
-            "producto": "Granadilla",
-            "cajas": 160,
-            "precio_usd": 16.8178,
-            "total_usd": 2690.85
-          },
-          {
-            "producto": "Yellow Pitahaya",
-            "cajas": 360,
-            "precio_usd": 24.7313,
-            "total_usd": 8903.28
-          },
-          {
-            "producto": "Cacao",
-            "cajas": 120,
-            "precio_usd": 18.2982,
-            "total_usd": 2195.78
-          },
-          {
-            "producto": "Cane sugar",
-            "cajas": 160,
-            "precio_usd": 26.4066,
-            "total_usd": 4225.06
-          }
-        ]
-      },
-      {
-        "id": "PED-20260525-003",
-        "fecha": "2026-05-25",
-        "destino": "Suiza",
-        "total_usd": 18014.97,
-        "dest_code": "CHF",
-        "dest_sym": "Fr",
-        "dest_rate": 0.78646,
-        "total_loc": 14168.05,
-        "pallets": 5,
-        "cajas": 800,
-        "productos": [
-          {
-            "producto": "Granadilla",
-            "cajas": 160,
-            "precio_usd": 16.8178,
-            "total_usd": 2690.85
-          },
-          {
-            "producto": "Yellow Pitahaya",
-            "cajas": 360,
-            "precio_usd": 24.7313,
-            "total_usd": 8903.28
-          },
-          {
-            "producto": "Cacao",
-            "cajas": 120,
-            "precio_usd": 18.2982,
-            "total_usd": 2195.78
-          },
-          {
-            "producto": "Cane sugar",
-            "cajas": 160,
-            "precio_usd": 26.4066,
-            "total_usd": 4225.06
           }
         ]
       }
