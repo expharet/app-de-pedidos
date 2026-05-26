@@ -924,23 +924,28 @@ def render_portal_pedido():
         if email_input in portal_clients:
             is_registered = True
             client_data = dict(portal_clients[email_input])
+            # Auto-relleno: poblar session_state cuando se reconoce el cliente
+            if st.session_state.get('portal_last_email') != email_input:
+                st.session_state['portal_nombre'] = client_data.get('nombre', '')
+                st.session_state['portal_empresa'] = client_data.get('empresa', '')
+                st.session_state['portal_telefono'] = client_data.get('telefono', '')
+                st.session_state['portal_pais'] = client_data.get('pais', '')
+                st.session_state['portal_last_email'] = email_input
             st.success(f'✅ Bienvenido de vuelta, **{client_data.get("nombre",email_input)}**!')
         else:
-            st.info('📝 Correo no registrado — completa tus datos para continuar.')
+            if st.session_state.get('portal_last_email') != email_input:
+                st.session_state['portal_last_email'] = email_input
+            st.info('U0001f4dd Correo no registrado — completa tus datos para continuar.')
             show_register = True
 
     # Campos del cliente (auto-relleno si ya está registrado, editables siempre)
     if email_input:
         c1, c2 = st.columns(2)
-        nombre_val = client_data.get('nombre', '') if is_registered else ''
-        empresa_val = client_data.get('empresa', '') if is_registered else ''
+        nombre  = c1.text_input('U0001f464 Nombre completo', key='portal_nombre')
+        empresa = c2.text_input('U0001f3e2 Empresa', key='portal_empresa')
         c3, c4 = st.columns(2)
-        telefono_val = client_data.get('telefono', '') if is_registered else ''
-        pais_val = client_data.get('pais', '') if is_registered else ''
-        nombre  = c1.text_input('👤 Nombre completo', value=nombre_val, key='portal_nombre')
-        empresa = c2.text_input('🏢 Empresa', value=empresa_val, key='portal_empresa')
-        telefono = c3.text_input('📱 Teléfono / WhatsApp', value=telefono_val, placeholder='+34 600 000 000', key='portal_telefono')
-        pais    = c4.text_input('🌍 País', value=pais_val, key='portal_pais')
+        telefono = c3.text_input('U0001f4f1 Teléfono / WhatsApp', placeholder='+34 600 000 000', key='portal_telefono')
+        pais    = c4.text_input('U0001f30d País', key='portal_pais')
         if show_register:
             st.caption('Al guardar el pedido, tu cuenta quedará registrada automáticamente.')
     else:
@@ -1065,6 +1070,7 @@ def render_portal_pedido():
                     st.session_state.portal_carrito[ex]['total'] = round(st.session_state.portal_carrito[ex]['cajas'] * precio_u, 2)
                 else:
                     st.session_state.portal_carrito.append(item)
+                st.toast(f'✅ {nombre_prod} agregado: {cajas_add:,} cajas ({pallets_add:.1f} pallets) — ${total_item:,.2f} USD', icon='U0001f6d2')
                 st.rerun()
             else:
                 st.toast(f'Ingresa una cantidad mayor a 0 para {nombre_prod}', icon='⚠️')
@@ -1072,20 +1078,39 @@ def render_portal_pedido():
     # Carrito
     if st.session_state.portal_carrito:
         st.markdown('---')
-        st.markdown('#### 🛒 Mi Carrito')
-        df_cart = pd.DataFrame(st.session_state.portal_carrito)
-        st.dataframe(df_cart[['codigo','producto','cajas','pallets','precio_usd','total']], use_container_width=True, hide_index=True)
+        n_items = len(st.session_state.portal_carrito)
         tot = sum(i['total'] for i in st.session_state.portal_carrito)
+        st.markdown(
+            f'#### U0001f6d2 Mi Carrito '
+            f'<span style="background:#003E8C;color:white;padding:2px 10px;border-radius:20px;font-size:0.9em">'
+            f'{n_items} producto(s) — Total: ${tot:,.2f} USD</span>',
+            unsafe_allow_html=True)
+        # Cabecera tabla carrito
+        ch = st.columns([4, 2, 2, 2, 1])
+        for hdr, lbl in zip(ch, ['**Producto**','**Cajas**','**Pallets**','**Total USD**','']):
+            hdr.markdown(lbl)
+        to_remove = None
+        for ci, item in enumerate(st.session_state.portal_carrito):
+            cc = st.columns([4, 2, 2, 2, 1])
+            cc[0].markdown(f'{item["producto"]}  \n<small style="color:#888">{item["codigo"]}</small>', unsafe_allow_html=True)
+            cc[1].markdown(str(item['cajas']))
+            cc[2].markdown(f'{item["pallets"]:.2f}')
+            cc[3].markdown(f'<strong style="color:#003E8C">${item["total"]:,.2f}</strong>', unsafe_allow_html=True)
+            if cc[4].button('✕', key=f'portal_rem_{ci}', help='Eliminar producto'):
+                to_remove = ci
+        if to_remove is not None:
+            st.session_state.portal_carrito.pop(to_remove)
+            st.rerun()
         m1, m2, m3 = st.columns(3)
-        m1.metric('📦 Total Cajas', f"{sum(i['cajas'] for i in st.session_state.portal_carrito):,}")
-        m2.metric('📍 Total Pallets', f"{sum(i['pallets'] for i in st.session_state.portal_carrito):.2f}")
-        m3.metric('💰 Total', f'${tot:,.2f} USD')
+        m1.metric('U0001f4e6 Total Cajas', f"{sum(i['cajas'] for i in st.session_state.portal_carrito):,}")
+        m2.metric('U0001f4cd Total Pallets', f"{sum(i['pallets'] for i in st.session_state.portal_carrito):.2f}")
+        m3.metric('U0001f4b0 Total', f'${tot:,.2f} USD')
         st.caption(f'Precios en {tipo_precio}' + (f' — Destino: {destino}' if tipo_precio=='CIF' and destino else ''))
         rem_col, _ = st.columns([1, 3])
-        if rem_col.button('🗑️ Vaciar Carrito', key='portal_vaciar'):
+        if rem_col.button('U0001f5d1️ Vaciar Carrito', key='portal_vaciar'):
             st.session_state.portal_carrito = []
             st.rerun()
-    st.markdown('---')
+        st.markdown('---')
     # ── PASO 4: Confirmar y Enviar Pedido ────────────────────────────────────
     st.markdown('### 4️⃣ Confirmar Pedido')
     notas = st.text_area('📝 Notas / instrucciones especiales', placeholder='Ej: Entrega en almacén X, condiciones especiales...', key='portal_notas')
@@ -1093,7 +1118,15 @@ def render_portal_pedido():
     # Mostrar resumen antes de confirmar
     if st.session_state.portal_carrito and email_input and nombre:
         tot_final = sum(i['total'] for i in st.session_state.portal_carrito)
-        st.markdown(f'**Resumen:** {len(st.session_state.portal_carrito)} producto(s) | {tipo_precio}' + (f' a {destino}' if tipo_precio=="CIF" and destino else '') + f' | **Total: ${tot_final:,.2f} USD**')
+        tipo_str = tipo_precio + (f' → {destino}' if tipo_precio == 'CIF' and destino else '')
+        st.markdown(f'''
+<div style="background:#f0f7ff;border:1px solid #003E8C;border-radius:8px;padding:12px 18px;margin:8px 0">
+U0001f4cb <b>Resumen del Pedido</b><br>
+&bull; Cliente: <b>{nombre}</b> ({email_input})<br>
+&bull; Productos: <b>{len(st.session_state.portal_carrito)}</b><br>
+&bull; Modalidad: <b>{tipo_str}</b><br>
+&bull; <span style="font-size:1.1em">U0001f4b0 Total: <b style="color:#003E8C">${tot_final:,.2f} USD</b></span>
+</div>''', unsafe_allow_html=True)
 
     btn_guardar = st.button('📤 CONFIRMAR Y ENVIAR PEDIDO', type='primary', use_container_width=True, key='portal_guardar')
 
