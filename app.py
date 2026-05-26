@@ -23,7 +23,8 @@
 ║  Versión: 4.0 FINAL PREMIUM                                                   ║
 ║  Estado: LISTO PARA PRODUCCIÓN ✨                                             ║
 ║  Fecha: 26 Mayo 2026                                                          ║
-╚════════════════════════════════════════════════════════════════════════════════╝
+╚
+# Forzar redeploy con requirements.txt actualizado════════════════════════════════════════════════════════════════════════════════╝
 """
 
 import streamlit as st
