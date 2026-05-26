@@ -1300,7 +1300,7 @@ def render_portal_pedido():
 
     # ── PASO 1: Identificación del cliente ────────────────────────────────────
     st.markdown('### 1️⃣ Tus Datos')
-    email_input = st.text_input('U0001F4E7 Tu correo electrónico', placeholder='tu@empresa.com', key='portal_email_input', value=st.session_state.portal_email)
+    email_input = st.text_input('📧 Tu correo electrónico', placeholder='tu@empresa.com', key='portal_email_input', value=st.session_state.portal_email)
 
     client_data = {}
     is_registered = False
@@ -1321,29 +1321,29 @@ def render_portal_pedido():
         else:
             if st.session_state.get('portal_last_email') != email_input:
                 st.session_state['portal_last_email'] = email_input
-            st.info('U0001F4DD Correo no registrado — completa tus datos para continuar.')
+            st.info('📝 Correo no registrado — completa tus datos para continuar.')
             show_register = True
 
     if email_input:
         _client_orders_all = [p for p in load_pedidos() if p.get('client_email','').lower() == email_input.lower()]
         _n_orders = len(_client_orders_all)
-        tab_datos, tab_historial = st.tabs(['U0001F464 Mis Datos', f'U0001F4E6 Mis Pedidos ({_n_orders})'])
+        tab_datos, tab_historial = st.tabs(['👤 Mis Datos', f'📦 Mis Pedidos ({_n_orders})'])
 
         with tab_datos:
             c1, c2 = st.columns(2)
-            nombre = c1.text_input('U0001F464 Nombre completo *', key='portal_nombre')
-            empresa = c2.text_input('U0001F3E2 Empresa', key='portal_empresa')
+            nombre = c1.text_input('👤 Nombre completo *', key='portal_nombre')
+            empresa = c2.text_input('🏢 Empresa', key='portal_empresa')
             c3, c4 = st.columns(2)
-            telefono = c3.text_input('U0001F4F1 Teléfono / WhatsApp', placeholder='+34 600 000 000', key='portal_telefono')
-            pais = c4.text_input('U0001F30D País', key='portal_pais')
+            telefono = c3.text_input('📱 Teléfono / WhatsApp', placeholder='+34 600 000 000', key='portal_telefono')
+            pais = c4.text_input('🌍 País', key='portal_pais')
             if show_register:
-                st.caption('U0001F512 Al guardar el pedido, tu cuenta quedará registrada automáticamente.')
+                st.caption('🔒 Al guardar el pedido, tu cuenta quedará registrada automáticamente.')
 
         with tab_historial:
             if not _client_orders_all:
-                st.info('U0001F4E6 Aún no tienes pedidos. ¡Haz tu primer pedido a continuación!')
+                st.info('📦 Aún no tienes pedidos. ¡Haz tu primer pedido a continuación!')
             else:
-                st.markdown(f'#### U0001F4CB {_n_orders} Pedido(s) realizados')
+                st.markdown(f'#### 📋 {_n_orders} Pedido(s) realizados')
                 for op in sorted(_client_orders_all, key=lambda x: x.get('fecha',''), reverse=True):
                     op_id = op.get('id','')
                     op_fecha = op.get('fecha','')[:10]
@@ -1351,7 +1351,7 @@ def render_portal_pedido():
                     op_total = op.get('total_usd',0)
                     op_tipo = op.get('tipo_precio','FOB')
                     op_dest = op.get('destino','')
-                    op_icon = ESTADO_ICONS.get(op_estado, 'U0001F4E6')
+                    op_icon = ESTADO_ICONS.get(op_estado, '📦')
                     _clr_map = {'Recibido':'#0066cc','Confirmado':'#28a745','Preparando':'#fd7e14','Enviado':'#6f42c1','Entregado':'#20c997','Cancelado':'#dc3545'}
                     _col = _clr_map.get(op_estado,'#666')
                     with st.expander(f'{op_icon} {op_id} | {op_fecha} | {op_tipo} | ${op_total:,.2f} USD', expanded=False):
@@ -1364,7 +1364,7 @@ def render_portal_pedido():
                         sc3.markdown(f'**Total:** ${op_total:,.2f} USD')
                         op_hist = op.get('historial_estados', [])
                         if op_hist:
-                            st.markdown('**U0001F4CD Seguimiento:**')
+                            st.markdown('**📍 Seguimiento:**')
                             _pasos_tr = ['Recibido','Confirmado','Preparando','Enviado','Entregado']
                             _idx_act = _pasos_tr.index(op_estado) if op_estado in _pasos_tr else -1
                             _pc = st.columns(len(_pasos_tr))
@@ -1379,9 +1379,9 @@ def render_portal_pedido():
                                 else:
                                     _pc[_pi].markdown(f'<div style="text-align:center;background:#f0f0f0;color:#aaa;border-radius:8px;padding:5px 2px;font-size:0.75em">{_ic}<br>{_pe}</div>', unsafe_allow_html=True)
                             st.markdown('')
-                            with st.expander('U0001F4DC Historial completo', expanded=False):
+                            with st.expander('📜 Historial completo', expanded=False):
                                 for _h in reversed(op_hist):
-                                    _h_ic = ESTADO_ICONS.get(_h.get('estado',''),'U0001F4DC')
+                                    _h_ic = ESTADO_ICONS.get(_h.get('estado',''),'📜')
                                     _h_fe = _h.get('fecha','')[:16].replace('T',' ')
                                     _h_no = _h.get('nota','')
                                     _no_str = f' — {_h_no}' if _h_no else ''
@@ -1393,7 +1393,7 @@ def render_portal_pedido():
                         can_cancel = op_estado not in ['Cancelado','Entregado','Enviado']
                         if can_cancel:
                             st.markdown('')
-                            if st.button(f'U0001F5D1 Solicitar cancelación — {op_id}', key=f'cancel_{op_id}', type='secondary'):
+                            if st.button(f'🗑 Solicitar cancelación — {op_id}', key=f'cancel_{op_id}', type='secondary'):
                                 st.session_state[f'confirm_cancel_{op_id}'] = True
                         if st.session_state.get(f'confirm_cancel_{op_id}'):
                             st.warning(f'⚠️ ¿Confirmas la cancelación del pedido **{op_id}**? Se notificará a nuestro equipo.')
@@ -1417,7 +1417,7 @@ def render_portal_pedido():
         st.markdown('---')
     else:
         nombre = empresa = telefono = pais = ''
-        st.info('U0001F4E7 **Ingresa tu correo electrónico arriba para continuar**')
+        st.info('📧 **Ingresa tu correo electrónico arriba para continuar**')
         return
     # ── PASO 2: Tipo de precio + Destino ─────────────────────────────────────
     st.markdown('### 2️⃣ Tipo de Precio y Destino')
