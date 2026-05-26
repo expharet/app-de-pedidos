@@ -699,9 +699,9 @@ def render_hacer_pedido():
         elif not st.session_state.carrito: st.error('❌ Agrega productos al carrito')
         else:
             _tod_h=load_pedidos()
-            _yn_h=datetime.now().strftime('%Y')
-            _pc_h=[p for p in _tod_h if p.get('id','').startswith(f'PED-{_yn_h}')]
-            pid=f'PED-{_yn_h}-{len(_pc_h)+1:04d}'
+        _yn_h=datetime.now().strftime('%Y')
+        _pc_h=[p for p in _tod_h if p.get('id','').startswith(f'PED-{_yn_h}')]
+        pid=f'PED-{_yn_h}-{len(_pc_h)+1:04d}'
             tot=sum(i['total'] for i in st.session_state.carrito)
             ped={'id':pid,'client_email':c_email,'client_name':c_name,'destino':destino,'moneda':moneda,'productos':list(st.session_state.carrito),'total_usd':round(tot,2),'estado':'Recibido','fecha':datetime.now().isoformat(),'notas':notas,'terminos_pago':hp_term,'fecha_entrega':hp_ent,'historial_estados':[{'estado':'Recibido','fecha':datetime.now().isoformat(),'usuario':st.session_state.user_email}],'creado_por':st.session_state.user_email}
             todos=load_pedidos(); todos.append(ped); save_pedidos(todos)
@@ -791,7 +791,13 @@ def render_gestion_pedidos():
                             h_no=h.get('nota',''); no_s=f' \u2014 {h_no}' if h_no else ''
                             st.caption(f"{h_ic} **{h.get('estado','')}** \u2022 {h_fe} \u2022 {h.get('usuario','')}{no_s}")
                                 try:
-                    _pdf_b, _pdf_m, _pdf_x = build_order_pdf(ped)
+                    _hs=ped.get('historial_estados',[])
+            if _hs:
+                with st.expander('U0001F4DC Historial de estados',expanded=False):
+                    for _hh in reversed(_hs):
+                        _hst=_hh.get('estado','');_hf=_hh.get('fecha','')[:16].replace('T',' ');_hu=_hh.get('usuario','');_hn=_hh.get('nota','')
+                        st.caption(f"{ESTADO_ICONS.get(_hst,'U0001F4DC')} **{_hst}** • {_hf} • {_hu}"+(f" — {_hn}" if _hn else ''))
+            _pdf_b, _pdf_m, _pdf_x = build_order_pdf(ped)
                     st.download_button('⬇️ Albarán PDF', data=_pdf_b, file_name=f"{ped.get('id','ped')}{_pdf_x}", mime=_pdf_m, key=f'pdf_adm_{ped.get("id","")}', use_container_width=True)
                 except: pass
             st.markdown('**Cambiar Estado — clic rápido:**')
@@ -1657,6 +1663,24 @@ def render_portal_pedido():
             st.rerun()
 
     st.markdown('---')
+    st.markdown('---')
+    with st.expander('U0001F4AC Solicitar cotización especial',expanded=False):
+        st.markdown('**¿Necesitas presupuesto personalizado?** Rellena el formulario y te contactaremos en 24-48h.')
+        _cc1,_cc2=st.columns(2)
+        _cn=_cc1.text_input('Tu nombre / empresa',key='cnom',placeholder='Nombre o empresa')
+        _ce=_cc2.text_input('Tu email',value=st.session_state.get('portal_email_input',''),key='ceml')
+        _cd=_cc1.text_input('Destino',key='cdst',placeholder='ej: Madrid, España')
+        _cplt=_cc2.number_input('Pallets aprox.',min_value=1,max_value=200,value=5,key='cplt')
+        _cpro=st.text_area('Productos de interés',key='cpro',placeholder='ej: 3 pallets Granadilla...',height=70)
+        _cmsg=st.text_area('Mensaje adicional',key='cmsg',placeholder='Condiciones especiales...',height=70)
+        if st.button('U0001F4E8 Enviar solicitud de cotización',key='bcot',type='primary',use_container_width=True):
+            if not _ce or not _cpro: st.error('Completa email y productos de interés')
+            else:
+                _cy=datetime.now().strftime('%Y');_cpv=[p for p in load_pedidos() if p.get('id','').startswith(f'COT-{_cy}')]
+                _cid=f'COT-{_cy}-{len(_cpv)+1:04d}'
+                _cp={'id':_cid,'tipo':'cotizacion_especial','client_name':_cn,'client_email':_ce,'destino':_cd,'pallets_aprox':_cplt,'productos_interes':_cpro,'mensaje':_cmsg,'estado':'Pendiente revisión','fecha':datetime.now().isoformat(),'total_usd':0,'productos':[],'historial_estados':[{'estado':'Recibido','fecha':datetime.now().isoformat(),'usuario':'portal'}]}
+                _ct=load_pedidos();_ct.append(_cp);save_pedidos(_ct);send_order_email(_cp)
+                st.success(f'✅ Solicitud **{_cid}** enviada. Te contactaremos pronto.')
     st.markdown('<div style="text-align:center;color:#888"><small>Export Haret © 2026 | order@exportharet.com | Frutas Exóticas Premium</small></div>', unsafe_allow_html=True)
 
 # ─── MAIN ────────────────────────────────────────────────────────────────────
