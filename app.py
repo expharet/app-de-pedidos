@@ -1,4 +1,6 @@
 """
+
+# Forzar redeploy con requirements.txt minimalista
 ╔════════════════════════════════════════════════════════════════════════════════╗
 ║  EXPORT HARET - SISTEMA PROFESIONAL DE GESTIÓN DE PEDIDOS v4.0 FINAL          ║
 ║  ═══════════════════════════════════════════════════════════════════════════   ║
