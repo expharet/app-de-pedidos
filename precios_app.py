@@ -1300,8 +1300,7 @@ def render_portal_pedido():
 
     # ── PASO 1: Identificación del cliente ────────────────────────────────────
     st.markdown('### 1️⃣ Tus Datos')
-    col_email, col_btn = st.columns([3, 1])
-    email_input = col_email.text_input('📧 Tu correo electrónico', placeholder='tu@empresa.com', key='portal_email_input', value=st.session_state.portal_email)
+    email_input = st.text_input('U0001F4E7 Tu correo electrónico', placeholder='tu@empresa.com', key='portal_email_input', value=st.session_state.portal_email)
 
     client_data = {}
     is_registered = False
@@ -1312,7 +1311,6 @@ def render_portal_pedido():
         if email_input in portal_clients:
             is_registered = True
             client_data = dict(portal_clients[email_input])
-            # Auto-relleno: poblar session_state cuando se reconoce el cliente
             if st.session_state.get('portal_last_email') != email_input:
                 st.session_state['portal_nombre'] = client_data.get('nombre', '')
                 st.session_state['portal_empresa'] = client_data.get('empresa', '')
@@ -1323,72 +1321,104 @@ def render_portal_pedido():
         else:
             if st.session_state.get('portal_last_email') != email_input:
                 st.session_state['portal_last_email'] = email_input
-            st.info('📝 Correo no registrado — completa tus datos para continuar.')
+            st.info('U0001F4DD Correo no registrado — completa tus datos para continuar.')
             show_register = True
 
-    # Campos del cliente (auto-relleno si ya está registrado, editables siempre)
     if email_input:
-        c1, c2 = st.columns(2)
-        nombre  = c1.text_input('👤 Nombre completo', key='portal_nombre')
-        empresa = c2.text_input('🏢 Empresa', key='portal_empresa')
-        c3, c4 = st.columns(2)
-        telefono = c3.text_input('📱 Teléfono / WhatsApp', placeholder='+34 600 000 000', key='portal_telefono')
-        pais    = c4.text_input('🌍 País', key='portal_pais')
-        if show_register:
-            st.caption('Al guardar el pedido, tu cuenta quedará registrada automáticamente.')
-    else:
-        nombre = empresa = telefono = pais = ''
-        st.markdown('---')
-        st.markdown('**Ingresa tu correo para continuar** 👆')
-        return
+        _client_orders_all = [p for p in load_pedidos() if p.get('client_email','').lower() == email_input.lower()]
+        _n_orders = len(_client_orders_all)
+        tab_datos, tab_historial = st.tabs(['U0001F464 Mis Datos', f'U0001F4E6 Mis Pedidos ({_n_orders})'])
 
-    # ── HISTORIAL DE PEDIDOS DEL CLIENTE ─────────────────────────────────────
-    if email_input and st.session_state.portal_email:
-        client_orders = [p for p in load_pedidos() if p.get('client_email','').lower() == email_input.lower()]
-        if client_orders:
-            with st.expander(f'📋 Mis Pedidos ({len(client_orders)})', expanded=False):
-                for op in sorted(client_orders, key=lambda x: x.get('fecha',''), reverse=True):
+        with tab_datos:
+            c1, c2 = st.columns(2)
+            nombre = c1.text_input('U0001F464 Nombre completo *', key='portal_nombre')
+            empresa = c2.text_input('U0001F3E2 Empresa', key='portal_empresa')
+            c3, c4 = st.columns(2)
+            telefono = c3.text_input('U0001F4F1 Teléfono / WhatsApp', placeholder='+34 600 000 000', key='portal_telefono')
+            pais = c4.text_input('U0001F30D País', key='portal_pais')
+            if show_register:
+                st.caption('U0001F512 Al guardar el pedido, tu cuenta quedará registrada automáticamente.')
+
+        with tab_historial:
+            if not _client_orders_all:
+                st.info('U0001F4E6 Aún no tienes pedidos. ¡Haz tu primer pedido a continuación!')
+            else:
+                st.markdown(f'#### U0001F4CB {_n_orders} Pedido(s) realizados')
+                for op in sorted(_client_orders_all, key=lambda x: x.get('fecha',''), reverse=True):
                     op_id = op.get('id','')
                     op_fecha = op.get('fecha','')[:10]
                     op_estado = op.get('estado','Recibido')
                     op_total = op.get('total_usd',0)
                     op_tipo = op.get('tipo_precio','FOB')
                     op_dest = op.get('destino','')
-                    icon = ESTADO_ICONS.get(op_estado, '📦')
-                    col_info, col_acc = st.columns([5, 1])
-                    col_info.markdown(
-                        f'**{op_id}** &nbsp;|&nbsp; {op_fecha} &nbsp;|&nbsp; {icon} {op_estado} &nbsp;|&nbsp; '
-                        f'{op_tipo}{" → " + op_dest if op_tipo=="CIF" and op_dest else ""} &nbsp;|&nbsp; '
-                        f'**${op_total:,.2f} USD**'
-                    )
-                    can_cancel = op_estado not in ['Cancelado','Entregado','Enviado']
-                    if can_cancel:
-                        if col_acc.button('🗑️', key=f'cancel_{op_id}', help='Solicitar cancelación'):
-                            st.session_state[f'confirm_cancel_{op_id}'] = True
-                    else:
-                        col_acc.caption(op_estado)
-                    if st.session_state.get(f'confirm_cancel_{op_id}'):
-                        st.warning(f'⚠️ ¿Confirmas la cancelación del pedido **{op_id}**? Esta acción no se puede deshacer.')
-                        cc1, cc2, _ = st.columns([1,1,4])
-                        if cc1.button('✅ Sí, cancelar', key=f'do_cancel_{op_id}'):
-                            todos_peds = load_pedidos()
-                            for tp in todos_peds:
-                                if tp.get('id') == op_id:
-                                    tp['estado'] = 'Cancelado'
-                                    tp['historial_estados'] = tp.get('historial_estados',[]) + [{'estado':'Cancelado','fecha':datetime.now().isoformat(),'usuario':email_input}]
-                                    break
-                            save_pedidos(todos_peds)
-                            log_email('order@exportharet.com', f'CANCELACION pedido {op_id} solicitada por {email_input}', 'cancelacion_cliente')
-                            st.session_state[f'confirm_cancel_{op_id}'] = False
-                            st.cache_data.clear()
-                            st.success(f'✅ Pedido {op_id} cancelado. Se notificó a order@exportharet.com')
-                            st.rerun()
-                        if cc2.button('❌ No', key=f'no_cancel_{op_id}'):
-                            st.session_state[f'confirm_cancel_{op_id}'] = False
-                            st.rerun()
-            st.markdown('')
-    st.markdown('---')
-
+                    op_icon = ESTADO_ICONS.get(op_estado, 'U0001F4E6')
+                    _clr_map = {'Recibido':'#0066cc','Confirmado':'#28a745','Preparando':'#fd7e14','Enviado':'#6f42c1','Entregado':'#20c997','Cancelado':'#dc3545'}
+                    _col = _clr_map.get(op_estado,'#666')
+                    with st.expander(f'{op_icon} {op_id} | {op_fecha} | {op_tipo} | ${op_total:,.2f} USD', expanded=False):
+                        sc1, sc2, sc3 = st.columns(3)
+                        sc1.markdown('**Estado:**')
+                        sc1.markdown(f'<span style="color:{_col};font-weight:bold">{op_icon} {op_estado}</span>', unsafe_allow_html=True)
+                        sc2.markdown(f'**Tipo:** {op_tipo}')
+                        sc2.markdown(f'**Destino:** {op_dest if op_tipo=="CIF" and op_dest else "FOB (desde Ecuador)"}')
+                        sc3.markdown(f'**Fecha:** {op_fecha}')
+                        sc3.markdown(f'**Total:** ${op_total:,.2f} USD')
+                        op_hist = op.get('historial_estados', [])
+                        if op_hist:
+                            st.markdown('**U0001F4CD Seguimiento:**')
+                            _pasos_tr = ['Recibido','Confirmado','Preparando','Enviado','Entregado']
+                            _idx_act = _pasos_tr.index(op_estado) if op_estado in _pasos_tr else -1
+                            _pc = st.columns(len(_pasos_tr))
+                            for _pi, _pe in enumerate(_pasos_tr):
+                                _ic = ESTADO_ICONS.get(_pe,'')
+                                _is_active = _pi == _idx_act and op_estado != 'Cancelado'
+                                _is_done = _pi < _idx_act and op_estado != 'Cancelado'
+                                if _is_active:
+                                    _pc[_pi].markdown(f'<div style="text-align:center;background:#003E8C;color:white;border-radius:8px;padding:5px 2px;font-size:0.75em"><b>{_ic}<br>{_pe}</b></div>', unsafe_allow_html=True)
+                                elif _is_done:
+                                    _pc[_pi].markdown(f'<div style="text-align:center;background:#d4edda;color:#155724;border-radius:8px;padding:5px 2px;font-size:0.75em">{_ic}<br>{_pe}</div>', unsafe_allow_html=True)
+                                else:
+                                    _pc[_pi].markdown(f'<div style="text-align:center;background:#f0f0f0;color:#aaa;border-radius:8px;padding:5px 2px;font-size:0.75em">{_ic}<br>{_pe}</div>', unsafe_allow_html=True)
+                            st.markdown('')
+                            with st.expander('U0001F4DC Historial completo', expanded=False):
+                                for _h in reversed(op_hist):
+                                    _h_ic = ESTADO_ICONS.get(_h.get('estado',''),'U0001F4DC')
+                                    _h_fe = _h.get('fecha','')[:16].replace('T',' ')
+                                    _h_no = _h.get('nota','')
+                                    _no_str = f' — {_h_no}' if _h_no else ''
+                                    st.caption(f'{_h_ic} **{_h.get("estado","")}** • {_h_fe}{_no_str}')
+                        if op.get('productos'):
+                            st.markdown('**Productos:**')
+                            for _pit in op.get('productos',[]):
+                                st.caption(f'• {_pit.get("producto","")} — {_pit.get("cajas",0)} cj | {_pit.get("pallets",0):.2f} plt | ${_pit.get("total",0):,.2f}')
+                        can_cancel = op_estado not in ['Cancelado','Entregado','Enviado']
+                        if can_cancel:
+                            st.markdown('')
+                            if st.button(f'U0001F5D1 Solicitar cancelación — {op_id}', key=f'cancel_{op_id}', type='secondary'):
+                                st.session_state[f'confirm_cancel_{op_id}'] = True
+                        if st.session_state.get(f'confirm_cancel_{op_id}'):
+                            st.warning(f'⚠️ ¿Confirmas la cancelación del pedido **{op_id}**? Se notificará a nuestro equipo.')
+                            _cc1, _cc2, _ = st.columns([1,1,4])
+                            if _cc1.button('✅ Sí, cancelar', key=f'do_cancel_{op_id}'):
+                                _all_peds = load_pedidos()
+                                for _tp in _all_peds:
+                                    if _tp.get('id') == op_id:
+                                        _tp['estado'] = 'Cancelado'
+                                        _tp['historial_estados'] = _tp.get('historial_estados',[]) + [{'estado':'Cancelado','fecha':datetime.now().isoformat(),'usuario':email_input,'nota':'Cancelado por cliente via portal'}]
+                                        break
+                                save_pedidos(_all_peds)
+                                log_email('order@exportharet.com', f'CANCELACION {op_id} solicitada por {email_input}', 'cancelacion_cliente')
+                                st.session_state[f'confirm_cancel_{op_id}'] = False
+                                st.cache_data.clear()
+                                st.success(f'✅ Pedido {op_id} cancelado. Notificación enviada a order@exportharet.com')
+                                st.rerun()
+                            if _cc2.button('❌ No', key=f'no_cancel_{op_id}'):
+                                st.session_state[f'confirm_cancel_{op_id}'] = False
+                                st.rerun()
+        st.markdown('---')
+    else:
+        nombre = empresa = telefono = pais = ''
+        st.info('U0001F4E7 **Ingresa tu correo electrónico arriba para continuar**')
+        return
     # ── PASO 2: Tipo de precio + Destino ─────────────────────────────────────
     st.markdown('### 2️⃣ Tipo de Precio y Destino')
     t1, t2 = st.columns([1, 2])
@@ -1404,9 +1434,12 @@ def render_portal_pedido():
             destino = t2.selectbox('🌍 Destino', dest_opts, key='portal_dest')
             dest_val = dests.get(destino, 0)
             dest_flete = float(dest_val) if isinstance(dest_val, (int, float)) else dest_val.get('factor', 0) if isinstance(dest_val, dict) else 0
-            t2.caption(f'Flete incluido: ${dest_flete:.2f} USD/caja hacia {destino}')
+            _puerto_orig = 'Guayaquil, Ecuador'
+            t2.caption(f'🛫 Flete incluido: **${dest_flete:.2f} USD/caja** | {_puerto_orig} → {destino}')
+            t2.info(f'📍 **Incoterm CIF** — Precio incluye costo + seguro + flete hasta **{destino}**. Embarcamos desde **{_puerto_orig}**.')
     else:
-        t2.info('**FOB** — Precio en origen. El flete corre por cuenta del comprador.')
+        t2.info('📦 **FOB (Free On Board)** — El precio **no incluye flete**. Tú coordinas el transporte desde Ecuador (Quito / Guayaquil) hasta tu destino.')
+        t2.caption('📌 Origen de embarque: **Quito o Guayaquil, Ecuador**')
 
     st.markdown('---')
     # ── PASO 3: Selección de Productos ───────────────────────────────
@@ -1461,10 +1494,9 @@ def render_portal_pedido():
 
         gc = st.columns([4, 2, 3, 2, 2])
         # Col 0: Nombre + specs del producto
-        _kg_lbl = f' · {_kg_x:.1f}kg/cj' if _kg_x else ''
-        _cxp_lbl = f' · {cxp}cj/plt'
+        _kg_lbl = f'{_kg_x:.1f} kg/caja'.replace('.',',') if _kg_x else ''
         gc[0].markdown(
-            f'**{nombre_prod}**  \n<small style="color:#888">{cod}{_kg_lbl}{_cxp_lbl}</small>',
+            f'**{nombre_prod}**' + (f'  \n<small style="color:#888">{_kg_lbl}</small>' if _kg_lbl else ''),
             unsafe_allow_html=True
         )
         # Col 1: Precio por caja
@@ -1483,13 +1515,13 @@ def render_portal_pedido():
             key=qty_key, label_visibility='collapsed'
         )
         # Col 3: Unidad
-        _unit_opts = ['📦 Pallets', '📦 Cajas']
+        _unit_opts = ['Pallets', 'Cajas']
         _unit_default = 0 if _ex_unit == 'Pallets' else 1
         unit_sel_raw = gc[3].selectbox(
             'Unidad', _unit_opts, index=_unit_default,
             key=unit_key, label_visibility='collapsed'
         )
-        unit_sel = 'Pallets' if unit_sel_raw.endswith('Pallets') else 'Cajas'
+        unit_sel = unit_sel_raw
         # Col 4: Cajas calculadas (solo informacion)
         if qty_val > 0:
             if unit_sel == 'Pallets':
@@ -1571,82 +1603,83 @@ def render_portal_pedido():
     elif tipo_precio == 'FOB':
         st.caption('Precios FOB — El flete corre por cuenta del comprador')
     st.markdown('---')
-        # ── PASO 4: Confirmar y Enviar Pedido ────────────────────────────────────
-    st.markdown('### 4️⃣ Confirmar Pedido')
-    notas = st.text_area('📝 Notas / instrucciones especiales', placeholder='Ej: Entrega en almacén X, condiciones especiales...', key='portal_notas')
 
-    # Mostrar resumen antes de confirmar
-    if st.session_state.portal_carrito and email_input and nombre:
-        tot_final = sum(i['total'] for i in st.session_state.portal_carrito)
-        tipo_str = tipo_precio + (f' → {destino}' if tipo_precio == 'CIF' and destino else '')
-        st.markdown(f'''
-<div style="background:#f0f7ff;border:1px solid #003E8C;border-radius:8px;padding:12px 18px;margin:8px 0">
-📋 <b>Resumen del Pedido</b><br>
-&bull; Cliente: <b>{nombre}</b> ({email_input})<br>
-&bull; Productos: <b>{len(st.session_state.portal_carrito)}</b><br>
-&bull; Modalidad: <b>{tipo_str}</b><br>
-&bull; <span style="font-size:1.1em">💰 Total: <b style="color:#003E8C">${tot_final:,.2f} USD</b></span>
-</div>''', unsafe_allow_html=True)
+    if st.session_state.portal_carrito:
+            # ── PASO 4: Confirmar y Enviar Pedido ────────────────────────────────────
+        st.markdown('### 4️⃣ Confirmar Pedido')
+        notas = st.text_area('📝 Notas / instrucciones especiales', placeholder='Ej: Entrega en almacén X, condiciones especiales...', key='portal_notas')
 
-    pt1,pt2=st.columns(2)
-    TOPT=['','Pago anticipado 100%','50% adelanto / 50% contra documentos','30% adelanto / 70% contra BL','Carta de cr\xe9dito (LC)','Pago a 30 d\xedas','Pago a 60 d\xedas','Otro']
-    p_term=pt1.selectbox('\U0001F4CB T\xe9rminos de pago (opcional)',TOPT,key='p_term')
-    p_nota2=pt2.text_area('\U0001F4DD Notas',placeholder='Instrucciones especiales...',key='p_nota2',height=80)
-    btn_guardar = st.button('📤 CONFIRMAR Y ENVIAR PEDIDO', type='primary', use_container_width=True, key='portal_guardar')
+        # Mostrar resumen antes de confirmar
+        if st.session_state.portal_carrito and email_input and nombre:
+            tot_final = sum(i['total'] for i in st.session_state.portal_carrito)
+            tipo_str = tipo_precio + (f' → {destino}' if tipo_precio == 'CIF' and destino else '')
+            st.markdown(f'''
+    <div style="background:#f0f7ff;border:1px solid #003E8C;border-radius:8px;padding:12px 18px;margin:8px 0">
+    📋 <b>Resumen del Pedido</b><br>
+    &bull; Cliente: <b>{nombre}</b> ({email_input})<br>
+    &bull; Productos: <b>{len(st.session_state.portal_carrito)}</b><br>
+    &bull; Modalidad: <b>{tipo_str}</b><br>
+    &bull; <span style="font-size:1.1em">💰 Total: <b style="color:#003E8C">${tot_final:,.2f} USD</b></span>
+    </div>''', unsafe_allow_html=True)
 
-    if btn_guardar:
-        if not email_input:
-            st.error('❌ Ingresa tu correo electrónico')
-        elif not nombre:
-            st.error('❌ Ingresa tu nombre completo')
-        elif not st.session_state.portal_carrito:
-            st.error('❌ Agrega al menos un producto al carrito')
-        elif tipo_precio == 'CIF' and not destino:
-            st.error('❌ Selecciona un destino para precio CIF')
-        else:
-            _tod_p=load_pedidos()
-            _yn_p=datetime.now().strftime('%Y')
-            _pc_p=[p for p in _tod_p if p.get('id','').startswith(f'PED-{_yn_p}')]
-            pid=f'PED-{_yn_p}-{len(_pc_p)+1:04d}'
-            tot = sum(i['total'] for i in st.session_state.portal_carrito)
-            ped = {
-                'id': pid,
-                'client_email': email_input,
-                'client_name': nombre,
-                'empresa': empresa,
-                'telefono': telefono,
-                'pais': pais,
-                'tipo_precio': tipo_precio,
-                'destino': destino if tipo_precio == 'CIF' else 'FOB',
-                'moneda': 'USD',
-                'productos': list(st.session_state.portal_carrito),
-                'total_usd': round(tot, 2),
-                'estado': 'Recibido',
-                'fecha': datetime.now().isoformat(),
-                'notas':notas,'notas_adicionales':p_nota2,'terminos_pago':p_term,'historial_estados': [{'estado': 'Recibido', 'fecha': datetime.now().isoformat(), 'usuario': 'portal'}],
-                'creado_por': 'portal',
-            }
-            # Guardar pedido
-            todos = load_pedidos()
-            todos.append(ped)
-            save_pedidos(todos)
-            # Registrar / actualizar cliente en portal
-            portal_clients[email_input] = {
-                'nombre': nombre, 'empresa': empresa, 'telefono': telefono,
-                'pais': pais, 'email': email_input,
-                'fecha_registro': portal_clients.get(email_input, {}).get('fecha_registro', datetime.now().isoformat()),
-                'pedidos': portal_clients.get(email_input, {}).get('pedidos', []) + [pid],
-            }
-            save_portal_clients(portal_clients)
-            # Log email y envio real a order@exportharet.com
-            log_email(email_input, f'Confirmación pedido {pid}', 'portal_cliente')
-            send_order_email(ped)
-            st.cache_data.clear()
+        TOPT=['','Pago anticipado 100%','50% adelanto / 50% contra documentos','30% adelanto / 70% contra BL','Carta de cr\xe9dito (LC)','Pago a 30 d\xedas','Pago a 60 d\xedas','Otro']
+        p_term=st.selectbox('\U0001F4CB T\xe9rminos de pago (opcional)',TOPT,key='p_term')
+        btn_guardar = st.button('📤 CONFIRMAR Y ENVIAR PEDIDO', type='primary', use_container_width=True, key='portal_guardar')
 
-            # Guardar pedido en session para acciones post-guardado
-            st.session_state['ultimo_pedido'] = ped
-            st.session_state.portal_carrito = []
-            st.success(f'✅ **Pedido {pid} enviado a order@exportharet.com** — Te contactaremos a {email_input} para la confirmación.')
+        if btn_guardar:
+            if not email_input:
+                st.error('❌ Ingresa tu correo electrónico')
+            elif not nombre:
+                st.error('❌ Ingresa tu nombre completo')
+            elif not st.session_state.portal_carrito:
+                st.error('❌ Agrega al menos un producto al carrito')
+            elif tipo_precio == 'CIF' and not destino:
+                st.error('❌ Selecciona un destino para precio CIF')
+            else:
+                _tod_p=load_pedidos()
+                _yn_p=datetime.now().strftime('%Y')
+                _pc_p=[p for p in _tod_p if p.get('id','').startswith(f'PED-{_yn_p}')]
+                pid=f'PED-{_yn_p}-{len(_pc_p)+1:04d}'
+                tot = sum(i['total'] for i in st.session_state.portal_carrito)
+                ped = {
+                    'id': pid,
+                    'client_email': email_input,
+                    'client_name': nombre,
+                    'empresa': empresa,
+                    'telefono': telefono,
+                    'pais': pais,
+                    'tipo_precio': tipo_precio,
+                    'destino': destino if tipo_precio == 'CIF' else 'FOB',
+                    'moneda': 'USD',
+                    'productos': list(st.session_state.portal_carrito),
+                    'total_usd': round(tot, 2),
+                    'estado': 'Recibido',
+                    'fecha': datetime.now().isoformat(),
+                    'notas':notas,'terminos_pago':p_term,'historial_estados': [{'estado': 'Recibido', 'fecha': datetime.now().isoformat(), 'usuario': 'portal'}],
+                    'creado_por': 'portal',
+                }
+                # Guardar pedido
+                todos = load_pedidos()
+                todos.append(ped)
+                save_pedidos(todos)
+                # Registrar / actualizar cliente en portal
+                portal_clients[email_input] = {
+                    'nombre': nombre, 'empresa': empresa, 'telefono': telefono,
+                    'pais': pais, 'email': email_input,
+                    'fecha_registro': portal_clients.get(email_input, {}).get('fecha_registro', datetime.now().isoformat()),
+                    'pedidos': portal_clients.get(email_input, {}).get('pedidos', []) + [pid],
+                }
+                save_portal_clients(portal_clients)
+                # Log email y envio real a order@exportharet.com
+                log_email(email_input, f'Confirmación pedido {pid}', 'portal_cliente')
+                send_order_email(ped)
+                st.cache_data.clear()
+
+                # Guardar pedido en session para acciones post-guardado
+                st.session_state['ultimo_pedido'] = ped
+                st.session_state.portal_carrito = []
+                st.success(f'✅ **Pedido {pid} confirmado y enviado**')
+                st.info(f'📧 Recibirás confirmación en **{email_input}** en 24-48h. Haz seguimiento en la pestaña **Mis Pedidos** arriba. Consultas: order@exportharet.com')
 
     # ── Acciones post-pedido ─────────────────────────────────────────────────
     if st.session_state.get('ultimo_pedido'):
@@ -1687,7 +1720,7 @@ def render_portal_pedido():
 
     st.markdown('---')
     st.markdown('---')
-    with st.expander('U0001F4AC Solicitar cotización especial',expanded=False):
+    with st.expander('💬 Solicitar cotización especial',expanded=False):
         st.markdown('**¿Necesitas presupuesto personalizado?** Rellena el formulario y te contactaremos en 24-48h.')
         _cc1,_cc2=st.columns(2)
         _cn=_cc1.text_input('Tu nombre / empresa',key='cnom',placeholder='Nombre o empresa')
@@ -1696,7 +1729,7 @@ def render_portal_pedido():
         _cplt=_cc2.number_input('Pallets aprox.',min_value=1,max_value=200,value=5,key='cplt')
         _cpro=st.text_area('Productos de interés',key='cpro',placeholder='ej: 3 pallets Granadilla...',height=70)
         _cmsg=st.text_area('Mensaje adicional',key='cmsg',placeholder='Condiciones especiales...',height=70)
-        if st.button('U0001F4E8 Enviar solicitud de cotización',key='bcot',type='primary',use_container_width=True):
+        if st.button('📨 Enviar solicitud de cotización',key='bcot',type='primary',use_container_width=True):
             if not _ce or not _cpro: st.error('Completa email y productos de interés')
             else:
                 _cy=datetime.now().strftime('%Y');_cpv=[p for p in load_pedidos() if p.get('id','').startswith(f'COT-{_cy}')]
