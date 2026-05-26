@@ -1147,7 +1147,7 @@ def render_portal_pedido():
             # Guardar pedido en session para acciones post-guardado
             st.session_state['ultimo_pedido'] = ped
             st.session_state.portal_carrito = []
-            st.success(f'✅ **Pedido {pid} enviado correctamente!** Recibirás confirmación en {email_input}.')
+            st.success(f'✅ **Pedido {pid} enviado a order@exportharet.com** — Te contactaremos a {email_input} para la confirmación.')
 
     # ── Acciones post-pedido ─────────────────────────────────────────────────
     if st.session_state.get('ultimo_pedido'):
