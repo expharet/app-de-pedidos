@@ -261,10 +261,12 @@ def parse_excel_file(xl_path):
 
 
 def auto_load_excel():
-    """Auto-loads Cotizaciones.xlsx on startup if products are not yet loaded."""
+    """Auto-loads Cotizaciones.xlsx on startup if products are not yet loaded or have no prices."""
     data = load_data()
-    if data.get('products'):
-        return  # already loaded
+    prods = data.get('products', [])
+    # Check if products exist AND have valid prices (not all zeros)
+    if prods and any(p.get('precio_cif_usd', 0) > 0 for p in prods):
+        return  # already loaded with valid prices
     xl_path = 'Cotizaciones.xlsx'
     if not os.path.exists(xl_path):
         return  # file not found, wait for manual upload
