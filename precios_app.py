@@ -8,6 +8,16 @@ import uuid
 from datetime import datetime, date, timedelta
 from typing import Dict, List, Optional
 from PIL import Image
+try:
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib import colors
+    from reportlab.lib.units import cm
+    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, HRFlowable
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib.enums import TA_CENTER, TA_RIGHT, TA_LEFT
+    REPORTLAB_OK = True
+except ImportError:
+    REPORTLAB_OK = False
 
 # ─── PAGE CONFIG ─────────────────────────────────────────────────────────────
 st.set_page_config(
@@ -657,6 +667,133 @@ def build_order_html(ped):
 <div style="text-align:right;margin-top:20px"><span class="total">TOTAL: ${total_usd:,.2f} USD</span></div>
 <p style="color:#888;font-size:0.9em">Export Haret © 2026 | orden@exportharet.com</p></body></html>'''
 
+
+def build_order_pdf(ped):
+    """Genera un PDF albaran del pedido con reportlab. Retorna bytes del PDF."""
+    buf = io.BytesIO()
+    pid = ped.get('id','')
+    fecha = ped.get('fecha','')[:10]
+    estado = ped.get('estado','Recibido')
+    nombre = ped.get('client_name','')
+    email_c = ped.get('client_email','')
+    empresa = ped.get('empresa','')
+    telefono = ped.get('telefono','')
+    pais = ped.get('pais','')
+    tipo = ped.get('tipo_precio','FOB')
+    destino = ped.get('destino','')
+    total_usd = ped.get('total_usd', 0)
+    notas = ped.get('notas','')
+
+    if not REPORTLAB_OK:
+        # Fallback: devolver HTML como bytes
+        return build_order_html(ped).encode('utf-8'), 'text/html', '.html'
+
+    doc = SimpleDocTemplate(buf, pagesize=A4,
+        rightMargin=1.5*cm, leftMargin=1.5*cm, topMargin=2*cm, bottomMargin=2*cm)
+    styles = getSampleStyleSheet()
+    story = []
+
+    # Colores corporativos
+    AZUL = colors.HexColor('#003E8C')
+    AZUL_LIGHT = colors.HexColor('#E8F0FA')
+    GRIS = colors.HexColor('#666666')
+
+    # --- Cabecera ---
+    header_style = ParagraphStyle('header', fontSize=22, textColor=colors.white,
+        fontName='Helvetica-Bold', spaceAfter=4, alignment=TA_LEFT)
+    sub_style = ParagraphStyle('sub', fontSize=10, textColor=colors.HexColor('#CCDDFF'),
+        fontName='Helvetica', alignment=TA_LEFT)
+
+    header_data = [[
+        Paragraph('<font color="white"><b>Export Haret</b></font><br/><font color="#CCDDFF" size="9">Sistema de Pedidos — Frutas Exóticas Premium</font>', styles['Normal']),
+        Paragraph(f'<font color="white" size="9"><b>ALBARÁN / ORDEN DE PEDIDO</b><br/>{pid}<br/>{fecha}</font>', styles['Normal'])
+    ]]
+    header_table = Table(header_data, colWidths=[10*cm, 7*cm])
+    header_table.setStyle(TableStyle([
+        ('BACKGROUND', (0,0), (-1,-1), AZUL),
+        ('PADDING', (0,0), (-1,-1), 12),
+        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+        ('ALIGN', (1,0), (1,0), 'RIGHT'),
+    ]))
+    story.append(header_table)
+    story.append(Spacer(1, 0.4*cm))
+
+    # --- Datos cliente + pedido ---
+    info_data = [
+        [Paragraph('<b>DATOS DEL CLIENTE</b>', styles['Normal']), Paragraph('<b>DETALLES DEL PEDIDO</b>', styles['Normal'])],
+        [Paragraph(f'<b>Nombre:</b> {nombre}', styles['Normal']), Paragraph(f'<b>Nº Pedido:</b> {pid}', styles['Normal'])],
+        [Paragraph(f'<b>Empresa:</b> {empresa or "-"}', styles['Normal']), Paragraph(f'<b>Fecha:</b> {fecha}', styles['Normal'])],
+        [Paragraph(f'<b>Email:</b> {email_c}', styles['Normal']), Paragraph(f'<b>Estado:</b> {estado}', styles['Normal'])],
+        [Paragraph(f'<b>Teléfono:</b> {telefono or "-"}', styles['Normal']), Paragraph(f'<b>País:</b> {pais or "-"}', styles['Normal'])],
+        [Paragraph(f'<b>Tipo Precio:</b> {tipo}', styles['Normal']), Paragraph(f'<b>Destino:</b> {destino if tipo=="CIF" else "FOB (origen)"}', styles['Normal'])],
+    ]
+    info_table = Table(info_data, colWidths=[9*cm, 8*cm])
+    info_table.setStyle(TableStyle([
+        ('BACKGROUND', (0,0), (-1,0), AZUL_LIGHT),
+        ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
+        ('TEXTCOLOR', (0,0), (-1,0), AZUL),
+        ('FONTSIZE', (0,0), (-1,0), 9),
+        ('FONTSIZE', (0,1), (-1,-1), 9),
+        ('PADDING', (0,0), (-1,-1), 6),
+        ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor('#DDDDDD')),
+        ('ROWBACKGROUNDS', (0,1), (-1,-1), [colors.white, colors.HexColor('#F8F9FA')]),
+    ]))
+    story.append(info_table)
+    story.append(Spacer(1, 0.4*cm))
+
+    # --- Tabla de productos ---
+    prod_title = Paragraph('<b>DETALLE DE PRODUCTOS</b>', ParagraphStyle('ptitle', fontSize=10, textColor=AZUL, fontName='Helvetica-Bold', spaceBefore=6))
+    story.append(prod_title)
+    story.append(Spacer(1, 0.2*cm))
+
+    prod_header = ['Código', 'Producto', 'Cajas', 'Pallets', 'Precio/caja', 'Total USD']
+    prod_rows = [prod_header]
+    for item in ped.get('productos', []):
+        prod_rows.append([
+            item.get('codigo',''),
+            item.get('producto',''),
+            str(item.get('cajas',0)),
+            str(item.get('pallets',0)),
+            f'${item.get("precio_usd",0):.2f}',
+            f'${item.get("total",0):,.2f}',
+        ])
+    # Total row
+    prod_rows.append(['', '', '', '', Paragraph('<b>TOTAL:</b>', styles['Normal']), Paragraph(f'<b>${total_usd:,.2f} USD</b>', styles['Normal'])])
+
+    col_widths = [2.2*cm, 5.8*cm, 1.8*cm, 1.8*cm, 2.4*cm, 3*cm]
+    prod_table = Table(prod_rows, colWidths=col_widths, repeatRows=1)
+    prod_table.setStyle(TableStyle([
+        ('BACKGROUND', (0,0), (-1,0), AZUL),
+        ('TEXTCOLOR', (0,0), (-1,0), colors.white),
+        ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0,0), (-1,-1), 9),
+        ('ALIGN', (2,0), (-1,-1), 'CENTER'),
+        ('ALIGN', (4,0), (-1,-1), 'RIGHT'),
+        ('PADDING', (0,0), (-1,-1), 6),
+        ('GRID', (0,0), (-1,-2), 0.5, colors.HexColor('#DDDDDD')),
+        ('ROWBACKGROUNDS', (0,1), (-1,-2), [colors.white, colors.HexColor('#F0F4FF')]),
+        ('BACKGROUND', (0,-1), (-1,-1), AZUL_LIGHT),
+        ('FONTNAME', (0,-1), (-1,-1), 'Helvetica-Bold'),
+        ('LINEABOVE', (0,-1), (-1,-1), 1.5, AZUL),
+    ]))
+    story.append(prod_table)
+    story.append(Spacer(1, 0.4*cm))
+
+    # --- Notas ---
+    if notas:
+        story.append(Paragraph(f'<b>Notas:</b> {notas}', ParagraphStyle('notas', fontSize=9, textColor=GRIS, spaceBefore=4)))
+        story.append(Spacer(1, 0.2*cm))
+
+    # --- Pie de pagina ---
+    story.append(HRFlowable(width='100%', thickness=1, color=AZUL))
+    story.append(Spacer(1, 0.2*cm))
+    footer_style = ParagraphStyle('footer', fontSize=8, textColor=GRIS, alignment=TA_CENTER)
+    story.append(Paragraph('Export Haret © 2026 | orden@exportharet.com | Frutas Exóticas Premium', footer_style))
+
+    doc.build(story)
+    buf.seek(0)
+    return buf.getvalue(), 'application/pdf', '.pdf'
+
 def log_email(destinatario, asunto, tipo_email):
     el = load_email_log()
     el.append({'id': f'EMAIL-{len(el)+1:05d}', 'destinatario': destinatario, 'asunto': asunto, 'tipo': tipo_email, 'fecha': datetime.now().isoformat(), 'estado': 'simulado'})
@@ -721,6 +858,51 @@ def render_portal_pedido():
         st.markdown('**Ingresa tu correo para continuar** 👆')
         return
 
+    # ── HISTORIAL DE PEDIDOS DEL CLIENTE ─────────────────────────────────────
+    if email_input and st.session_state.portal_email:
+        client_orders = [p for p in load_pedidos() if p.get('client_email','').lower() == email_input.lower()]
+        if client_orders:
+            with st.expander(f'📋 Mis Pedidos ({len(client_orders)})', expanded=False):
+                for op in sorted(client_orders, key=lambda x: x.get('fecha',''), reverse=True):
+                    op_id = op.get('id','')
+                    op_fecha = op.get('fecha','')[:10]
+                    op_estado = op.get('estado','Recibido')
+                    op_total = op.get('total_usd',0)
+                    op_tipo = op.get('tipo_precio','FOB')
+                    op_dest = op.get('destino','')
+                    icon = ESTADO_ICONS.get(op_estado, '📦')
+                    col_info, col_acc = st.columns([5, 1])
+                    col_info.markdown(
+                        f'**{op_id}** &nbsp;|&nbsp; {op_fecha} &nbsp;|&nbsp; {icon} {op_estado} &nbsp;|&nbsp; '
+                        f'{op_tipo}{" → " + op_dest if op_tipo=="CIF" and op_dest else ""} &nbsp;|&nbsp; '
+                        f'**${op_total:,.2f} USD**'
+                    )
+                    can_cancel = op_estado not in ['Cancelado','Entregado','Enviado']
+                    if can_cancel:
+                        if col_acc.button('🗑️', key=f'cancel_{op_id}', help='Solicitar cancelación'):
+                            st.session_state[f'confirm_cancel_{op_id}'] = True
+                    else:
+                        col_acc.caption(op_estado)
+                    if st.session_state.get(f'confirm_cancel_{op_id}'):
+                        st.warning(f'⚠️ ¿Confirmas la cancelación del pedido **{op_id}**? Esta acción no se puede deshacer.')
+                        cc1, cc2, _ = st.columns([1,1,4])
+                        if cc1.button('✅ Sí, cancelar', key=f'do_cancel_{op_id}'):
+                            todos_peds = load_pedidos()
+                            for tp in todos_peds:
+                                if tp.get('id') == op_id:
+                                    tp['estado'] = 'Cancelado'
+                                    tp['historial_estados'] = tp.get('historial_estados',[]) + [{'estado':'Cancelado','fecha':datetime.now().isoformat(),'usuario':email_input}]
+                                    break
+                            save_pedidos(todos_peds)
+                            log_email('orden@exportharet.com', f'CANCELACION pedido {op_id} solicitada por {email_input}', 'cancelacion_cliente')
+                            st.session_state[f'confirm_cancel_{op_id}'] = False
+                            st.cache_data.clear()
+                            st.success(f'✅ Pedido {op_id} cancelado. Se notificó a orden@exportharet.com')
+                            st.rerun()
+                        if cc2.button('❌ No', key=f'no_cancel_{op_id}'):
+                            st.session_state[f'confirm_cancel_{op_id}'] = False
+                            st.rerun()
+            st.markdown('')
     st.markdown('---')
 
     # ── PASO 2: Tipo de precio + Destino ─────────────────────────────────────
@@ -882,15 +1064,15 @@ def render_portal_pedido():
         pid_saved = ped_saved.get('id','')
         st.markdown('---')
         st.markdown(f'#### ✅ Pedido **{pid_saved}** guardado')
-        html_content = build_order_html(ped_saved)
+        pdf_bytes, pdf_mime, pdf_ext = build_order_pdf(ped_saved)
         # Acciones en columnas
         ac1, ac2, ac3 = st.columns(3)
-        # Descargar HTML como archivo
+        # Descargar PDF albarán
         ac1.download_button(
-            label='⬇️ Descargar Pedido',
-            data=html_content.encode('utf-8'),
-            file_name=f'{pid_saved}.html',
-            mime='text/html',
+            label='⬇️ Descargar Albarán PDF',
+            data=pdf_bytes,
+            file_name=f'{pid_saved}{pdf_ext}',
+            mime=pdf_mime,
             use_container_width=True,
             key='dl_pedido'
         )
