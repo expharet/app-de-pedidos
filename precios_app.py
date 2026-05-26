@@ -699,9 +699,9 @@ def render_hacer_pedido():
         elif not st.session_state.carrito: st.error('❌ Agrega productos al carrito')
         else:
             _tod_h=load_pedidos()
-            _yn_h=datetime.now().strftime('%Y')
-            _pc_h=[p for p in _tod_h if p.get('id','').startswith(f'PED-{_yn_h}')]
-            pid=f'PED-{_yn_h}-{len(_pc_h)+1:04d}'
+        _yn_h=datetime.now().strftime('%Y')
+        _pc_h=[p for p in _tod_h if p.get('id','').startswith(f'PED-{_yn_h}')]
+        pid=f'PED-{_yn_h}-{len(_pc_h)+1:04d}'
             tot=sum(i['total'] for i in st.session_state.carrito)
             ped={'id':pid,'client_email':c_email,'client_name':c_name,'destino':destino,'moneda':moneda,'productos':list(st.session_state.carrito),'total_usd':round(tot,2),'estado':'Recibido','fecha':datetime.now().isoformat(),'notas':notas,'terminos_pago':hp_term,'fecha_entrega':hp_ent,'historial_estados':[{'estado':'Recibido','fecha':datetime.now().isoformat(),'usuario':st.session_state.user_email}],'creado_por':st.session_state.user_email}
             todos=load_pedidos(); todos.append(ped); save_pedidos(todos)
@@ -791,8 +791,7 @@ def render_gestion_pedidos():
                             h_no=h.get('nota',''); no_s=f' \u2014 {h_no}' if h_no else ''
                             st.caption(f"{h_ic} **{h.get('estado','')}** \u2022 {h_fe} \u2022 {h.get('usuario','')}{no_s}")
             _pdf_b, _pdf_m, _pdf_x = build_order_pdf(ped)
-                    st.download_button('⬇️ Albarán PDF', data=_pdf_b, file_name=f"{ped.get('id','ped')}{_pdf_x}", mime=_pdf_m, key=f'pdf_adm_{ped.get("id","")}', use_container_width=True)
-                except: pass
+            st.download_button('⬇️ Albarán PDF', data=_pdf_b, file_name=f"{ped.get('id','ped')}{_pdf_x}", mime=_pdf_m, key=f'pdf_adm_{ped.get("id","")}', use_container_width=True)
             st.markdown('**Cambiar Estado — clic rápido:**')
             estado_actual = ped.get('estado','Recibido')
             qb_cols = st.columns(len(ORDEN_ESTADOS))
