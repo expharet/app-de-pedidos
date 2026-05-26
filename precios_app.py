@@ -743,54 +743,57 @@ def render_portal_pedido():
         t2.info('**FOB** — Precio en origen. El flete corre por cuenta del comprador.')
 
     st.markdown('---')
-    # ── PASO 3: Catálogo de Productos ────────────────────────────────────────
-    st.markdown('### 3️⃣ Catálogo de Productos')
+    # ── PASO 3: Selección de Productos ───────────────────────────
+    st.markdown('### 3️⃣ Selecciona tus Productos')
+    st.markdown('Ingresa la cantidad para cada producto que deseas agregar al carrito:')
 
-    # Mostrar catálogo completo con precios según FOB/CIF
-    st.markdown('Selecciona los productos y cantidades que deseas ordenar:')
+    # Cabecera de la grilla
+    hc = st.columns([4, 2, 2, 2, 1])
+    hc[0].markdown('**Producto**')
+    hc[1].markdown('**Precio USD/caja**')
+    hc[2].markdown('**Cantidad**')
+    hc[3].markdown('**Unidad**')
+    hc[4].markdown('**+**')
+    st.markdown('<hr style="margin:4px 0 8px">', unsafe_allow_html=True)
 
-    # Tabla de catálogo
-    cat_rows = []
-    for p in prods:
-        fob = get_fob_price(p.get('codigo',''), data)
+    for idx, p in enumerate(prods):
+        cod = p.get('codigo','')
+        nombre_prod = p.get('descripcion','') or p.get('producto','') or cod
+        cxp = int(p.get('cajas_pallet', 200) or 200)
         if tipo_precio == 'CIF' and destino:
-            precio_mostrar = get_cif_price(p.get('codigo',''), destino, data)
-            precio_label = f'CIF {destino}'
+            precio_u = get_cif_price(cod, destino, data)
         else:
-            precio_mostrar = fob
-            precio_label = 'FOB'
-        cat_rows.append({'Código': p.get('codigo',''), 'Producto': p.get('descripcion','') or p.get('producto',''), f'Precio {precio_label} (USD/caja)': precio_mostrar, 'Cajas/Pallet': p.get('cajas_pallet', 200)})
+            precio_u = get_fob_price(cod, data)
 
-    if cat_rows:
-        st.dataframe(pd.DataFrame(cat_rows), use_container_width=True, hide_index=True)
-
-    st.markdown('##### ➕ Agregar producto al carrito')
-    pa1, pa2, pa3 = st.columns([3, 1, 1])
-    prod_opts = ['Seleccionar...'] + [p.get('codigo','') + ' — ' + (p.get('descripcion','') or p.get('producto','')) for p in prods]
-    psel = pa1.selectbox('Producto', prod_opts, key='portal_prod')
-    cajas_add = pa2.number_input('Cajas', min_value=1, value=100, step=50, key='portal_cajas')
-    pa3.markdown('<br>', unsafe_allow_html=True)
-
-    if pa3.button('➕ Agregar', key='portal_add') and psel != 'Seleccionar...':
-        cod = psel.split(' — ')[0]
-        pd_ = next((p for p in prods if p.get('codigo') == cod), {})
-        if tipo_precio == 'CIF' and destino:
-            precio = get_cif_price(cod, destino, data)
-        else:
-            precio = get_fob_price(cod, data)
-        cxp = pd_.get('cajas_pallet', 200) or 200
-        pallets = round(cajas_add / cxp, 2)
-        nombre_prod = pd_.get('descripcion','') or pd_.get('producto','')
-        item = {'codigo': cod, 'producto': nombre_prod, 'cajas': cajas_add, 'pallets': pallets, 'precio_usd': precio, 'total': round(cajas_add * precio, 2)}
-        ex = next((i for i, x in enumerate(st.session_state.portal_carrito) if x['codigo'] == cod), None)
-        if ex is not None:
-            st.session_state.portal_carrito[ex]['cajas'] += cajas_add
-            new_pallets = round(st.session_state.portal_carrito[ex]['cajas'] / cxp, 2)
-            st.session_state.portal_carrito[ex]['pallets'] = new_pallets
-            st.session_state.portal_carrito[ex]['total'] = round(st.session_state.portal_carrito[ex]['cajas'] * precio, 2)
-        else:
-            st.session_state.portal_carrito.append(item)
-        st.rerun()
+        gc = st.columns([4, 2, 2, 2, 1])
+        gc[0].markdown(f'**{nombre_prod}**  \n<small style="color:#888">{cod}</small>', unsafe_allow_html=True)
+        gc[1].markdown(f'<span style="color:#0066CC;font-weight:bold">${precio_u:.2f}</span>', unsafe_allow_html=True)
+        qty_key = f'portal_qty_{cod}_{idx}'
+        unit_key = f'portal_unit_{cod}_{idx}'
+        qty_val = gc[2].number_input('Cant', min_value=0, value=0, step=1, key=qty_key, label_visibility='collapsed')
+        unit_sel = gc[3].radio('Unidad', ['Cajas','Pallets'], key=unit_key, horizontal=True, label_visibility='collapsed')
+        if gc[4].button('➕', key=f'portal_add_{cod}_{idx}', help=f'Agregar {nombre_prod}'):
+            if qty_val > 0:
+                # Convertir a cajas
+                if unit_sel == 'Pallets':
+                    cajas_add = int(qty_val * cxp)
+                    pallets_add = float(qty_val)
+                else:
+                    cajas_add = int(qty_val)
+                    pallets_add = round(cajas_add / cxp, 2)
+                total_item = round(cajas_add * precio_u, 2)
+                item = {'codigo': cod, 'producto': nombre_prod, 'cajas': cajas_add, 'pallets': pallets_add, 'precio_usd': precio_u, 'total': total_item, 'unidad': unit_sel}
+                ex = next((i for i, x in enumerate(st.session_state.portal_carrito) if x['codigo'] == cod), None)
+                if ex is not None:
+                    st.session_state.portal_carrito[ex]['cajas'] += cajas_add
+                    new_pallets = round(st.session_state.portal_carrito[ex]['cajas'] / cxp, 2)
+                    st.session_state.portal_carrito[ex]['pallets'] = new_pallets
+                    st.session_state.portal_carrito[ex]['total'] = round(st.session_state.portal_carrito[ex]['cajas'] * precio_u, 2)
+                else:
+                    st.session_state.portal_carrito.append(item)
+                st.rerun()
+            else:
+                st.toast(f'Ingresa una cantidad mayor a 0 para {nombre_prod}', icon='⚠️')
 
     # Carrito
     if st.session_state.portal_carrito:
@@ -919,8 +922,13 @@ def main():
     auto_load_excel()
 
     # Determine mode: 'portal' (public) or 'admin' (staff)
+    # Support ?view=cliente URL param to always show portal
     if 'app_mode' not in st.session_state:
-        st.session_state.app_mode = 'portal'
+        _qp = st.query_params
+        if _qp.get('view', '') == 'cliente':
+            st.session_state.app_mode = 'portal'
+        else:
+            st.session_state.app_mode = 'portal'
 
     # ── MODO PORTAL (PÚBLICO) ─────────────────────────────────────────────────
     if st.session_state.app_mode == 'portal':
