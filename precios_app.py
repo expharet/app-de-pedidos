@@ -1,627 +1,519 @@
 import streamlit as st
 import pandas as pd
-from datetime import datetime
-from pathlib import Path
 import json
+import os
+import io
+import hashlib
+import uuid
+from datetime import datetime, date, timedelta
+from typing import Dict, List, Optional
+from PIL import Image
 
-# Configuración de la página
+# ─── PAGE CONFIG ─────────────────────────────────────────────────────────────
 st.set_page_config(
     page_title="Export Haret - Sistema de Pedidos",
-    page_icon="📦",
+    page_icon="🚀",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-# ============================================================================
-# INICIALIZAR SESSION STATE
-# ============================================================================
-if "datos_excel" not in st.session_state:
-    st.session_state.datos_excel = None
-if "productos" not in st.session_state:
-    st.session_state.productos = []
-if "destinos" not in st.session_state:
-    st.session_state.destinos = {}
-if "destinos_monedas" not in st.session_state:
-    st.session_state.destinos_monedas = {
-        "Madrid/España": {"moneda": "EUR", "cif": 15.04},
-        "París/Francia": {"moneda": "EUR", "cif": 16.33},
-        "Londres/UK": {"moneda": "GBP", "cif": 15.68},
-        "Suiza": {"moneda": "CHF", "cif": 15.68},
-        "Países Bajos": {"moneda": "EUR", "cif": 16.07},
-        "Dubai/EAU": {"moneda": "AED", "cif": 20.08},
-        "Nueva York/USA": {"moneda": "USD", "cif": 16.33},
-        "Miami/USA": {"moneda": "USD", "cif": 11.93}
-    }
-if "configuracion" not in st.session_state:
-    st.session_state.configuracion = {
-        "costo_caja": 1.0,
-        "merma_pct": 0.01,
-        "tipo_cambio_eur": 1.164,
-        "tipo_cambio_gbp": 1.27,
-        "tipo_cambio_chf": 1.1,
-        "tipo_cambio_aed": 3.67,
-        "flete_estandar": 2.35
-    }
-if "pedidos" not in st.session_state:
-    st.session_state.pedidos = []
-if "clientes" not in st.session_state:
-    st.session_state.clientes = []
-if "cambios_pendientes" not in st.session_state:
-    st.session_state.cambios_pendientes = False
+# ─── CONSTANTES ───────────────────────────────────────────────────────────────
+ORDEN_ESTADOS = ["Recibido","Confirmado","Preparando","Enviado","Entregado","Cancelado"]
+ESTADO_ICONS = {"Recibido":"📤","Confirmado":"✅","Preparando":"📦","Enviado":"🚚","Entregado":"✨","Cancelado":"❌"}
+PEDIDOS_FILE = "pedidos_data.json"
+CLIENTS_FILE = "clientes.json"
+HIST_FILE    = "precio_historial.json"
+EMAIL_FILE   = "email_log.json"
+DATA_FILE    = "precios_data.json"
 
-# ============================================================================
-# FUNCIONES PARA LEER Y PROCESAR EXCEL
-# ============================================================================
+USERS = {
+    "admin@exportharet.com":  {"pwd": hashlib.md5(b"admin123").hexdigest(),  "rol": "admin",  "nombre": "Administrador"},
+    "ventas@exportharet.com": {"pwd": hashlib.md5(b"ventas123").hexdigest(), "rol": "ventas", "nombre": "Ventas"},
+}
 
-def cargar_y_procesar_excel(archivo_excel):
-    """Lee el Excel y extrae todos los datos"""
+# ─── DATA HELPERS ───────────────────────────────────────────────────
+def _load(path, default):
     try:
-        df_config = pd.read_excel(archivo_excel, sheet_name="CONFIGURACION", header=None)
-        df_precios = pd.read_excel(archivo_excel, sheet_name="TABLA PRECIOS", header=None)
-        df_destinos = pd.read_excel(archivo_excel, sheet_name="TODOS DESTINOS", header=None)
+        if os.path.exists(path):
+            with open(path,'r',encoding='utf-8') as f: return json.load(f)
+    except: pass
+    return default
 
-        # EXTRAER PRODUCTOS
-        productos = []
-        for idx in range(6, min(30, len(df_precios))):
-            try:
-                codigo = df_precios.iloc[idx, 1]
-                nombre = df_precios.iloc[idx, 2]
-                kg_caja = df_precios.iloc[idx, 3]
-                precio_compra = df_precios.iloc[idx, 4]
-                fob_base = df_precios.iloc[idx, 6]
-                margen = df_precios.iloc[idx, 9]
-
-                if pd.notna(codigo) and pd.notna(nombre):
-                    productos.append({
-                        "codigo": str(codigo).strip(),
-                        "nombre": str(nombre).strip(),
-                        "kg_caja": float(kg_caja) if pd.notna(kg_caja) else 0,
-                        "precio_compra": float(precio_compra) if pd.notna(precio_compra) else 0,
-                        "fob_base": float(fob_base) if pd.notna(fob_base) else 0,
-                        "margen_pct": float(margen) if pd.notna(margen) else 0
-                    })
-            except:
-                continue
-
-        return {
-            "productos": productos,
-            "fecha_carga": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        }
-
+def _save(path, data):
+    try:
+        with open(path,'w',encoding='utf-8') as f: json.dump(data,f,indent=2,ensure_ascii=False)
+        return True
     except Exception as e:
-        st.error(f"Error al procesar Excel: {str(e)}")
-        return None
+        st.error(f'Error guardando: {e}'); return False
 
-# ============================================================================
-# ESTILOS Y DISEÑO
-# ============================================================================
+@st.cache_data(ttl=60)
+def load_data():
+    return _load(DATA_FILE, {'products':[],'config':{'destinos':{},'grupos':{},'minimos':{}},'pedidos':[]})
 
-st.markdown("""
-    <style>
-        .main-header {
-            font-size: 2.5em;
-            font-weight: bold;
-            color: #1f77b4;
-            margin-bottom: 10px;
-        }
-        .tab-header {
-            font-size: 1.8em;
-            font-weight: bold;
-            color: #2ca02c;
-        }
-        .success-box {
-            background-color: #d4edda;
-            padding: 15px;
-            border-radius: 8px;
-            border-left: 4px solid #28a745;
-        }
-    </style>
-""", unsafe_allow_html=True)
+def load_clients(): return _load(CLIENTS_FILE, {})
+def load_pedidos(): return _load(PEDIDOS_FILE, [])
+def load_historial(): return _load(HIST_FILE, [])
+def load_email_log(): return _load(EMAIL_FILE, [])
+def save_data(d): _save(DATA_FILE,d); st.cache_data.clear()
+def save_clients(c): _save(CLIENTS_FILE,c)
+def save_pedidos(p): _save(PEDIDOS_FILE,p)
+def save_historial(h2): _save(HIST_FILE,h2)
+def save_email_log(e): _save(EMAIL_FILE,e)
 
-# ============================================================================
-# HEADER PRINCIPAL
-# ============================================================================
+# ─── AUTH ────────────────────────────────────────────────────────────────
+def init_session():
+    defaults = {'logged_in':False,'user_email':'','user_rol':'','user_nombre':'','carrito':[]}
+    for k,v in defaults.items():
+        if k not in st.session_state: st.session_state[k] = v
 
-st.markdown('<div class="main-header">🚀 EXPORT HARET - Sistema de Gestión de Pedidos</div>',
-            unsafe_allow_html=True)
+def login_page():
+    st.markdown('<div style="text-align:center;padding:40px 0 20px"><h1>🚀 Export Haret</h1><h3 style="color:#666">Sistema de Gestión de Pedidos</h3></div>', unsafe_allow_html=True)
+    c1,c2,c3 = st.columns([1,1.2,1])
+    with c2:
+        st.markdown('### 🔐 Iniciar Sesión')
+        email = st.text_input('Email', placeholder='usuario@exportharet.com')
+        pwd = st.text_input('Contraseña', type='password')
+        if st.button('Entrar →', use_container_width=True, type='primary'):
+            h = hashlib.md5(pwd.encode()).hexdigest()
+            if email in USERS and USERS[email]['pwd'] == h:
+                st.session_state.logged_in = True
+                st.session_state.user_email = email
+                st.session_state.user_rol = USERS[email]['rol']
+                st.session_state.user_nombre = USERS[email]['nombre']
+                st.rerun()
+            else: st.error('❌ Email o contraseña incorrectos')
+        st.markdown('---')
+        st.caption('👤 admin@exportharet.com / admin123')
+        st.caption('👤 ventas@exportharet.com / ventas123')
 
-# Mostrar si hay cambios pendientes
-if st.session_state.cambios_pendientes:
-    st.warning("⚠️ Hay cambios sin publicar. Haz clic en 'Publicar Cambios' para aplicarlos")
+# ─── BUSINESS LOGIC ──────────────────────────────────────────────────────
+def segmentar(email, clients):
+    peds = [p for p in load_pedidos() if p.get('client_email') == email]
+    if not peds: return {'segmento':'Nuevo','descuento':0.0,'credito':10000,'badge':'🆕 Nuevo'}
+    hoy = datetime.now()
+    p30 = [p for p in peds if (hoy-datetime.fromisoformat(p.get('fecha',hoy.isoformat()))).days<=30]
+    fac = sum(p.get('total_usd',0) for p in p30)
+    if fac>=5000 or len(p30)>=10: return {'segmento':'VIP','descuento':0.05,'credito':50000,'badge':'⭐ VIP'}
+    if len(peds)>=2: return {'segmento':'Regular','descuento':0.02,'credito':25000,'badge':'⚫ Regular'}
+    return {'segmento':'Nuevo','descuento':0.0,'credito':10000,'badge':'🆕 Nuevo'}
 
-st.markdown("---")
+def get_precio(codigo, destino, data):
+    for p in data.get('products',[]):
+        if p.get('codigo')==codigo:
+            base = p.get('precio_cif_usd',0)
+            factor = data.get('config',{}).get('destinos',{}).get(destino,{}).get('factor',1.0)
+            return round(base*factor,2)
+    return 0.0
 
-# ============================================================================
-# CREAR TABS
-# ============================================================================
+def reg_cambio_precio(cod, antes, desp, motivo='Manual'):
+    if antes==desp: return
+    pct = ((desp-antes)/antes*100) if antes>0 else 0
+    h2 = load_historial()
+    h2.append({'id':f'CHG-{len(h2)+1:05d}','fecha':datetime.now().isoformat(),'producto':cod,'antes':antes,'despues':desp,'cambio_pct':round(pct,2),'usuario':st.session_state.get('user_email','sistema'),'motivo':motivo})
+    save_historial(h2)
+    if abs(pct)>20: st.warning(f'⚠️ Cambio >20% en {cod}: {pct:+.1f}%')
 
-tab0, tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
-    "📊 Dashboard",
-    "📥 Cotización",
-    "📋 Hacer Pedido",
-    "💰 Actualizar Precios",
-    "📍 Todos los Destinos",
-    "⚙️ Configuración",
-    "👥 Clientes",
-    "📦 Pedidos"
-])
+def exportar_excel(pedidos):
+    try:
+        from openpyxl import Workbook
+        from openpyxl.styles import Font, PatternFill
+    except: st.error('Instalar openpyxl'); return None
+    wb = Workbook()
+    ws1 = wb.active; ws1.title='Resumen'
+    ws1['A1'] = 'EXPORT HARET - REPORTE'; ws1['A1'].font=Font(bold=True,color='FFFFFF'); ws1['A1'].fill=PatternFill(start_color='003E8C',end_color='003E8C',fill_type='solid')
+    estados={}
+    for p in pedidos:
+        e=p.get('estado','Recibido'); estados[e]=estados.get(e,{'c':0,'t':0}); estados[e]['c']+=1; estados[e]['t']+=p.get('total_usd',0)
+    ws1.append(['ESTADO','PEDIDOS','TOTAL USD'])
+    for e,d in sorted(estados.items()): ws1.append([e,d['c'],round(d['t'],2)])
+    ws2=wb.create_sheet('Pedidos')
+    ws2.append(['ID','CLIENTE','EMAIL','ESTADO','DESTINO','TOTAL USD','FECHA'])
+    for cell in ws2[1]: cell.font=Font(bold=True,color='FFFFFF'); cell.fill=PatternFill(start_color='003E8C',end_color='003E8C',fill_type='solid')
+    for p in sorted(pedidos,key=lambda x:x.get('fecha',''),reverse=True):
+        ws2.append([p.get('id','').upper(),p.get('client_name',''),p.get('client_email',''),p.get('estado',''),p.get('destino',''),round(p.get('total_usd',0),2),p.get('fecha','')[:10]])
+    ws3=wb.create_sheet('Productos')
+    ws3.append(['CODIGO','PRODUCTO','CAJAS','PALLETS','PRECIO','TOTAL'])
+    for cell in ws3[1]: cell.font=Font(bold=True,color='FFFFFF'); cell.fill=PatternFill(start_color='003E8C',end_color='003E8C',fill_type='solid')
+    for p in pedidos:
+        for pr in p.get('productos',[]): ws3.append([pr.get('codigo',''),pr.get('producto',''),pr.get('cajas',0),round(pr.get('pallets',0),2),round(pr.get('precio_usd',0),2),round(pr.get('cajas',0)*pr.get('precio_usd',0),2)])
+    out=io.BytesIO(); wb.save(out); out.seek(0)
+    return out.getvalue()
 
-# ============================================================================
-# TAB 0: DASHBOARD
-# ============================================================================
+def calc_sla(pedidos):
+    metas={'Recibido_Confirmado':4,'Confirmado_Preparando':2,'Preparando_Enviado':48,'Enviado_Entregado':168}
+    slas=[]
+    for p in pedidos:
+        hist=sorted(p.get('historial_estados',[]),key=lambda x:x.get('fecha',''))
+        for i in range(len(hist)-1):
+            try:
+                de=hist[i].get('estado',''); a=hist[i+1].get('estado','')
+                t1=datetime.fromisoformat(hist[i]['fecha']); t2=datetime.fromisoformat(hist[i+1]['fecha'])
+                h2=(t2-t1).total_seconds()/3600
+                meta=metas.get(f'{de}_{a}')
+                if meta: slas.append({'p':p.get('id',''),'tr':f'{de}→{a}','h':round(h2,1),'m':meta,'ok':h2<=meta})
+            except: pass
+    tot=len(slas) or 1
+    ok=sum(1 for s in slas if s['ok'])
+    return slas,{'pct':round(ok/tot*100,1),'crit':tot-ok,'tot':len(slas),'prom':round(sum(s['h'] for s in slas)/tot,1)}
 
-with tab0:
-    st.markdown('<div class="tab-header">📊 Dashboard</div>', unsafe_allow_html=True)
+# ─── TAB DASHBOARD ─────────────────────────────────────────────────────
+def render_dashboard():
+    st.markdown('## 📊 Dashboard Ejecutivo')
+    pedidos=load_pedidos(); clients=load_clients(); data=load_data()
+    c1,c2,c3,c4=st.columns(4)
+    fac=sum(p.get('total_usd',0) for p in pedidos)
+    vip=sum(1 for e in clients if segmentar(e,clients)['segmento']=='VIP')
+    hoy_peds=len([p for p in pedidos if p.get('fecha','')[:10]==str(date.today())])
+    c1.metric('📦 Pedidos',f'{len(pedidos):,}')
+    c2.metric('💵 Facturación',f'${fac:,.0f}','USD')
+    c3.metric('👥 Clientes',f'{len(clients):,}',f'{vip} VIP')
+    c4.metric('📬 Hoy',hoy_peds,'nuevos')
+    st.markdown('---')
+    st.markdown('### 📋 Pedidos por Estado')
+    ec={}
+    for p in pedidos: ec[p.get('estado','Recibido')]=ec.get(p.get('estado','Recibido'),0)+1
+    if ec:
+        cols=st.columns(len(ORDEN_ESTADOS))
+        for i,e in enumerate(ORDEN_ESTADOS): cols[i].metric(f"{ESTADO_ICONS.get(e,'')} {e}",ec.get(e,0))
+    else: st.info('ℹ️ No hay pedidos. Crea uno en el tab **Hacer Pedido**.')
+    st.markdown('---')
+    st.markdown('### ⏱ SLA')
+    _,ss=calc_sla(pedidos)
+    s1,s2,s3,s4=st.columns(4)
+    s1.metric('✅ Cumplimiento',f"{ss['pct']:.1f}%",'Meta:95%')
+    s2.metric('⚠️ Críticos',ss['crit'])
+    s3.metric('⏱ Prom.h',f"{ss['prom']:.1f}h")
+    s4.metric('📊 Trans.',ss['tot'])
+    st.markdown('---')
+    st.markdown('### ⭐ Segmentación')
+    segs={'VIP':0,'Regular':0,'Nuevo':0}
+    for e in clients: seg=segmentar(e,clients)['segmento']; segs[seg]=segs.get(seg,0)+1
+    sg1,sg2,sg3=st.columns(3)
+    sg1.metric('⭐ VIP',segs.get('VIP',0),'+5% desc.')
+    sg2.metric('⚫ Regular',segs.get('Regular',0),'+2% desc.')
+    sg3.metric('🆕 Nuevo',segs.get('Nuevo',0))
+    if data.get('products',[]):
+        st.markdown('---')
+        st.markdown(f"### 📦 Productos ({len(data['products'])} activos)")
+        df=pd.DataFrame([{'Código':p.get('codigo',''),'Producto':p.get('descripcion',''),'Precio CIF':f"${p.get('precio_cif_usd',0):.2f}"} for p in data['products'][:10]])
+        st.dataframe(df,use_container_width=True,hide_index=True)
 
-    col1, col2, col3, col4 = st.columns(4)
+# ─── TAB COTIZACION ───────────────────────────────────────────────────
+def render_cotizacion():
+    st.markdown('## 📄 Cotización - Gestión de Datos')
+    st.info('Sube tu archivo Cotizaciones.xlsx con las hojas: CONFIGURACION, TABLA PRECIOS, TODOS DESTINOS')
+    uploaded=st.file_uploader('Selecciona tu archivo Excel',type=['xlsx','xls'],key='xl_up')
+    if uploaded:
+        try:
+            with open('Cotizaciones.xlsx','wb') as f: f.write(uploaded.getvalue())
+            xl=pd.ExcelFile('Cotizaciones.xlsx')
+            st.success(f'✅ Archivo cargado. Hojas: {", ".join(xl.sheet_names)}')
+            products=[]; destinos_cfg={}; snl={s.lower():s for s in xl.sheet_names}
+            # Leer precios
+            ps=snl.get('tabla precios',snl.get('precios',xl.sheet_names[0]))
+            df=pd.read_excel('Cotizaciones.xlsx',sheet_name=xl.sheet_names[[s.lower() for s in xl.sheet_names].index(ps.lower()) if ps.lower() in [s.lower() for s in xl.sheet_names] else 0])
+            df.columns=[str(c).strip().lower() for c in df.columns]
+            for _,row in df.dropna(subset=[df.columns[0]]).iterrows():
+                cod=str(row.iloc[0]).strip()
+                if not cod or cod=='nan': continue
+                dc=next((c for c in df.columns if 'desc' in c or 'producto' in c or 'nombre' in c),df.columns[1] if len(df.columns)>1 else None)
+                pc=next((c for c in df.columns if 'precio' in c or 'cif' in c or 'usd' in c),df.columns[2] if len(df.columns)>2 else None)
+                cc=next((c for c in df.columns if 'caja' in c or 'pallet' in c),None)
+                products.append({'codigo':cod,'descripcion':str(row.get(dc,'') if dc else '').strip(),'precio_cif_usd':float(row.get(pc,0) or 0 if pc else 0),'cajas_pallet':int(row.get(cc,200) or 200 if cc else 200),'activo':True})
+            # Leer destinos
+            dk=next((k for k in snl if 'destino' in k),None)
+            if dk:
+                dd=pd.read_excel('Cotizaciones.xlsx',sheet_name=snl[dk])
+                dd.columns=[str(c).strip().lower() for c in dd.columns]
+                for _,row in dd.dropna(subset=[dd.columns[0]]).iterrows():
+                    dn=str(row.iloc[0]).strip()
+                    if not dn or dn=='nan': continue
+                    mc=next((c for c in dd.columns if 'moneda' in c or 'currency' in c),None)
+                    fc=next((c for c in dd.columns if 'factor' in c or 'cif' in c or 'precio' in c),None)
+                    destinos_cfg[dn]={'moneda':str(row.get(mc,'USD')).strip() if mc else 'USD','factor':float(row.get(fc,1.0) or 1.0 if fc else 1.0)}
+            nueva={'products':products,'config':{'destinos':destinos_cfg,'grupos':{},'minimos':{}},'pedidos':[]}
+            save_data(nueva)
+            st.success(f'✅ {len(products)} productos y {len(destinos_cfg)} destinos importados!')
+            st.rerun()
+        except Exception as e: st.error(f'❌ Error: {e}')
+    data=load_data(); prods=data.get('products',[]); dests=data.get('config',{}).get('destinos',{})
+    if prods:
+        st.markdown('---')
+        st.markdown(f'### 📋 Productos ({len(prods)})')
+        st.dataframe(pd.DataFrame([{'Código':p.get('codigo',''),'Descripción':p.get('descripcion',''),'Precio CIF USD':p.get('precio_cif_usd',0),'Cajas/Pallet':p.get('cajas_pallet',200)} for p in prods]),use_container_width=True,hide_index=True)
+    if dests:
+        st.markdown(f'### 🌍 Destinos ({len(dests)})')
+        st.dataframe(pd.DataFrame([{'Destino':k,'Moneda':v.get('moneda','USD'),'Factor':v.get('factor',1.0)} for k,v in dests.items()]),use_container_width=True,hide_index=True)
 
-    with col1:
-        st.metric("👥 Total Clientes", len(st.session_state.clientes), "0")
+# ─── TAB HACER PEDIDO ────────────────────────────────────────────────
+def render_hacer_pedido():
+    st.markdown('## 🛒 Crear Nuevo Pedido')
+    data=load_data(); prods=data.get('products',[]); dests=data.get('config',{}).get('destinos',{})
+    if not prods:
+        st.warning('⚠️ No hay productos. Ve al tab **Cotización** y sube tu archivo Excel primero.')
+        return
+    clients=load_clients()
+    # Paso 1: Cliente
+    st.markdown('### 1️⃣ Datos del Cliente')
+    cl1,cl2=st.columns(2)
+    c_email=cl1.text_input('📧 Email',placeholder='cliente@empresa.com',key='hp_email')
+    c_name=cl2.text_input('👤 Nombre',placeholder='Nombre / Empresa',key='hp_nombre')
+    seg=None
+    if c_email and c_email in clients:
+        c=clients[c_email]; seg=segmentar(c_email,clients)
+        st.success(f'✅ Cliente: {c.get("nombre","")} | {seg["badge"]} | Desc: {seg["descuento"]*100:.0f}%')
+        if not c_name: c_name=c.get('nombre','')
+    elif c_email: st.info('🆕 Cliente nuevo - se registrará al guardar')
+    # Paso 2: Destino
+    st.markdown('### 2️⃣ Destino')
+    dest_opts=list(dests.keys()) if dests else ['Madrid/España','París/Francia','Londres/UK','Miami/USA']
+    destino=st.selectbox('🌍 Destino',dest_opts,key='hp_dest')
+    moneda=dests.get(destino,{}).get('moneda','USD') if dests else 'USD'
+    st.caption(f'Moneda destino: {moneda}')
+    # Paso 3: Productos
+    st.markdown('### 3️⃣ Agregar Productos')
+    pc1,pc2,pc3=st.columns([3,1,1])
+    prod_opts=[p.get('codigo','')+' - '+p.get('descripcion','') for p in prods]
+    psel=pc1.selectbox('Producto',['Seleccionar...']+prod_opts,key='hp_prod')
+    cajas=pc2.number_input('Cajas',min_value=1,value=100,step=50,key='hp_cajas')
+    pc3.markdown('<br>',unsafe_allow_html=True)
+    if pc3.button('➕ Agregar') and psel!='Seleccionar...':
+        cod=psel.split(' - ')[0]
+        pd_=next((p for p in prods if p.get('codigo')==cod),{})
+        precio=get_precio(cod,destino,data)
+        if seg: precio=round(precio*(1-seg['descuento']),2)
+        cxp=pd_.get('cajas_pallet',200) or 200
+        pallets=round(cajas/cxp,2)
+        item={'codigo':cod,'producto':pd_.get('descripcion',''),'cajas':cajas,'pallets':pallets,'precio_usd':precio,'total':round(cajas*precio,2)}
+        ex_idx=next((i for i,x in enumerate(st.session_state.carrito) if x['codigo']==cod),None)
+        if ex_idx is not None:
+            st.session_state.carrito[ex_idx]['cajas']+=cajas
+            st.session_state.carrito[ex_idx]['total']=round(st.session_state.carrito[ex_idx]['cajas']*precio,2)
+        else: st.session_state.carrito.append(item)
+        st.rerun()
+    # Carrito
+    if st.session_state.carrito:
+        st.markdown('#### 🛒 Carrito')
+        st.dataframe(pd.DataFrame(st.session_state.carrito)[['codigo','producto','cajas','pallets','precio_usd','total']],use_container_width=True,hide_index=True)
+        tot=sum(i['total'] for i in st.session_state.carrito)
+        tc1,tc2,tc3=st.columns(3)
+        tc1.metric('📦 Cajas',f'{sum(i["cajas"] for i in st.session_state.carrito):,}')
+        tc2.metric('📍 Pallets',f'{sum(i["pallets"] for i in st.session_state.carrito):.1f}')
+        tc3.metric('💰 Total',f'${tot:,.2f}')
+        if st.button('🗑️ Vaciar',key='vaciar'): st.session_state.carrito=[]; st.rerun()
+    # Paso 4
+    st.markdown('### 4️⃣ Confirmar')
+    notas=st.text_area('Notas',placeholder='Instrucciones especiales...',key='hp_notas')
+    if st.button('📤 GUARDAR PEDIDO',type='primary',use_container_width=True):
+        if not c_email: st.error('❌ Ingresa email del cliente')
+        elif not c_name: st.error('❌ Ingresa nombre del cliente')
+        elif not st.session_state.carrito: st.error('❌ Agrega productos al carrito')
+        else:
+            pid='PED-'+datetime.now().strftime('%Y%m%d-%H%M%S')
+            tot=sum(i['total'] for i in st.session_state.carrito)
+            ped={'id':pid,'client_email':c_email,'client_name':c_name,'destino':destino,'moneda':moneda,'productos':list(st.session_state.carrito),'total_usd':round(tot,2),'estado':'Recibido','fecha':datetime.now().isoformat(),'notas':notas,'historial_estados':[{'estado':'Recibido','fecha':datetime.now().isoformat(),'usuario':st.session_state.user_email}],'creado_por':st.session_state.user_email}
+            todos=load_pedidos(); todos.append(ped); save_pedidos(todos)
+            if c_email not in clients: clients[c_email]={'nombre':c_name,'email':c_email,'fecha_registro':datetime.now().isoformat(),'pedidos_ids':[]}
+            clients[c_email]['pedidos_ids']=clients[c_email].get('pedidos_ids',[])+[pid]
+            save_clients(clients)
+            el=load_email_log(); el.append({'id':f'EMAIL-{len(el)+1:05d}','destinatario':c_email,'asunto':f'Pedido {pid} recibido','tipo':'confirmacion','fecha':datetime.now().isoformat(),'estado':'simulado'}); save_email_log(el)
+            st.session_state.carrito=[]
+            st.success(f'✅ Pedido {pid} creado por ${tot:,.2f}')
+            st.balloons(); st.cache_data.clear()
 
-    with col2:
-        st.metric("📦 Total Pedidos", len(st.session_state.pedidos), "0")
+# ─── TAB PRECIOS ─────────────────────────────────────────────────────────
+def render_actualizar_precios():
+    st.markdown('## 💰 Actualizar Precios')
+    data=load_data(); prods=data.get('products',[])
+    if not prods: st.info('⚠️ No hay productos. Sube tu Excel en Cotización.'); return
+    st.markdown('### 📄 Precios - EDITABLE')
+    df=pd.DataFrame([{'Código':p.get('codigo',''),'Descripción':p.get('descripcion',''),'Precio CIF USD':p.get('precio_cif_usd',0),'Cajas/Pallet':p.get('cajas_pallet',200)} for p in prods])
+    edited=st.data_editor(df,use_container_width=True,hide_index=True,key='precios_ed',num_rows='fixed')
+    if st.button('💾 Guardar Precios',type='primary'):
+        cambios=0
+        for i,row in edited.iterrows():
+            cod=row['Código']; np2=float(row['Precio CIF USD'])
+            orig=next((p for p in prods if p.get('codigo')==cod),None)
+            if orig and abs(np2-orig.get('precio_cif_usd',0))>0.001:
+                reg_cambio_precio(cod,orig.get('precio_cif_usd',0),np2)
+                orig['precio_cif_usd']=np2; cambios+=1
+        if cambios>0: save_data(data); st.success(f'✅ {cambios} precios actualizados')
+        else: st.info('Sin cambios')
+    st.markdown('---')
+    st.markdown('### 📈 Historial de Cambios')
+    hist=load_historial()
+    if hist:
+        df_h=pd.DataFrame(hist[-30:][::-1])
+        df_h['fecha']=pd.to_datetime(df_h['fecha']).dt.strftime('%d/%m/%Y %H:%M')
+        st.dataframe(df_h[['fecha','producto','antes','despues','cambio_pct','usuario','motivo']].rename(columns={'fecha':'Fecha','producto':'Producto','antes':'Antes','despues':'Después','cambio_pct':'Cambio%','usuario':'Usuario','motivo':'Motivo'}),use_container_width=True,hide_index=True)
+        h1,h2,h3=st.columns(3)
+        h1.metric('📝 Total',len(hist)); h2.metric('📈 Aumentos',sum(1 for h2x in hist if h2x.get('cambio_pct',0)>0)); h3.metric('⚠️ >20%',sum(1 for h2x in hist if abs(h2x.get('cambio_pct',0))>20))
+    else: st.info('Sin historial de cambios')
 
-    with col3:
-        total_ingresos = sum([p.get("total", 0) for p in st.session_state.pedidos])
-        st.metric("💵 Ingresos Totales", f"${total_ingresos:,.2f}", "USD")
+# ─── TAB DESTINOS ────────────────────────────────────────────────────────
+def render_destinos():
+    st.markdown('## 🌍 Todos los Destinos - Tarifas')
+    data=load_data(); dests=data.get('config',{}).get('destinos',{})
+    if not dests: st.info('⚠️ Sube el Excel en Cotización para ver los destinos.'); return
+    st.dataframe(pd.DataFrame([{'Destino':k,'Moneda':v.get('moneda','USD'),'Factor CIF':v.get('factor',1.0)} for k,v in dests.items()]),use_container_width=True,hide_index=True)
 
-    with col4:
-        st.metric("📊 Productos", len(st.session_state.productos), "activos")
+# ─── TAB GESTION PEDIDOS ───────────────────────────────────────────────
+def render_gestion_pedidos():
+    st.markdown('## 📦 Gestión de Pedidos')
+    pedidos=load_pedidos()
+    f1,f2,f3=st.columns(3)
+    fe=f1.selectbox('Estado',['Todos']+ORDEN_ESTADOS,key='gp_e')
+    fc=f2.text_input('Cliente/ID',key='gp_c')
+    fd=f3.selectbox('Destino',['Todos']+sorted(set(p.get('destino','') for p in pedidos if p.get('destino'))),key='gp_d')
+    filt=[p for p in pedidos if (fe=='Todos' or p.get('estado')==fe) and (not fc or fc.lower() in (p.get('client_name','')+p.get('id','')).lower()) and (fd=='Todos' or p.get('destino')==fd)]
+    st.markdown(f'**✅ {len(filt)} pedidos**')
+    if filt:
+        xb=exportar_excel(filt)
+        if xb: st.download_button('📥 Excel',data=xb,file_name=f'pedidos_{date.today()}.xlsx',mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    st.markdown('---')
+    for ped in sorted(filt,key=lambda x:x.get('fecha',''),reverse=True)[:50]:
+        icon=ESTADO_ICONS.get(ped.get('estado',''),'📦')
+        with st.expander(f"{icon} #{ped.get('id','').upper()} • {ped.get('client_name','N/A')} • {ped.get('destino','')} • ${ped.get('total_usd',0):,.2f}"):
+            cl1,cl2,cl3=st.columns(3)
+            cl1.markdown(f"**Cliente:** {ped.get('client_name','')}"); cl1.markdown(f"**Email:** {ped.get('client_email','')}")
+            cl2.markdown(f"**Destino:** {ped.get('destino','')}"); cl2.markdown(f"**Fecha:** {ped.get('fecha','')[:10]}")
+            cl3.markdown(f"**Total:** ${ped.get('total_usd',0):,.2f}"); cl3.markdown(f"**Estado:** {ped.get('estado','')}")
+            if ped.get('productos'): st.dataframe(pd.DataFrame(ped['productos'])[['codigo','producto','cajas','pallets','precio_usd','total']],use_container_width=True,hide_index=True)
+            if ped.get('notas'): st.markdown(f"**Notas:** {ped['notas']}")
+            st.markdown('**Cambiar Estado:**')
+            ac1,ac2=st.columns([2,1])
+            ns=ac1.selectbox('Nuevo estado',ORDEN_ESTADOS,index=ORDEN_ESTADOS.index(ped.get('estado','Recibido')) if ped.get('estado') in ORDEN_ESTADOS else 0,key=f'est_{ped["id"]}')
+            ac2.markdown('<br>',unsafe_allow_html=True)
+            if ac2.button('✅ Actualizar',key=f'upd_{ped["id"]}'):
+                todos=load_pedidos()
+                for i,p in enumerate(todos):
+                    if p.get('id')==ped.get('id'):
+                        todos[i]['estado']=ns
+                        todos[i].setdefault('historial_estados',[]).append({'estado':ns,'fecha':datetime.now().isoformat(),'usuario':st.session_state.user_email})
+                        break
+                save_pedidos(todos); st.success(f'✅ Estado: {ns}'); st.cache_data.clear(); st.rerun()
 
-    st.markdown("---")
+# ─── TAB CONFIGURACION ───────────────────────────────────────────────
+def render_configuracion():
+    st.markdown('## ⚙️ Configuración del Sistema')
+    st.markdown('### 👤 Usuarios del Sistema')
+    df_u=pd.DataFrame([{'Email':e,'Nombre':v['nombre'],'Rol':v['rol']} for e,v in USERS.items()])
+    st.dataframe(df_u,use_container_width=True,hide_index=True)
+    st.markdown('---')
+    st.markdown('### 📧 Log de Emails')
+    elog=load_email_log()
+    if elog:
+        df_e=pd.DataFrame(elog[-20:][::-1])
+        st.dataframe(df_e[['id','destinatario','asunto','tipo','fecha','estado']].rename(columns={'id':'ID','destinatario':'Para','asunto':'Asunto','tipo':'Tipo','fecha':'Fecha','estado':'Estado'}),use_container_width=True,hide_index=True)
+    else: st.info('Sin emails registrados')
+    st.markdown('---')
+    st.markdown('### 🗃️ Archivos de Datos')
+    for fname in [DATA_FILE,CLIENTS_FILE,PEDIDOS_FILE,HIST_FILE,EMAIL_FILE]:
+        exists=os.path.exists(fname)
+        st.markdown(f"{'✅' if exists else '❌'} `{fname}`")
 
-    if st.session_state.datos_excel:
-        st.success("✅ Datos Excel cargados correctamente")
-        st.info(f"Última actualización: {st.session_state.datos_excel['fecha_carga']}")
+# ─── TAB CLIENTES ──────────────────────────────────────────────────────
+def render_clientes():
+    st.markdown('## 👥 Clientes')
+    clients=load_clients(); pedidos=load_pedidos()
+    if not clients: st.info('No hay clientes. Se crean al hacer pedidos.'); return
+    rows=[]
+    for e,c in clients.items():
+        seg=segmentar(e,clients)
+        mp=[p for p in pedidos if p.get('client_email')==e]
+        rows.append({'Email':e,'Nombre':c.get('nombre',''),'Segmento':seg['badge'],'Pedidos':len(mp),'Facturación':f"${sum(p.get('total_usd',0) for p in mp):,.2f}",'Descuento':f"{seg['descuento']*100:.0f}%",'Crédito':f"${seg['credito']:,.0f}"})
+    st.dataframe(pd.DataFrame(rows),use_container_width=True,hide_index=True)
+    st.markdown('---')
+    sel=st.selectbox('Detalle de cliente',['']+ list(clients.keys()),key='cli_d')
+    if sel:
+        c=clients[sel]; seg=segmentar(sel,clients); mp=[p for p in pedidos if p.get('client_email')==sel]
+        d1,d2=st.columns(2)
+        d1.markdown(f"**Nombre:** {c.get('nombre','')}\n\n**Email:** {sel}\n\n**Segmento:** {seg['badge']}")
+        d2.markdown(f"**Pedidos:** {len(mp)}\n\n**Facturación:** ${sum(p.get('total_usd',0) for p in mp):,.2f}\n\n**Descuento:** {seg['descuento']*100:.0f}%")
+        if mp:
+            st.dataframe(pd.DataFrame([{'ID':p.get('id',''),'Destino':p.get('destino',''),'Total':f"${p.get('total_usd',0):,.2f}",'Estado':p.get('estado',''),'Fecha':p.get('fecha','')[:10]} for p in sorted(mp,key=lambda x:x.get('fecha',''),reverse=True)]),use_container_width=True,hide_index=True)
 
-        col1, col2 = st.columns(2)
+# ─── TAB REPORTES ──────────────────────────────────────────────────────
+def render_reportes():
+    st.markdown('## 📊 Reportes y Analytics')
+    pedidos=load_pedidos(); clients=load_clients()
+    if not pedidos: st.info('No hay pedidos para analizar.'); return
+    fc1,fc2=st.columns(2)
+    fd=fc1.date_input('Desde',value=date.today()-timedelta(days=30),key='r_from')
+    fh=fc2.date_input('Hasta',value=date.today(),key='r_to')
+    pf=[p for p in pedidos if str(fd)<=p.get('fecha','')[:10]<=str(fh)]
+    st.markdown(f'**{len(pf)} pedidos en el período**')
+    k1,k2,k3,k4=st.columns(4)
+    fac=sum(p.get('total_usd',0) for p in pf)
+    k1.metric('💰 Facturación',f'${fac:,.0f}')
+    k2.metric('📦 Pedidos',len(pf))
+    k3.metric('🎫 Ticket Prom.',f'${fac/len(pf):,.0f}' if pf else '$0')
+    k4.metric('✅ Entregados',len([p for p in pf if p.get('estado')=='Entregado']))
+    st.markdown('---')
+    st.markdown('### 🌍 Por Destino')
+    dd={}
+    for p in pf: dd[p.get('destino','Otros')]=dd.get(p.get('destino','Otros'),0)+p.get('total_usd',0)
+    if dd: st.dataframe(pd.DataFrame(sorted(dd.items(),key=lambda x:x[1],reverse=True),columns=['Destino','Total USD']),use_container_width=True,hide_index=True)
+    st.markdown('---')
+    st.markdown('### 👑 Top Clientes')
+    cf={}
+    for p in pf: cf[p.get('client_email','')]=cf.get(p.get('client_email',''),0)+p.get('total_usd',0)
+    if cf:
+        t10=sorted(cf.items(),key=lambda x:x[1],reverse=True)[:10]
+        st.dataframe(pd.DataFrame([{'Cliente':clients.get(e,{}).get('nombre',e),'Email':e,'Total':f'${v:,.2f}'} for e,v in t10]),use_container_width=True,hide_index=True)
+    if pf:
+        st.markdown('---')
+        xb=exportar_excel(pf)
+        if xb: st.download_button('📥 Exportar Reporte',data=xb,file_name=f'reporte_{fd}_{fh}.xlsx',mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',type='primary')
 
-        with col1:
-            st.subheader("📋 Resumen de Productos")
-            if st.session_state.productos:
-                df_resumen = pd.DataFrame(st.session_state.productos)
-                st.dataframe(df_resumen[["codigo", "nombre", "kg_caja", "fob_base"]],
-                           use_container_width=True)
+# ─── MAIN ─────────────────────────────────────────────────────────────────
+def main():
+    init_session()
+    if not st.session_state.logged_in:
+        login_page()
+        return
 
-        with col2:
-            st.subheader("🌍 Destinos Disponibles")
-            if st.session_state.destinos_monedas:
-                df_dest = pd.DataFrame([
-                    {"Destino": k, "Moneda": v["moneda"], "CIF USD": v["cif"]}
-                    for k, v in st.session_state.destinos_monedas.items()
-                ])
-                st.dataframe(df_dest, use_container_width=True)
-    else:
-        st.warning("⚠️ No hay datos cargados. Sube un archivo Excel en el tab 'Cotización'")
+    # Header
+    st.markdown('<div style="background:linear-gradient(90deg,#003E8C,#0066CC);padding:16px 24px;border-radius:8px;margin-bottom:20px;"><h2 style="color:white;margin:0">🚀 EXPORT HARET - Sistema de Gestión de Pedidos v5.0</h2></div>', unsafe_allow_html=True)
 
-# ============================================================================
-# TAB 1: COTIZACIÓN - EDITABLE
-# ============================================================================
+    # Sidebar
+    st.sidebar.markdown(f'# 🚀 Export Haret v5.0')
+    st.sidebar.markdown(f'**{st.session_state.user_nombre}** | {st.session_state.user_rol}')
+    st.sidebar.markdown('---')
+    pedidos=load_pedidos(); clients=load_clients()
+    st.sidebar.metric('📦 Pedidos',len(pedidos))
+    st.sidebar.metric('💵 Facturación',f"${sum(p.get('total_usd',0) for p in pedidos):,.0f}")
+    st.sidebar.metric('👥 Clientes',len(clients))
+    pending=len([p for p in pedidos if p.get('estado') in ['Recibido','Confirmado','Preparando']])
+    st.sidebar.metric('⏳ En proceso',pending)
+    st.sidebar.markdown('---')
+    if st.sidebar.button('🚪 Cerrar Sesión',use_container_width=True):
+        st.session_state.logged_in=False; st.rerun()
+    st.sidebar.caption('Export Haret © 2026')
 
-with tab1:
-    st.markdown('<div class="tab-header">📥 Cotización - Gestión de Datos</div>', unsafe_allow_html=True)
-
-    # Sección de carga de Excel
-    st.subheader("📤 Cargar Archivo Excel")
-    st.info("Sube tu archivo Cotizaciones.xlsx con las hojas: CONFIGURACION, TABLA PRECIOS, TODOS DESTINOS")
-
-    archivo_subido = st.file_uploader(
-        "Selecciona tu archivo Excel",
-        type=['xlsx', 'xls'],
-        key="cotizacion_excel"
-    )
-
-    if archivo_subido is not None:
-        datos_procesados = cargar_y_procesar_excel(archivo_subido)
-
-        if datos_procesados:
-            st.session_state.datos_excel = datos_procesados
-            st.session_state.productos = datos_procesados["productos"]
-            st.success("✅ Archivo procesado correctamente!")
-            st.balloons()
-
-    st.markdown("---")
-
-    # TABLA EDITABLE DE PRODUCTOS
-    st.subheader("📋 Productos Identificados - EDITABLE")
-
-    if st.session_state.productos:
-        df_productos_edit = pd.DataFrame(st.session_state.productos)
-
-        # Data editor para productos
-        df_productos_editado = st.data_editor(
-            df_productos_edit,
-            use_container_width=True,
-            key="productos_editor",
-            num_rows="dynamic"
-        )
-
-        # Detectar cambios
-        if not df_productos_editado.equals(df_productos_edit):
-            st.session_state.cambios_pendientes = True
-
-    st.markdown("---")
-
-    # TABLA EDITABLE DE DESTINOS
-    st.subheader("🌍 Destinos Identificados - EDITABLE")
-
-    # Crear DataFrame de destinos con monedas
-    df_destinos_edit = pd.DataFrame([
-        {
-            "Destino": k,
-            "Moneda": v["moneda"],
-            "CIF USD/Caja": v["cif"]
-        }
-        for k, v in st.session_state.destinos_monedas.items()
+    # Tabs
+    tab1,tab2,tab3,tab4,tab5,tab6,tab7,tab8=st.tabs([
+        '📊 Dashboard',
+        '📄 Cotización',
+        '🛒 Hacer Pedido',
+        '💰 Precios',
+        '🌍 Destinos',
+        '⚙️ Config.',
+        '📦 Pedidos',
+        '👥 Clientes',
     ])
 
-    # Data editor para destinos
-    df_destinos_editado = st.data_editor(
-        df_destinos_edit,
-        use_container_width=True,
-        key="destinos_editor",
-        num_rows="dynamic"
-    )
-
-    # Detectar cambios
-    if not df_destinos_editado.equals(df_destinos_edit):
-        st.session_state.cambios_pendientes = True
-
-    st.markdown("---")
-
-    # BOTÓN PUBLICAR CAMBIOS
-    col1, col2, col3 = st.columns([2, 1, 1])
-
-    with col1:
-        if st.button("🚀 PUBLICAR CAMBIOS", key="publish_btn", use_container_width=True):
-            # Actualizar productos
-            st.session_state.productos = df_productos_editado.to_dict('records')
-
-            # Actualizar destinos y monedas
-            nuevos_destinos = {}
-            for idx, row in df_destinos_editado.iterrows():
-                destino = row["Destino"]
-                nuevos_destinos[destino] = {
-                    "moneda": row["Moneda"],
-                    "cif": row["CIF USD/Caja"]
-                }
-            st.session_state.destinos_monedas = nuevos_destinos
-
-            st.session_state.cambios_pendientes = False
-
-            st.markdown("""
-                <div class="success-box">
-                    <strong>✅ ¡Cambios Publicados!</strong><br>
-                    Los datos han sido actualizados en toda la aplicación.
-                </div>
-            """, unsafe_allow_html=True)
-
-            st.balloons()
-
-    with col2:
-        st.write("")  # Espaciador
-
-    with col3:
-        if st.button("❌ Descartar", key="discard_btn", use_container_width=True):
-            st.session_state.cambios_pendientes = False
-            st.rerun()
-
-# ============================================================================
-# TAB 2: HACER PEDIDO - INTELIGENTE
-# ============================================================================
-
-with tab2:
-    st.markdown('<div class="tab-header">📋 Hacer Pedido</div>', unsafe_allow_html=True)
-
-    if not st.session_state.productos:
-        st.warning("⚠️ Primero debes cargar un archivo Excel en el tab 'Cotización'")
-    else:
-        col1, col2 = st.columns(2)
-
-        with col1:
-            st.subheader("📋 Datos del Cliente")
-            cliente = st.text_input("Nombre del Cliente", key="cliente_input")
-            email = st.text_input("Email del Cliente", key="email_input")
-            telefono = st.text_input("Teléfono", key="phone_input")
-
-        with col2:
-            st.subheader("📍 Tipo de Precio")
-            tipo_precio = st.radio(
-                "Elige tipo de precio:",
-                ["FOB (Precio de Salida)", "CIF (Precio con Envío)"],
-                key="tipo_precio_radio"
-            )
-
-            if tipo_precio == "CIF (Precio con Envío)":
-                destino_selec = st.selectbox(
-                    "Selecciona País de Destino",
-                    list(st.session_state.destinos_monedas.keys()),
-                    key="destino_select"
-                )
-                moneda_destino = st.session_state.destinos_monedas[destino_selec]["moneda"]
-                st.info(f"💱 Moneda: {moneda_destino}")
-            else:
-                destino_selec = None
-                moneda_destino = "USD"
-
-        st.markdown("---")
-        st.subheader("📦 Agregar Productos al Pedido")
-
-        # Selector de producto
-        col1, col2, col3, col4 = st.columns(4)
-
-        with col1:
-            productos_lista = [f"{p['codigo']} - {p['nombre']}" for p in st.session_state.productos]
-            producto_selec_text = st.selectbox(
-                "Selecciona Producto",
-                productos_lista,
-                key="producto_select"
-            )
-            # Obtener índice y producto
-            producto_idx = [i for i, p in enumerate(st.session_state.productos)
-                          if f"{p['codigo']} - {p['nombre']}" == producto_selec_text][0]
-            producto_selec = st.session_state.productos[producto_idx]
-
-        with col2:
-            cantidad = st.number_input("Cantidad (cajas)", min_value=1, value=1, key="cantidad_input")
-
-        with col3:
-            # Mostrar precio según tipo
-            if tipo_precio == "FOB (Precio de Salida)":
-                precio = producto_selec.get("fob_base", 0)
-                st.metric("💰 Precio FOB USD", f"${precio:.2f}")
-            else:
-                cif_base = st.session_state.destinos_monedas[destino_selec]["cif"]
-                precio = cif_base
-                st.metric(f"💰 Precio CIF {moneda_destino}", f"${precio:.2f}")
-
-        with col4:
-            st.write("")  # Espaciador
-            if st.button("➕ Agregar", key="add_producto_btn"):
-                st.success(f"✅ {producto_selec['nombre']} agregado")
-
-        st.markdown("---")
-
-        # TABLA DE PRODUCTOS EN PEDIDO (Simulada)
-        st.subheader("📋 Productos en Este Pedido")
-
-        data_pedido = {
-            "Código": [producto_selec.get("codigo", "")],
-            "Producto": [producto_selec.get("nombre", "")],
-            "Cantidad": [cantidad],
-            "Kg/Caja": [producto_selec.get("kg_caja", 0)],
-            "Precio Unitario": [precio],
-            "Subtotal": [cantidad * precio]
-        }
-
-        df_pedido = pd.DataFrame(data_pedido)
-        st.dataframe(df_pedido, use_container_width=True)
-
-        st.markdown("---")
-
-        # RESUMEN FINANCIERO
-        st.subheader("💰 Resumen del Pedido")
-
-        col1, col2, col3 = st.columns(3)
-
-        subtotal = cantidad * precio
-        costo_caja = st.session_state.configuracion.get("costo_caja", 1.0)
-        flete = st.session_state.configuracion.get("flete_estandar", 2.35)
-
-        if tipo_precio == "CIF (Precio con Envío)":
-            total_cif = subtotal + (cantidad * flete)
-        else:
-            total_cif = subtotal
-
-        with col1:
-            st.metric("📦 Total Cajas", cantidad)
-
-        with col2:
-            st.metric("💵 Subtotal", f"${subtotal:,.2f}")
-
-        with col3:
-            st.metric("💰 TOTAL", f"${total_cif:,.2f}")
-
-        st.markdown("---")
-
-        if st.button("✅ Guardar Pedido", key="save_pedido"):
-            nuevo_pedido = {
-                "cliente": cliente,
-                "email": email,
-                "telefono": telefono,
-                "producto": producto_selec.get("nombre", ""),
-                "cantidad": cantidad,
-                "tipo_precio": tipo_precio,
-                "destino": destino_selec if destino_selec else "FOB",
-                "total": total_cif,
-                "fecha": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            }
-            st.session_state.pedidos.append(nuevo_pedido)
-
-            st.markdown("""
-                <div class="success-box">
-                    <strong>✅ ¡Pedido Guardado!</strong><br>
-                    El pedido ha sido registrado correctamente.
-                </div>
-            """, unsafe_allow_html=True)
-            st.balloons()
-
-# ============================================================================
-# TAB 3: ACTUALIZAR PRECIOS
-# ============================================================================
-
-with tab3:
-    st.markdown('<div class="tab-header">💰 Actualizar Precios</div>', unsafe_allow_html=True)
-
-    st.subheader("⚙️ Parámetros de Conversión de Monedas")
-
-    col1, col2 = st.columns(2)
-
-    with col1:
-        config_eur = st.number_input(
-            "Tipo de Cambio EUR/USD",
-            value=st.session_state.configuracion.get("tipo_cambio_eur", 1.164),
-            step=0.001
-        )
-
-        config_gbp = st.number_input(
-            "Tipo de Cambio GBP/USD",
-            value=st.session_state.configuracion.get("tipo_cambio_gbp", 1.27),
-            step=0.001
-        )
-
-    with col2:
-        config_chf = st.number_input(
-            "Tipo de Cambio CHF/USD",
-            value=st.session_state.configuracion.get("tipo_cambio_chf", 1.1),
-            step=0.001
-        )
-
-        config_aed = st.number_input(
-            "Tipo de Cambio AED/USD",
-            value=st.session_state.configuracion.get("tipo_cambio_aed", 3.67),
-            step=0.001
-        )
-
-    st.markdown("---")
-
-    col1, col2 = st.columns(2)
-
-    with col1:
-        costo_caja = st.number_input(
-            "Costo de la Caja (USD)",
-            value=st.session_state.configuracion.get("costo_caja", 1.0),
-            step=0.1
-        )
-
-    with col2:
-        flete = st.number_input(
-            "Flete Estándar (USD)",
-            value=st.session_state.configuracion.get("flete_estandar", 2.35),
-            step=0.1
-        )
-
-    if st.button("💾 Guardar Parámetros"):
-        st.session_state.configuracion["tipo_cambio_eur"] = config_eur
-        st.session_state.configuracion["tipo_cambio_gbp"] = config_gbp
-        st.session_state.configuracion["tipo_cambio_chf"] = config_chf
-        st.session_state.configuracion["tipo_cambio_aed"] = config_aed
-        st.session_state.configuracion["costo_caja"] = costo_caja
-        st.session_state.configuracion["flete_estandar"] = flete
-
-        st.success("✅ Parámetros guardados")
-
-# ============================================================================
-# TAB 4: TODOS LOS DESTINOS
-# ============================================================================
-
-with tab4:
-    st.markdown('<div class="tab-header">📍 Todos los Destinos - Tarifas</div>', unsafe_allow_html=True)
-
-    if st.session_state.destinos_monedas:
-        st.subheader("🌍 Comparación de Precios por Destino")
-
-        df_destinos = pd.DataFrame([
-            {"Destino": k, "Moneda": v["moneda"], "CIF USD/Caja": v["cif"]}
-            for k, v in st.session_state.destinos_monedas.items()
-        ])
-
-        df_destinos = df_destinos.sort_values("CIF USD/Caja")
-
-        st.dataframe(df_destinos, use_container_width=True)
-
-        st.markdown("---")
-        st.subheader("📊 Gráfico de Precios por Destino")
-
-        df_grafico = df_destinos.set_index("Destino")["CIF USD/Caja"]
-        st.bar_chart(df_grafico)
-    else:
-        st.warning("⚠️ No hay destinos cargados")
-
-# ============================================================================
-# TAB 5: CONFIGURACIÓN
-# ============================================================================
-
-with tab5:
-    st.markdown('<div class="tab-header">⚙️ Configuración del Sistema</div>', unsafe_allow_html=True)
-
-    if st.session_state.configuracion:
-        st.subheader("📋 Parámetros Actuales")
-
-        col1, col2 = st.columns(2)
-
-        with col1:
-            st.metric(
-                "Costo de Caja",
-                f"${st.session_state.configuracion.get('costo_caja', 0):.2f}"
-            )
-            st.metric(
-                "Flete Estándar",
-                f"${st.session_state.configuracion.get('flete_estandar', 0):.2f}"
-            )
-
-        with col2:
-            st.metric(
-                "Tipo de Cambio EUR",
-                f"{st.session_state.configuracion.get('tipo_cambio_eur', 0):.3f}"
-            )
-            st.metric(
-                "Tipo de Cambio GBP",
-                f"{st.session_state.configuracion.get('tipo_cambio_gbp', 0):.3f}"
-            )
-
-# ============================================================================
-# TAB 6: CLIENTES
-# ============================================================================
-
-with tab6:
-    st.markdown('<div class="tab-header">👥 Gestión de Clientes</div>', unsafe_allow_html=True)
-
-    st.subheader("➕ Nuevo Cliente")
-
-    col1, col2 = st.columns(2)
-
-    with col1:
-        nombre = st.text_input("Nombre del Cliente")
-        email = st.text_input("Email")
-
-    with col2:
-        telefono = st.text_input("Teléfono")
-        pais = st.text_input("País")
-
-    if st.button("✅ Agregar Cliente"):
-        nuevo_cliente = {"nombre": nombre, "email": email, "telefono": telefono, "pais": pais}
-        st.session_state.clientes.append(nuevo_cliente)
-        st.success("✅ Cliente agregado")
-
-    st.markdown("---")
-    st.subheader("📋 Lista de Clientes")
-
-    if st.session_state.clientes:
-        st.dataframe(pd.DataFrame(st.session_state.clientes), use_container_width=True)
-    else:
-        st.info("No hay clientes registrados")
-
-# ============================================================================
-# TAB 7: PEDIDOS
-# ============================================================================
-
-with tab7:
-    st.markdown('<div class="tab-header">📦 Gestión de Pedidos</div>', unsafe_allow_html=True)
-
-    if st.session_state.pedidos:
-        st.dataframe(pd.DataFrame(st.session_state.pedidos), use_container_width=True)
-    else:
-        st.info("No hay pedidos registrados")
-
-# ============================================================================
-# FOOTER
-# ============================================================================
-
-st.markdown("---")
-st.markdown("""
-    <div style="text-align: center; color: #666; font-size: 0.9em;">
-        <p>Export Haret © 2026 - Sistema Premium de Gestión de Pedidos</p>
-        <p>✨ Tablas editables | 💡 Precios inteligentes | 📊 Análisis en tiempo real</p>
-    </div>
-""", unsafe_allow_html=True)
+    with tab1: render_dashboard()
+    with tab2: render_cotizacion()
+    with tab3: render_hacer_pedido()
+    with tab4: render_actualizar_precios()
+    with tab5: render_destinos()
+    with tab6: render_configuracion()
+    with tab7: render_gestion_pedidos()
+    with tab8: render_clientes()
+
+    st.markdown('---')
+    st.markdown('<div style="text-align:center;color:#888;"><small>🚀 Export Haret v5.0 © 2026 | Sistema Profesional de Gestión de Pedidos</small></div>',unsafe_allow_html=True)
+
+if __name__=='__main__':
+    main()
