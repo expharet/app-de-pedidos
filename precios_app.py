@@ -665,7 +665,7 @@ def build_order_html(ped):
 <p><b>Tipo Precio:</b> {tipo} | <b>Destino:</b> {destino_str}</p>
 <table><thead><tr><th>Código</th><th>Producto</th><th>Cajas</th><th>Pallets</th><th>Precio/caja</th><th>Total</th></tr></thead><tbody>{rows}</tbody></table>
 <div style="text-align:right;margin-top:20px"><span class="total">TOTAL: ${total_usd:,.2f} USD</span></div>
-<p style="color:#888;font-size:0.9em">Export Haret © 2026 | orden@exportharet.com</p></body></html>'''
+<p style="color:#888;font-size:0.9em">Export Haret © 2026 | order@exportharet.com</p></body></html>'''
 
 
 def build_order_pdf(ped):
@@ -788,7 +788,7 @@ def build_order_pdf(ped):
     story.append(HRFlowable(width='100%', thickness=1, color=AZUL))
     story.append(Spacer(1, 0.2*cm))
     footer_style = ParagraphStyle('footer', fontSize=8, textColor=GRIS, alignment=TA_CENTER)
-    story.append(Paragraph('Export Haret © 2026 | orden@exportharet.com | Frutas Exóticas Premium', footer_style))
+    story.append(Paragraph('Export Haret © 2026 | order@exportharet.com | Frutas Exóticas Premium', footer_style))
 
     doc.build(story)
     buf.seek(0)
@@ -801,7 +801,7 @@ def log_email(destinatario, asunto, tipo_email):
 
 # ─── PORTAL PÚBLICO DE PEDIDOS ───────────────────────────────────────────────
 def send_order_email(ped):
-    """Envia el pedido por email a orden@exportharet.com usando SMTP configurado en st.secrets.
+    """Envia el pedido por email a order@exportharet.com usando SMTP configurado en st.secrets.
     Requiere en .streamlit/secrets.toml:
       [email]
       smtp_host = '...'
@@ -813,7 +813,7 @@ def send_order_email(ped):
     import smtplib
     from email.mime.multipart import MIMEMultipart
     from email.mime.text import MIMEText
-    DEST = 'orden@exportharet.com'
+    DEST = 'order@exportharet.com'
     pid = ped.get('id','')
     nombre = ped.get('client_name','')
     email_c = ped.get('client_email','')
@@ -863,7 +863,7 @@ def send_order_email(ped):
     TOTAL: ${total_usd:,.2f} USD</p>
   {f'<p><b>Notas:</b> {notas}</p>' if notas else ''}
 </div>
-<p style="color:#888;font-size:11px">Export Haret © 2026 | orden@exportharet.com</p>
+<p style="color:#888;font-size:11px">Export Haret © 2026 | order@exportharet.com</p>
 </body></html>'''
     subject = f'U0001F4E6 Nuevo Pedido {pid} — {nombre} ({empresa or email_c}) | ${total_usd:,.2f} USD'
     # Try SMTP send
@@ -901,7 +901,7 @@ def render_portal_pedido():
     st.markdown('<div style="background:linear-gradient(135deg,#003E8C,#0066CC,#0099FF);padding:20px 30px;border-radius:12px;margin-bottom:24px;text-align:center"><h1 style="color:white;margin:0;font-size:1.8em">🚀 Export Haret</h1><p style="color:rgba(255,255,255,0.85);margin:4px 0 0">Sistema de Pedidos — Frutas Exóticas Premium</p></div>',unsafe_allow_html=True)
 
     if not prods:
-        st.warning('⚠️ Catálogo no disponible. Contacte a orden@exportharet.com')
+        st.warning('⚠️ Catálogo no disponible. Contacte a order@exportharet.com')
         return
 
     portal_clients = load_portal_clients()
@@ -985,10 +985,10 @@ def render_portal_pedido():
                                     tp['historial_estados'] = tp.get('historial_estados',[]) + [{'estado':'Cancelado','fecha':datetime.now().isoformat(),'usuario':email_input}]
                                     break
                             save_pedidos(todos_peds)
-                            log_email('orden@exportharet.com', f'CANCELACION pedido {op_id} solicitada por {email_input}', 'cancelacion_cliente')
+                            log_email('order@exportharet.com', f'CANCELACION pedido {op_id} solicitada por {email_input}', 'cancelacion_cliente')
                             st.session_state[f'confirm_cancel_{op_id}'] = False
                             st.cache_data.clear()
-                            st.success(f'✅ Pedido {op_id} cancelado. Se notificó a orden@exportharet.com')
+                            st.success(f'✅ Pedido {op_id} cancelado. Se notificó a order@exportharet.com')
                             st.rerun()
                         if cc2.button('❌ No', key=f'no_cancel_{op_id}'):
                             st.session_state[f'confirm_cancel_{op_id}'] = False
@@ -1139,7 +1139,7 @@ def render_portal_pedido():
                 'pedidos': portal_clients.get(email_input, {}).get('pedidos', []) + [pid],
             }
             save_portal_clients(portal_clients)
-            # Log email y envio real a orden@exportharet.com
+            # Log email y envio real a order@exportharet.com
             log_email(email_input, f'Confirmación pedido {pid}', 'portal_cliente')
             send_order_email(ped)
             st.cache_data.clear()
@@ -1147,7 +1147,7 @@ def render_portal_pedido():
             # Guardar pedido en session para acciones post-guardado
             st.session_state['ultimo_pedido'] = ped
             st.session_state.portal_carrito = []
-            st.success(f'✅ **Pedido {pid} enviado a orden@exportharet.com** — Te contactaremos a {email_input} para la confirmación.')
+            st.success(f'✅ **Pedido {pid} enviado correctamente!** Recibirás confirmación en {email_input}.')
 
     # ── Acciones post-pedido ─────────────────────────────────────────────────
     if st.session_state.get('ultimo_pedido'):
@@ -1179,7 +1179,7 @@ def render_portal_pedido():
         # Email
         subject = f'Pedido {pid_saved} — Export Haret'
         body = f'Mi pedido {pid_saved} por ${tot_wa:,.2f} USD ha sido confirmado.'
-        mailto_url = f'mailto:orden@exportharet.com?subject={subject.replace(" ","%20")}&body={body.replace(" ","%20")}'
+        mailto_url = f'mailto:order@exportharet.com?subject={subject.replace(" ","%20")}&body={body.replace(" ","%20")}'
         ac3.link_button('📧 Enviar por Email', mailto_url, use_container_width=True)
 
         if st.button('🆕 Hacer otro pedido', key='nuevo_portal'):
@@ -1187,7 +1187,7 @@ def render_portal_pedido():
             st.rerun()
 
     st.markdown('---')
-    st.markdown('<div style="text-align:center;color:#888"><small>Export Haret © 2026 | orden@exportharet.com | Frutas Exóticas Premium</small></div>', unsafe_allow_html=True)
+    st.markdown('<div style="text-align:center;color:#888"><small>Export Haret © 2026 | order@exportharet.com | Frutas Exóticas Premium</small></div>', unsafe_allow_html=True)
 
 # ─── MAIN ────────────────────────────────────────────────────────────────────
 def main():
