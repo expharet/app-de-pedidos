@@ -197,13 +197,13 @@ def render_dashboard():
         for i,e in enumerate(ORDEN_ESTADOS): cols[i].metric(f"{ESTADO_ICONS.get(e,'')} {e}",ec.get(e,0))
     else: st.info('ℹ️ No hay pedidos. Crea uno en el tab **Hacer Pedido**.')
     st.markdown('---')
-    st.markdown('### ⏱ SLA')
-    _,ss=calc_sla(pedidos)
-    s1,s2,s3,s4=st.columns(4)
-    s1.metric('✅ Cumplimiento',f"{ss['pct']:.1f}%",'Meta:95%')
-    s2.metric('⚠️ Críticos',ss['crit'])
-    s3.metric('⏱ Prom.h',f"{ss['prom']:.1f}h")
-    s4.metric('📊 Trans.',ss['tot'])
+    with st.expander('⏱ SLA de Procesos', expanded=False):
+        _,ss=calc_sla(pedidos)
+        s1,s2,s3,s4=st.columns(4)
+        s1.metric('✅ Cumplimiento',f"{ss['pct']:.1f}%",'Meta:95%')
+        s2.metric('⚠️ Críticos',ss['crit'])
+        s3.metric('⏱ Prom.h',f"{ss['prom']:.1f}h")
+        s4.metric('📊 Trans.',ss['tot'])
     st.markdown('---')
     st.markdown('### ⭐ Segmentación')
     segs={'VIP':0,'Regular':0,'Nuevo':0}
@@ -215,7 +215,7 @@ def render_dashboard():
     if data.get('products',[]):
         st.markdown('---')
         st.markdown(f"### 📦 Productos ({len(data['products'])} activos)")
-        df=pd.DataFrame([{'Código':p.get('codigo',''),'Producto':p.get('descripcion',''),'Precio CIF':f"${p.get('precio_cif_usd',0):.2f}"} for p in data['products'][:10]])
+        df=pd.DataFrame([{'Código':p.get('codigo',''),'Producto':p.get('descripcion','') or p.get('producto',''),'Precio CIF':f"${p.get('precio_cif_usd',0):.2f}"} for p in data['products'][:10]])
         st.dataframe(df,use_container_width=True,hide_index=True)
 
 # ─── TAB COTIZACION ───────────────────────────────────────────────────
@@ -382,7 +382,9 @@ def render_cotizacion():
         } for p in prods if p.get('activo', True)])
         st.dataframe(df_prods, use_container_width=True, hide_index=True)
     if dests:
+        st.markdown('---')
         st.markdown(f'### 🌍 Destinos y Fletes ({len(dests)})')
+        st.caption('Flete en USD/caja a cada destino (incluido en precio CIF)')
         df_dests = pd.DataFrame([{
             'Destino': k,
             'Flete USD/caja': float(v) if isinstance(v, (int, float)) else v.get('factor', 0) if isinstance(v, dict) else 0
@@ -473,7 +475,7 @@ def render_actualizar_precios():
     data=load_data(); prods=data.get('products',[])
     if not prods: st.info('⚠️ No hay productos. Sube tu Excel en Cotización.'); return
     st.markdown('### 📄 Precios - EDITABLE')
-    df=pd.DataFrame([{'Código':p.get('codigo',''),'Descripción':p.get('descripcion',''),'Precio CIF USD':p.get('precio_cif_usd',0),'Cajas/Pallet':p.get('cajas_pallet',200)} for p in prods])
+    df=pd.DataFrame([{'Código':p.get('codigo',''),'Descripción':p.get('descripcion','') or p.get('producto',''),'Precio CIF USD':p.get('precio_cif_usd',0),'Cajas/Pallet':p.get('cajas_pallet',200)} for p in prods])
     edited=st.data_editor(df,use_container_width=True,hide_index=True,key='precios_ed',num_rows='fixed')
     if st.button('💾 Guardar Precios',type='primary'):
         cambios=0
@@ -516,7 +518,8 @@ def render_gestion_pedidos():
     fc=f2.text_input('Cliente/ID',key='gp_c')
     fd=f3.selectbox('Destino',['Todos']+sorted(set(p.get('destino','') for p in pedidos if p.get('destino'))),key='gp_d')
     filt=[p for p in pedidos if (fe=='Todos' or p.get('estado')==fe) and (not fc or fc.lower() in (p.get('client_name','')+p.get('id','')).lower()) and (fd=='Todos' or p.get('destino')==fd)]
-    st.markdown(f'**✅ {len(filt)} pedidos**')
+    _tot_filt = sum(p.get('total_usd',0) for p in filt)
+    st.info(f'📦 **{len(filt)} pedidos** filtrados | 💰 Total: $**{_tot_filt:,.2f}** USD')
     if filt:
         xb=exportar_excel(filt)
         if xb: st.download_button('📥 Excel',data=xb,file_name=f'pedidos_{date.today()}.xlsx',mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
@@ -528,20 +531,33 @@ def render_gestion_pedidos():
             cl1.markdown(f"**Cliente:** {ped.get('client_name','')}"); cl1.markdown(f"**Email:** {ped.get('client_email','')}")
             cl2.markdown(f"**Destino:** {ped.get('destino','')}"); cl2.markdown(f"**Fecha:** {ped.get('fecha','')[:10]}")
             cl3.markdown(f"**Total:** ${ped.get('total_usd',0):,.2f}"); cl3.markdown(f"**Estado:** {ped.get('estado','')}")
-            if ped.get('productos'): st.dataframe(pd.DataFrame(ped['productos'])[['codigo','producto','cajas','pallets','precio_usd','total']],use_container_width=True,hide_index=True)
+            if ped.get('productos'):
+                st.dataframe(
+                    pd.DataFrame(ped['productos'])[['codigo','producto','cajas','pallets','precio_usd','total']].rename(
+                        columns={'codigo':'Código','producto':'Producto','cajas':'Cajas','pallets':'Pallets','precio_usd':'Precio USD','total':'Total USD'}
+                    ),use_container_width=True,hide_index=True)
             if ped.get('notas'): st.markdown(f"**Notas:** {ped['notas']}")
-            st.markdown('**Cambiar Estado:**')
-            ac1,ac2=st.columns([2,1])
-            ns=ac1.selectbox('Nuevo estado',ORDEN_ESTADOS,index=ORDEN_ESTADOS.index(ped.get('estado','Recibido')) if ped.get('estado') in ORDEN_ESTADOS else 0,key=f'est_{ped["id"]}')
-            ac2.markdown('<br>',unsafe_allow_html=True)
-            if ac2.button('✅ Actualizar',key=f'upd_{ped["id"]}'):
-                todos=load_pedidos()
-                for i,p in enumerate(todos):
-                    if p.get('id')==ped.get('id'):
-                        todos[i]['estado']=ns
-                        todos[i].setdefault('historial_estados',[]).append({'estado':ns,'fecha':datetime.now().isoformat(),'usuario':st.session_state.user_email})
-                        break
-                save_pedidos(todos); st.success(f'✅ Estado: {ns}'); st.cache_data.clear(); st.rerun()
+                # PDF albarán del pedido
+                if REPORTLAB_OK:
+                    try:
+                        _pdf_b, _pdf_m, _pdf_x = build_order_pdf(ped)
+                        st.download_button('⬇️ Albarán PDF', data=_pdf_b, file_name=f"{ped.get('id','ped')}{_pdf_x}", mime=_pdf_m, key=f'pdf_adm_{ped.get("id","")}', use_container_width=True)
+                    except: pass
+            st.markdown('**Cambiar Estado — clic rápido:**')
+            estado_actual = ped.get('estado','Recibido')
+            qb_cols = st.columns(len(ORDEN_ESTADOS))
+            for qi, qe in enumerate(ORDEN_ESTADOS):
+                _icon = ESTADO_ICONS.get(qe,'')
+                _is_current = (qe == estado_actual)
+                if qb_cols[qi].button(f'{_icon} {qe}', key=f'qb_{ped["id"]}_{qe}', type='primary' if _is_current else 'secondary', use_container_width=True):
+                    if not _is_current:
+                        todos=load_pedidos()
+                        for _i,_p in enumerate(todos):
+                            if _p.get('id')==ped.get('id'):
+                                todos[_i]['estado']=qe
+                                todos[_i].setdefault('historial_estados',[]).append({'estado':qe,'fecha':datetime.now().isoformat(),'usuario':st.session_state.user_email})
+                                break
+                        save_pedidos(todos); st.cache_data.clear(); st.rerun()
 
 # ─── TAB CONFIGURACION ───────────────────────────────────────────────
 def render_configuracion():
@@ -557,6 +573,17 @@ def render_configuracion():
         st.dataframe(df_e[['id','destinatario','asunto','tipo','fecha','estado']].rename(columns={'id':'ID','destinatario':'Para','asunto':'Asunto','tipo':'Tipo','fecha':'Fecha','estado':'Estado'}),use_container_width=True,hide_index=True)
     else: st.info('Sin emails registrados')
     st.markdown('---')
+    st.markdown('### 📧 Estado SMTP (order@exportharet.com)')
+    try:
+        _smtp_cfg = st.secrets.get('email', {})
+        _smtp_host = _smtp_cfg.get('smtp_host', '')
+        if _smtp_host:
+            st.success(f'✅ SMTP activo: {_smtp_cfg.get("smtp_user","?")} → {_smtp_host}:{_smtp_cfg.get("smtp_port",587)} | Emails van a order@exportharet.com')
+        else:
+            st.warning('⚠️ SMTP no configurado — emails registrados solo en log local. Agregar en Streamlit Secrets: [email] smtp_host / smtp_user / smtp_pass')
+    except:
+        st.info('ℹ️ No se pudo leer secrets. Configura SMTP en Streamlit Cloud → App settings → Secrets.')
+    st.markdown('---')
     st.markdown('### 🗃️ Archivos de Datos')
     for fname in [DATA_FILE,CLIENTS_FILE,PEDIDOS_FILE,HIST_FILE,EMAIL_FILE]:
         exists=os.path.exists(fname)
@@ -571,7 +598,7 @@ def render_clientes():
     for e,c in clients.items():
         seg=segmentar(e,clients)
         mp=[p for p in pedidos if p.get('client_email')==e]
-        rows.append({'Email':e,'Nombre':c.get('nombre',''),'Segmento':seg['badge'],'Pedidos':len(mp),'Facturación':f"${sum(p.get('total_usd',0) for p in mp):,.2f}",'Descuento':f"{seg['descuento']*100:.0f}%",'Crédito':f"${seg['credito']:,.0f}"})
+        rows.append({'Nombre':c.get('nombre',''),'Email':e,'Segmento':seg['badge'],'Pedidos':len(mp),'Facturación':f"${sum(p.get('total_usd',0) for p in mp):,.2f}",'Descuento':f"{seg['descuento']*100:.0f}%",'Crédito':f"${seg['credito']:,.0f}"})
     st.dataframe(pd.DataFrame(rows),use_container_width=True,hide_index=True)
     st.markdown('---')
     sel=st.selectbox('Detalle de cliente',['']+ list(clients.keys()),key='cli_d')
@@ -837,7 +864,7 @@ def send_order_email(ped):
     dest_str = f'{tipo} → {destino}' if tipo == 'CIF' and destino else tipo
     html = f'''<html><body style="font-family:Arial,sans-serif;color:#333">
 <div style="background:#003E8C;padding:16px 24px;border-radius:8px">
-  <h2 style="color:white;margin:0">U0001F680 Export Haret — Nueva Orden Recibida</h2>
+  <h2 style="color:white;margin:0">🚀 Export Haret — Nueva Orden Recibida</h2>
 </div>
 <div style="padding:16px 0">
   <table style="width:100%;border-collapse:collapse;font-size:14px">
@@ -865,7 +892,7 @@ def send_order_email(ped):
 </div>
 <p style="color:#888;font-size:11px">Export Haret © 2026 | order@exportharet.com</p>
 </body></html>'''
-    subject = f'U0001F4E6 Nuevo Pedido {pid} — {nombre} ({empresa or email_c}) | ${total_usd:,.2f} USD'
+    subject = f'📦 Nuevo Pedido {pid} — {nombre} ({empresa or email_c}) | ${total_usd:,.2f} USD'
     # Try SMTP send
     try:
         cfg = st.secrets.get('email', {})
@@ -1262,8 +1289,8 @@ def main():
         return
 
     # Admin panel
-    st.markdown('<div style="background:linear-gradient(90deg,#003E8C,#0066CC);padding:16px 24px;border-radius:8px;margin-bottom:20px;"><h2 style="color:white;margin:0">🚀 EXPORT HARET — Administración v5.0</h2></div>', unsafe_allow_html=True)
-    st.sidebar.markdown(f'# 🚀 Export Haret v5.0')
+    st.markdown('<div style="background:linear-gradient(90deg,#003E8C,#0066CC);padding:16px 24px;border-radius:8px;margin-bottom:20px;"><h2 style="color:white;margin:0">🚀 EXPORT HARET — Panel de Administración</h2></div>', unsafe_allow_html=True)
+    st.sidebar.markdown(f'# 🚀 Export Haret')
     st.sidebar.markdown(f'**{st.session_state.user_nombre}** | {st.session_state.user_rol}')
     st.sidebar.markdown('---')
     pedidos = load_pedidos()
@@ -1274,22 +1301,22 @@ def main():
     pending = len([p for p in pedidos if p.get('estado') in ['Recibido','Confirmado','Preparando']])
     st.sidebar.metric('⏳ En proceso', pending)
     st.sidebar.markdown('---')
-    if st.sidebar.button('🚪 Cerrar Sesión', use_container_width=True):
-        st.session_state.logged_in = False
-        st.rerun()
+    st.sidebar.markdown('---')
     if st.sidebar.button('🌐 Ver Portal Clientes', use_container_width=True, key='admin_go_portal'):
         st.session_state.app_mode = 'portal'
         st.session_state.logged_in = False
         st.rerun()
-    st.sidebar.caption('Export Haret © 2026')
+    if st.sidebar.button('🚪 Cerrar Sesión', use_container_width=True):
+        st.session_state.logged_in = False
+        st.rerun()
+    st.sidebar.caption('Export Haret © 2026 | order@exportharet.com')
 
-    tab1,tab2,tab3,tab4,tab5,tab6,tab7,tab8=st.tabs([
+    tab1,tab2,tab3,tab4,tab5,tab6,tab7=st.tabs([
         '📊 Dashboard',
-        '📄 Cotización',
+        '📄 Cotización & Destinos',
         '🛒 Hacer Pedido',
         '💰 Precios',
-        '🌍 Destinos',
-        '⚙️ Config.',
+        '⚙️ Configuración',
         '📦 Pedidos',
         '👥 Clientes',
     ])
@@ -1297,12 +1324,11 @@ def main():
     with tab2: render_cotizacion()
     with tab3: render_hacer_pedido()
     with tab4: render_actualizar_precios()
-    with tab5: render_destinos()
-    with tab6: render_configuracion()
-    with tab7: render_gestion_pedidos()
-    with tab8: render_clientes()
+    with tab5: render_configuracion()
+    with tab6: render_gestion_pedidos()
+    with tab7: render_clientes()
     st.markdown('---')
-    st.markdown('<div style="text-align:center;color:#888;"><small>🚀 Export Haret v5.0 © 2026 | Sistema Profesional de Gestión de Pedidos</small></div>',unsafe_allow_html=True)
+    st.markdown('<div style="text-align:center;color:#888;"><small>🚀 Export Haret © 2026 | Sistema Profesional de Gestión de Pedidos</small></div>',unsafe_allow_html=True)
 
 if __name__=='__main__':
     main()
