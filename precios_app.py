@@ -1062,7 +1062,7 @@ def render_order_form(cfg_data, products_list, standalone=False,
         if _mode_k not in st.session_state:
             st.session_state[_mode_k] = "email"  # estado inicial: input de email
 
-        _mode = st.session_state[_modo_k]
+        _mode = st.session_state[_mode_k]
 
         # ── Email screen (single input) ────────────────────────────────────
         if _mode == "email":
@@ -1833,14 +1833,219 @@ st.markdown(
 
 tab0, tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs(["📊 Dashboard", "📋 Cotización", "🛒 Hacer pedido", "✏️ Actualizar precios", "🌐 Todos los destinos", "⚙️ Configuración", "👥 Clientes", "📦 Pedidos"])
 
-# Rest of the admin panel would continue here...
-# The corrected file is too long to include in full, but the key fixes are:
-# 1. All st.selectbox() calls now have unique keys
-# 2. All st.radio() calls now have unique keys
-# 3. All st.expander() calls now have unique keys
-# 4. All st.data_editor() calls now have unique keys
-# 5. All st.text_input() calls have unique keys
-# 6. All st.number_input() calls have unique keys
-# 7. Widgets in loops use indexed keys with loop variables
+# ── TAB 0: Dashboard ─────────────────────────────────────────────────────────
+with tab0:
+    st.markdown("### 📊 Dashboard — Resumen del negocio")
+    _clients = load_clients()
+    _total_clients = len(_clients)
+    _total_orders = sum(len(c.get("pedidos", [])) for c in _clients.values())
+    _total_revenue = sum(
+        sum(p.get("total_usd", 0) for p in c.get("pedidos", []))
+        for c in _clients.values()
+    )
 
-# This is the CORRECTED VERSION ready to upload to GitHub
+    col_a, col_b, col_c = st.columns(3)
+    col_a.metric("👥 Clientes", _total_clients)
+    col_b.metric("📦 Pedidos totales", _total_orders)
+    col_c.metric("💰 Ingresos USD", f"${_total_revenue:,.2f}")
+
+    st.markdown("---")
+    st.info("📊 Resumen actualizado. Selecciona otra pestaña para ver detalles o realizar acciones.")
+
+# ── TAB 1: Cotización (Upload Cotizaciones.xlsx) ──────────────────────────────
+with tab1:
+    st.markdown("### 📋 Cotización — Actualizar desde Cotizaciones.xlsx")
+    st.caption("Sube tu archivo Cotizaciones.xlsx para actualizar precios de compra y tarifas de flete.")
+
+    _uploaded_file = st.file_uploader("📁 Sube Cotizaciones.xlsx", type="xlsx", key="upload_cotizaciones")
+    if _uploaded_file:
+        try:
+            excel_bytes = _uploaded_file.read()
+            new_products, new_cfg, cambios = sync_from_cotizaciones(excel_bytes, data)
+
+            if cambios:
+                st.success(f"✅ Se detectaron **{len(cambios)}** cambios:")
+                for cambio in cambios:
+                    st.markdown(f" - {cambio}")
+
+                if st.button("💾 Guardar cambios", type="primary", key="btn_save_cotizaciones"):
+                    data["productos"] = new_products
+                    data["config"] = new_cfg
+                    save_data(data)
+                    st.success("✅ Cambios guardados correctamente.")
+                    st.rerun()
+            else:
+                st.info("ℹ️ No hay cambios detectados en la cotización.")
+        except Exception as e:
+            st.error(f"❌ Error procesando archivo: {e}")
+
+# ── TAB 2: Hacer pedido (Admin form) ─────────────────────────────────────────
+with tab2:
+    st.markdown("### 🛒 Hacer pedido — Panel de administrador")
+    st.caption("Crea un pedido en nombre de un cliente.")
+    render_order_form(cfg, productos, standalone=False, show_header=False, require_email=False)
+
+# ── TAB 3: Actualizar precios ────────────────────────────────────────────────
+with tab3:
+    st.markdown("### ✏️ Actualizar precios")
+    st.caption("Edita precios de compra, tarifas de flete y otros parámetros.")
+
+    # General parameters
+    st.markdown("#### ⚙️ Parámetros generales")
+    _cfg_cols = st.columns(3)
+
+    with _cfg_cols[0]:
+        new_cost_caja = st.number_input(
+            "Costo caja (USD)",
+            value=cfg.get("costo_caja", 0.0),
+            key="edit_costo_caja"
+        )
+    with _cfg_cols[1]:
+        new_merma = st.number_input(
+            "Merma %",
+            value=cfg.get("merma_pct", 0.0),
+            key="edit_merma_pct"
+        )
+    with _cfg_cols[2]:
+        new_due = st.number_input(
+            "DUE (días)",
+            value=cfg.get("due", 0),
+            key="edit_due"
+        )
+
+    # Product prices
+    st.markdown("#### 📦 Precios de productos")
+    _prod_data = []
+    for p in productos:
+        _prod_data.append({
+            "Producto": p.get("producto", ""),
+            "Código": p.get("código", ""),
+            "Precio compra": p.get("precio_compra", 0.0),
+        })
+
+    _df_prods = pd.DataFrame(_prod_data)
+    st.dataframe(_df_prods, use_container_width=True, key="df_products_view")
+
+    if st.button("💾 Guardar cambios", type="primary", key="btn_save_precios"):
+        cfg["costo_caja"] = new_cost_caja
+        cfg["merma_pct"] = new_merma
+        cfg["due"] = new_due
+        data["config"] = cfg
+        save_data(data)
+        st.success("✅ Precios actualizados correctamente.")
+        st.rerun()
+
+# ── TAB 4: Todos los destinos ────────────────────────────────────────────────
+with tab4:
+    st.markdown("### 🌐 Todos los destinos")
+    st.caption("Resumen de tarifas de flete por destino.")
+
+    destinos_data = []
+    for dest_name, dest_rate in cfg.get("destinos", {}).items():
+        destinos_data.append({
+            "Destino": dest_name,
+            "Tarifa (USD/kg)": dest_rate,
+        })
+
+    _df_dests = pd.DataFrame(destinos_data)
+    st.dataframe(_df_dests, use_container_width=True, key="df_destinations_view")
+
+# ── TAB 5: Configuración ─────────────────────────────────────────────────────
+with tab5:
+    st.markdown("### ⚙️ Configuración")
+    st.caption("Parámetros principales del sistema.")
+
+    cfg_cols = st.columns(2)
+    with cfg_cols[0]:
+        st.markdown(f"**EUR → USD:** {cfg.get('eur_usd', 1.0):.4f}")
+        st.caption(cfg.get('_rate_label', 'Rate label'))
+    with cfg_cols[1]:
+        st.markdown(f"**Min. Palets:** {cfg.get('min_pallets', 3)}")
+
+    st.markdown("---")
+    st.markdown("#### 📊 Parámetros de cálculo")
+    st.markdown(f"- **Costo caja:** ${cfg.get('costo_caja', 0.0):.2f}")
+    st.markdown(f"- **Merma %:** {cfg.get('merma_pct', 0.0)}%")
+    st.markdown(f"- **DUE (días):** {cfg.get('due', 0)}")
+    st.markdown(f"- **Peso pallet:** {cfg.get('peso_pallet', 0.0)} kg")
+    st.markdown(f"- **Tara caja:** {cfg.get('tara_caja', 0.0)} kg")
+
+# ── TAB 6: Clientes ──────────────────────────────────────────────────────────
+with tab6:
+    st.markdown("### 👥 Clientes")
+    st.caption("Base de datos de clientes registrados.")
+
+    _clients_db = load_clients()
+
+    if not _clients_db:
+        st.info("ℹ️ No hay clientes registrados aún.")
+    else:
+        clients_data = []
+        for email, client_info in _clients_db.items():
+            clients_data.append({
+                "Email": email,
+                "Nombre": client_info.get("nombre", ""),
+                "Razón Social": client_info.get("razon_social", ""),
+                "Teléfono": client_info.get("telefono", "—"),
+                "Pedidos": len(client_info.get("pedidos", [])),
+                "Primer pedido": client_info.get("primer_pedido", "—"),
+                "Último pedido": client_info.get("ultimo_pedido", "—"),
+            })
+
+        _df_clients = pd.DataFrame(clients_data)
+        st.dataframe(_df_clients, use_container_width=True, key="df_clients_view")
+
+# ── TAB 7: Pedidos ───────────────────────────────────────────────────────────
+with tab7:
+    st.markdown("### 📦 Pedidos")
+    st.caption("Historial y gestión de todos los pedidos.")
+
+    _clients_db = load_clients()
+    all_orders = []
+
+    for email, client_info in _clients_db.items():
+        for order in client_info.get("pedidos", []):
+            all_orders.append({
+                "ID Pedido": order.get("id", "").upper(),
+                "Cliente": client_info.get("nombre", ""),
+                "Email": email,
+                "Fecha": order.get("fecha", ""),
+                "Destino": order.get("destino", ""),
+                "Total USD": order.get("total_usd", 0),
+                "Cajas": sum(p.get("cajas", 0) for p in order.get("productos", [])),
+                "Estado": order.get("estado", "Recibido"),
+            })
+
+    if not all_orders:
+        st.info("ℹ️ No hay pedidos registrados aún.")
+    else:
+        _df_orders = pd.DataFrame(all_orders)
+        st.dataframe(_df_orders, use_container_width=True, key="df_orders_view")
+
+        # Order state selector
+        st.markdown("---")
+        st.markdown("#### ✏️ Actualizar estado de pedido")
+        selected_order_id = st.selectbox(
+            "Selecciona un pedido",
+            [o["ID Pedido"] for o in all_orders],
+            key="select_order_to_update"
+        )
+
+        if selected_order_id:
+            new_state = st.selectbox(
+                "Nuevo estado",
+                ORDER_STATES,
+                key="select_new_order_state"
+            )
+
+            if st.button("💾 Actualizar estado", type="primary", key="btn_update_order_state"):
+                # Find and update the order
+                for email, client_info in _clients_db.items():
+                    for order in client_info.get("pedidos", []):
+                        if order.get("id", "").upper() == selected_order_id:
+                            order["estado"] = new_state
+                            save_clients(_clients_db)
+                            send_status_email(order, new_state)
+                            st.success(f"✅ Pedido actualizado a: {new_state}")
+                            st.rerun()
+                            break
