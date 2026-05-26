@@ -98,19 +98,21 @@ def segmentar(email, clients):
     return {'segmento':'Nuevo','descuento':0.0,'credito':10000,'badge':'🆕 Nuevo'}
 
 def get_precio(codigo, destino, data):
-    for p in data.get('products',[]):
-        if p.get('codigo')==codigo:
-            base = p.get('precio_cif_usd',0)
-            dest_val = data.get('config',{}).get('destinos',{}).get(destino,{})
-            # Old format: float (CIF price), New format: dict with factor
+    """Calcula precio CIF = precio_compra + flete_destino."""
+    for p in data.get('products', []):
+        if p.get('codigo') == codigo:
+            # Support both old key names
+            base = p.get('precio_cif_usd', 0) or p.get('precio_compra', 0)
+            dest_val = data.get('config', {}).get('destinos', {}).get(destino, 0)
             if isinstance(dest_val, dict):
-                factor = dest_val.get('factor',1.0)
-            elif isinstance(dest_val, (int, float)) and dest_val > 0:
-                # Old format: dest_val IS the CIF price, return it directly
-                return round(float(dest_val), 2)
+                # New format: {'moneda': 'USD', 'factor': 2.35} — factor = flete USD/caja
+                flete = dest_val.get('factor', 0.0)
+            elif isinstance(dest_val, (int, float)):
+                # Original format: flete en USD/caja directamente
+                flete = float(dest_val)
             else:
-                factor = 1.0
-            return round(base*factor,2)
+                flete = 0.0
+            return round(base + flete, 2)
     return 0.0
 
 def reg_cambio_precio(cod, antes, desp, motivo='Manual'):
@@ -208,75 +210,118 @@ def render_dashboard():
 
 # ─── TAB COTIZACION ───────────────────────────────────────────────────
 
+
+# ── Mapa columnas Excel → código producto (igual que vigilar_excel.py) ──────
+COL_MAP = {
+     4: "F-PSG10",    5: "F-PN016",    6: "F-PPA01",
+     7: "F-PSR02",    8: "F-PSR05",    9: "F-PSM09",
+    10: "F-TAS04",   11: "F-GNB010",  12: "F-MPS03",
+    13: "F-CCN017",  14: "F-BCC013",  15: "F-AHSS012",
+    16: "F-BBB06",   17: "F-ZPT020",  18: "F-TX020",
+    19: "F-UVP08",   20: "F-UVP07",
+}
+
+
 def parse_excel_file(xl_path):
-    """Parses Cotizaciones.xlsx and returns (products, destinos_cfg) or raises exception."""
-    xl = pd.ExcelFile(xl_path)
-    snl = {s.lower(): s for s in xl.sheet_names}
-    products = []; destinos_cfg = {}
-    # ── Leer hoja de precios ──
-    ps = snl.get('tabla precios', snl.get('precios', xl.sheet_names[0]))
-    sheet_name = snl.get(ps.lower(), xl.sheet_names[0])
-    df = pd.read_excel(xl_path, sheet_name=sheet_name)
-    df.columns = [str(c).strip().lower() for c in df.columns]
-    dc = next((c for c in df.columns if 'desc' in c or 'producto' in c or 'nombre' in c), df.columns[1] if len(df.columns) > 1 else None)
-    pc = next((c for c in df.columns if 'precio' in c or 'cif' in c or 'usd' in c), df.columns[2] if len(df.columns) > 2 else None)
-    cc = next((c for c in df.columns if 'caja' in c or 'pallet' in c), None)
-    for _, row in df.iterrows():
-        cod = str(row.iloc[0]).strip()
-        if not cod or cod == 'nan' or cod == 'None': continue
-        # Skip header/note rows: code should look like a product code (not a long sentence)
-        if len(cod) > 30 or ' ' in cod.strip() and len(cod.split()) > 4: continue
-        # Safely convert price to float
-        raw_precio = row.get(pc, None) if pc else None
-        precio_num = pd.to_numeric(raw_precio, errors='coerce')
-        if pd.isna(precio_num): continue  # skip rows with non-numeric price
-        raw_cajas = row.get(cc, 200) if cc else 200
-        cajas_num = int(pd.to_numeric(raw_cajas, errors='coerce') or 200)
-        desc = str(row.get(dc, '') if dc else '').strip()
-        if desc == 'nan': desc = ''
+    """
+    Parsea Cotizaciones.xlsx usando openpyxl (igual que vigilar_excel.py).
+    Lee precios de la hoja TABLA PRECIOS (columnas 4-20, filas 32-83)
+    y destinos/config de la hoja CONFIGURACION.
+    Devuelve (products_updated, destinos_cfg) o raises exception.
+    """
+    from openpyxl import load_workbook
+    import io as _io
+
+    # Leer archivo
+    if isinstance(xl_path, str):
+        with open(xl_path, 'rb') as f:
+            wb_bytes = f.read()
+    else:
+        wb_bytes = xl_path.getvalue()
+
+    wb = load_workbook(_io.BytesIO(wb_bytes), data_only=True)
+
+    # Cargar datos existentes para mantener metadata de productos
+    data = load_data()
+    products_existing = {p['codigo']: p for p in data.get('products', [])}
+
+    # ── Leer precios de TABLA PRECIOS ────────────────────────────
+    if 'TABLA PRECIOS' not in wb.sheetnames:
+        raise ValueError("No se encontró la hoja 'TABLA PRECIOS'")
+    ws_pr = wb['TABLA PRECIOS']
+
+    # Para cada producto, tomar el último valor numérico > 0 en filas 32-83
+    latest_prices = {}
+    for col, cod in COL_MAP.items():
+        last = None
+        for r in range(32, 84):
+            v = ws_pr.cell(row=r, column=col).value
+            if isinstance(v, (int, float)) and v > 0:
+                last = float(v)
+        if last is not None:
+            latest_prices[cod] = last
+
+    # Construir lista de productos
+    products = []
+    for col, cod in sorted(COL_MAP.items()):
+        precio = latest_prices.get(cod, 0.0)
+        existing = products_existing.get(cod, {})
         products.append({
             'codigo': cod,
-            'descripcion': desc,
-            'precio_cif_usd': round(float(precio_num), 4),
-            'cajas_pallet': cajas_num,
-            'activo': True
+            'descripcion': existing.get('producto', existing.get('descripcion', '')),
+            'precio_cif_usd': precio,
+            'precio_compra': precio,
+            'cajas_pallet': existing.get('cajas_pallet', 200),
+            'grupo': existing.get('grupo', ''),
+            'activo': existing.get('activo', True),
         })
-    # ── Leer hoja de destinos ──
-    dk = next((k for k in snl if 'destino' in k), None)
-    if dk:
-        dd = pd.read_excel(xl_path, sheet_name=snl[dk])
-        dd.columns = [str(c).strip().lower() for c in dd.columns]
-        mc = next((c for c in dd.columns if 'moneda' in c or 'currency' in c), None)
-        fc = next((c for c in dd.columns if 'factor' in c or 'cif' in c or 'precio' in c), None)
-        for _, row in dd.iterrows():
-            dn = str(row.iloc[0]).strip()
-            if not dn or dn == 'nan' or dn == 'None': continue
-            raw_factor = row.get(fc, 1.0) if fc else 1.0
-            factor_num = pd.to_numeric(raw_factor, errors='coerce')
-            if pd.isna(factor_num): continue
-            moneda = str(row.get(mc, 'USD')).strip() if mc else 'USD'
-            if moneda == 'nan': moneda = 'USD'
-            destinos_cfg[dn] = {'moneda': moneda, 'factor': round(float(factor_num), 4)}
+
+    # ── Leer destinos y config de CONFIGURACION ──────────────────
+    destinos_cfg = {}
+    config_existing = data.get('config', {})
+    if 'CONFIGURACION' in wb.sheetnames:
+        ws_cfg = wb['CONFIGURACION']
+        for row in ws_cfg.iter_rows():
+            for cell in row:
+                v = str(cell.value or '')
+                dest = str(ws_cfg.cell(row=cell.row, column=2).value or '')
+                c3 = ws_cfg.cell(row=cell.row, column=3).value
+                if cell.column == 2 and dest and isinstance(c3, (int, float)) and c3 > 0:
+                    if dest in config_existing.get('destinos', {}):
+                        destinos_cfg[dest] = float(c3)
+        # Si no se leyeron destinos del Excel, mantener los existentes
+        if not destinos_cfg:
+            destinos_cfg = config_existing.get('destinos', {})
+    else:
+        destinos_cfg = config_existing.get('destinos', {})
+
     return products, destinos_cfg
 
 
 def auto_load_excel():
-    """Auto-loads Cotizaciones.xlsx on startup if products are not yet loaded or have no prices."""
+    """Auto-carga Cotizaciones.xlsx al inicio si los productos no tienen precios válidos."""
     data = load_data()
     prods = data.get('products', [])
-    # Check if products exist AND have valid prices (not all zeros)
-    if prods and any(p.get('precio_cif_usd', 0) > 0 for p in prods):
-        return  # already loaded with valid prices
+    # Re-parsear si no hay productos con precio_cif_usd válido
+    has_prices = any(
+        (p.get('precio_cif_usd', 0) or p.get('precio_compra', 0)) > 0
+        for p in prods
+    )
+    if has_prices:
+        return  # ya hay precios válidos
     xl_path = 'Cotizaciones.xlsx'
     if not os.path.exists(xl_path):
-        return  # file not found, wait for manual upload
+        return  # esperar upload manual
     try:
         products, destinos_cfg = parse_excel_file(xl_path)
-        if products:
-            nueva = {'products': products, 'config': {'destinos': destinos_cfg, 'grupos': {}, 'minimos': {}}, 'pedidos': []}
+        if products and any(p.get('precio_cif_usd', 0) > 0 for p in products):
+            nueva = data.copy()
+            nueva['products'] = products
+            nueva['config'] = data.get('config', {})
+            nueva['config']['destinos'] = destinos_cfg
             save_data(nueva)
     except Exception:
-        pass  # silently ignore auto-load errors
+        pass  # ignorar errores de auto-carga
 
 
 def render_cotizacion():
@@ -284,38 +329,54 @@ def render_cotizacion():
     data = load_data()
     prods = data.get('products', [])
     dests = data.get('config', {}).get('destinos', {})
-    # Show current status
-    if prods:
-        st.success(f'✅ Datos cargados: **{len(prods)} productos** y **{len(dests)} destinos** listos para usar.')
+    # Mostrar estado actual
+    prods_con_precio = [p for p in prods if (p.get('precio_cif_usd', 0) or p.get('precio_compra', 0)) > 0]
+    if prods_con_precio:
+        st.success(f'✅ Datos cargados: **{len(prods_con_precio)} productos con precio** y **{len(dests)} destinos** listos para usar.')
+    elif prods:
+        st.warning(f'⚠️ {len(prods)} productos encontrados pero sin precios. Sube el archivo Excel para actualizar.')
     else:
         st.warning('⚠️ No hay datos cargados. Sube tu archivo Excel para importar productos y destinos.')
     st.info('📎 Sube tu archivo Cotizaciones.xlsx con las hojas: CONFIGURACION, TABLA PRECIOS, TODOS DESTINOS')
-    uploaded = st.file_uploader('Actualizar archivo Excel (reemplaza los datos actuales)', type=['xlsx', 'xls'], key='xl_up')
+    uploaded = st.file_uploader('Actualizar archivo Excel (reemplaza los precios actuales)', type=['xlsx', 'xls'], key='xl_up')
     if uploaded:
         try:
             xl_bytes = uploaded.getvalue()
             with open('Cotizaciones.xlsx', 'wb') as f: f.write(xl_bytes)
-            import io as _io
-            xl = pd.ExcelFile(_io.BytesIO(xl_bytes))
-            st.success(f'✅ Archivo recibido. Hojas encontradas: {", ".join(xl.sheet_names)}')
-            products, destinos_cfg = parse_excel_file('Cotizaciones.xlsx')
-            if not products:
-                st.error('❌ No se encontraron productos válidos. Verifica que la hoja tenga códigos y precios numéricos.')
+            products, destinos_cfg = parse_excel_file(uploaded)
+            prods_validos = [p for p in products if p.get('precio_cif_usd', 0) > 0]
+            if not prods_validos:
+                st.error('❌ No se encontraron precios válidos. Verifica que la hoja TABLA PRECIOS tenga datos en las filas 32-83.')
             else:
-                nueva = {'products': products, 'config': {'destinos': destinos_cfg, 'grupos': {}, 'minimos': {}}, 'pedidos': []}
+                nueva = load_data()
+                nueva['products'] = products
+                nueva['config']['destinos'] = destinos_cfg
                 save_data(nueva)
-                st.success(f'✅ {len(products)} productos y {len(destinos_cfg)} destinos importados correctamente.')
+                st.success(f'✅ {len(prods_validos)} productos actualizados con precios correctos.')
                 st.rerun()
         except Exception as e:
             st.error(f'❌ Error procesando el archivo: {e}')
-    data = load_data(); prods = data.get('products', []); dests = data.get('config', {}).get('destinos', {})
+    data = load_data()
+    prods = data.get('products', [])
+    dests = data.get('config', {}).get('destinos', {})
     if prods:
         st.markdown('---')
         st.markdown(f'### 📋 Productos ({len(prods)})')
-        st.dataframe(pd.DataFrame([{'Código': p.get('codigo', ''), 'Descripción': p.get('descripcion', ''), 'Precio CIF USD': p.get('precio_cif_usd', 0), 'Cajas/Pallet': p.get('cajas_pallet', 200)} for p in prods]), use_container_width=True, hide_index=True)
+        df_prods = pd.DataFrame([{
+            'Código': p.get('codigo', ''),
+            'Descripción': p.get('descripcion', p.get('producto', '')),
+            'Precio Compra USD': p.get('precio_cif_usd', 0) or p.get('precio_compra', 0),
+            'Cajas/Pallet': p.get('cajas_pallet', 200),
+        } for p in prods if p.get('activo', True)])
+        st.dataframe(df_prods, use_container_width=True, hide_index=True)
     if dests:
-        st.markdown(f'### 🌍 Destinos ({len(dests)})')
-        st.dataframe(pd.DataFrame([{'Destino': k, 'Moneda': v.get('moneda', 'USD') if isinstance(v, dict) else 'USD', 'Factor': v.get('factor', 1.0) if isinstance(v, dict) else float(v) if isinstance(v, (int, float)) else 1.0} for k, v in dests.items()]), use_container_width=True, hide_index=True)
+        st.markdown(f'### 🌍 Destinos y Fletes ({len(dests)})')
+        df_dests = pd.DataFrame([{
+            'Destino': k,
+            'Flete USD/caja': float(v) if isinstance(v, (int, float)) else v.get('factor', 0) if isinstance(v, dict) else 0
+        } for k, v in dests.items()])
+        st.dataframe(df_dests, use_container_width=True, hide_index=True)
+
 
 def render_hacer_pedido():
     st.markdown('## 🛒 Crear Nuevo Pedido')
