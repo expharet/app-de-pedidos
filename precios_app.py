@@ -101,7 +101,8 @@ def get_precio(codigo, destino, data):
     for p in data.get('products',[]):
         if p.get('codigo')==codigo:
             base = p.get('precio_cif_usd',0)
-            factor = data.get('config',{}).get('destinos',{}).get(destino,{}).get('factor',1.0)
+            dest_val = data.get('config',{}).get('destinos',{}).get(destino,{})
+            factor = dest_val.get('factor',1.0) if isinstance(dest_val,dict) else float(dest_val) if isinstance(dest_val,(int,float)) else 1.0
             return round(base*factor,2)
     return 0.0
 
@@ -243,7 +244,7 @@ def render_cotizacion():
         st.dataframe(pd.DataFrame([{'Código':p.get('codigo',''),'Descripción':p.get('descripcion',''),'Precio CIF USD':p.get('precio_cif_usd',0),'Cajas/Pallet':p.get('cajas_pallet',200)} for p in prods]),use_container_width=True,hide_index=True)
     if dests:
         st.markdown(f'### 🌍 Destinos ({len(dests)})')
-        st.dataframe(pd.DataFrame([{'Destino':k,'Moneda':v.get('moneda','USD'),'Factor':v.get('factor',1.0)} for k,v in dests.items()]),use_container_width=True,hide_index=True)
+        st.dataframe(pd.DataFrame([{'Destino':k,'Moneda':v.get('moneda','USD') if isinstance(v,dict) else 'USD','Factor':v.get('factor',1.0) if isinstance(v,dict) else float(v) if isinstance(v,(int,float)) else 1.0} for k,v in dests.items()]),use_container_width=True,hide_index=True)
 
 # ─── TAB HACER PEDIDO ────────────────────────────────────────────────
 def render_hacer_pedido():
@@ -268,7 +269,8 @@ def render_hacer_pedido():
     st.markdown('### 2️⃣ Destino')
     dest_opts=list(dests.keys()) if dests else ['Madrid/España','París/Francia','Londres/UK','Miami/USA']
     destino=st.selectbox('🌍 Destino',dest_opts,key='hp_dest')
-    moneda=dests.get(destino,{}).get('moneda','USD') if dests else 'USD'
+    dest_v=dests.get(destino,{}) if dests else {}
+    moneda=dest_v.get('moneda','USD') if isinstance(dest_v,dict) else 'USD'
     st.caption(f'Moneda destino: {moneda}')
     # Paso 3: Productos
     st.markdown('### 3️⃣ Agregar Productos')
