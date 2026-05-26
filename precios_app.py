@@ -102,7 +102,14 @@ def get_precio(codigo, destino, data):
         if p.get('codigo')==codigo:
             base = p.get('precio_cif_usd',0)
             dest_val = data.get('config',{}).get('destinos',{}).get(destino,{})
-            factor = dest_val.get('factor',1.0) if isinstance(dest_val,dict) else float(dest_val) if isinstance(dest_val,(int,float)) else 1.0
+            # Old format: float (CIF price), New format: dict with factor
+            if isinstance(dest_val, dict):
+                factor = dest_val.get('factor',1.0)
+            elif isinstance(dest_val, (int, float)) and dest_val > 0:
+                # Old format: dest_val IS the CIF price, return it directly
+                return round(float(dest_val), 2)
+            else:
+                factor = 1.0
             return round(base*factor,2)
     return 0.0
 
@@ -271,6 +278,7 @@ def render_hacer_pedido():
     destino=st.selectbox('🌍 Destino',dest_opts,key='hp_dest')
     dest_v=dests.get(destino,{}) if dests else {}
     moneda=dest_v.get('moneda','USD') if isinstance(dest_v,dict) else 'USD'
+    dest_factor=dest_v.get('factor',1.0) if isinstance(dest_v,dict) else (float(dest_v) if isinstance(dest_v,(int,float)) else 1.0)
     st.caption(f'Moneda destino: {moneda}')
     # Paso 3: Productos
     st.markdown('### 3️⃣ Agregar Productos')
