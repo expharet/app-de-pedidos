@@ -30,6 +30,18 @@ st.set_page_config(
 # ─── CONSTANTES ───────────────────────────────────────────────────────────────
 ORDEN_ESTADOS = ["Recibido","Confirmado","Preparando","Enviado","Entregado","Cancelado"]
 ESTADO_ICONS = {"Recibido":"📤","Confirmado":"✅","Preparando":"📦","Enviado":"🚚","Entregado":"✨","Cancelado":"❌"}
+
+# Tramos de descuento por volumen (pallets)
+TRAMOS_VOLUMEN = [
+    {"min": 1,  "max": 2,  "descuento": 0.00, "label": "1-2 Pallets"},
+    {"min": 3,  "max": 5,  "descuento": 0.05, "label": "3-5 Pallets (-5%)"},
+    {"min": 6,  "max": 9,  "descuento": 0.10, "label": "6-9 Pallets (-10%)"},
+    {"min": 10, "max": 19, "descuento": 0.12, "label": "10-19 Pallets (-12%)"},
+    {"min": 20, "max": 9999, "descuento": 0.15, "label": "20+ Pallets (-15%)"},
+]
+
+MONEDAS = ["USD", "EUR", "GBP", "CHF", "AED", "CAD", "MXN", "BRL", "COP"]
+MONEDA_SIMBOLO = {"USD": "$", "EUR": "€", "GBP": "£", "CHF": "Fr", "AED": "د.إ", "CAD": "CA$", "MXN": "MX$", "BRL": "R$", "COP": "COP$"}
 PEDIDOS_FILE = "pedidos_data.json"
 CLIENTS_FILE = "clientes.json"
 HIST_FILE    = "precio_historial.json"
@@ -336,61 +348,197 @@ def auto_load_excel():
         pass  # ignorar errores de auto-carga
 
 
-def render_cotizacion():
-    st.markdown('## 📄 Cotización - Gestión de Datos')
+def render_catalogo():
+    """Tab unificado: Catálogo de productos + Destinos + Precios con volumen."""
+    st.markdown('## 📄 Catálogo, Precios & Destinos')
     data = load_data()
     prods = data.get('products', [])
     dests = data.get('config', {}).get('destinos', {})
-    # Mostrar estado actual
-    prods_con_precio = [p for p in prods if (p.get('precio_cif_usd', 0) or p.get('precio_compra', 0)) > 0]
-    if prods_con_precio:
-        st.success(f'✅ Datos cargados: **{len(prods_con_precio)} productos con precio** y **{len(dests)} destinos** listos para usar.')
-    elif prods:
-        st.warning(f'⚠️ {len(prods)} productos encontrados pero sin precios. Sube el archivo Excel para actualizar.')
-    else:
-        st.warning('⚠️ No hay datos cargados. Sube tu archivo Excel para importar productos y destinos.')
-    st.info('📎 Sube tu archivo Cotizaciones.xlsx con las hojas: CONFIGURACION, TABLA PRECIOS, TODOS DESTINOS')
-    uploaded = st.file_uploader('Actualizar archivo Excel (reemplaza los precios actuales)', type=['xlsx', 'xls'], key='xl_up')
-    if uploaded:
-        try:
-            xl_bytes = uploaded.getvalue()
-            with open('Cotizaciones.xlsx', 'wb') as f: f.write(xl_bytes)
-            products, destinos_cfg = parse_excel_file(uploaded)
-            prods_validos = [p for p in products if p.get('precio_cif_usd', 0) > 0]
-            if not prods_validos:
-                st.error('❌ No se encontraron precios válidos. Verifica que la hoja TABLA PRECIOS tenga datos en las filas 32-83.')
-            else:
-                nueva = load_data()
-                nueva['products'] = products
-                nueva['config']['destinos'] = destinos_cfg
-                save_data(nueva)
-                st.success(f'✅ {len(prods_validos)} productos actualizados con precios correctos.')
-                st.rerun()
-        except Exception as e:
-            st.error(f'❌ Error procesando el archivo: {e}')
-    data = load_data()
-    prods = data.get('products', [])
-    dests = data.get('config', {}).get('destinos', {})
-    if prods:
-        st.markdown('---')
-        st.markdown(f'### 📋 Productos ({len(prods)})')
-        df_prods = pd.DataFrame([{
-            'Código': p.get('codigo', ''),
-            'Descripción': p.get('descripcion', p.get('producto', '')),
-            'Precio Compra USD': p.get('precio_cif_usd', 0) or p.get('precio_compra', 0),
-            'Cajas/Pallet': p.get('cajas_pallet', 200),
-        } for p in prods if p.get('activo', True)])
-        st.dataframe(df_prods, use_container_width=True, hide_index=True)
-    if dests:
-        st.markdown('---')
-        st.markdown(f'### 🌍 Destinos y Fletes ({len(dests)})')
-        st.caption('Flete en USD/caja a cada destino (incluido en precio CIF)')
-        df_dests = pd.DataFrame([{
-            'Destino': k,
-            'Flete USD/caja': float(v) if isinstance(v, (int, float)) else v.get('factor', 0) if isinstance(v, dict) else 0
-        } for k, v in dests.items()])
-        st.dataframe(df_dests, use_container_width=True, hide_index=True)
 
+    sub1, sub2, sub3 = st.tabs(['📦 Productos & Precios', '🌍 Destinos & Monedas', '📎 Importar Excel'])
+
+    # ── SUB-TAB 1: Productos & Precios ──
+    with sub1:
+        st.markdown('### 📦 Productos del Catálogo')
+        if prods:
+            prods_ok = [p for p in prods if (p.get('precio_cif_usd',0) or p.get('precio_compra',0))>0]
+            st.success(f'✅ {len(prods_ok)} productos con precio activos | {len(prods)} en total')
+        else:
+            st.warning('⚠️ No hay productos. Importa un Excel o añade manualmente.')
+
+        with st.expander('➕ Añadir nuevo producto', expanded=False):
+            nc1,nc2,nc3 = st.columns([2,2,1])
+            n_cod = nc1.text_input('Código',placeholder='F-XXXX',key='np_cod')
+            n_desc = nc2.text_input('Descripción',placeholder='Nombre del fruto',key='np_desc')
+            n_precio = nc3.number_input('Precio USD/caja',min_value=0.0,value=5.0,step=0.1,format='%.2f',key='np_precio')
+            nc4,nc5,_ = st.columns([1,1,2])
+            n_cxp = nc4.number_input('Cajas/Pallet',min_value=1,value=200,step=10,key='np_cxp')
+            n_grupo = nc5.selectbox('Grupo',['A','B','C','D'],key='np_grupo')
+            if st.button('➕ Agregar Producto',key='add_prod_btn',type='primary'):
+                if n_cod and n_desc:
+                    if any(p.get('codigo')==n_cod for p in prods):
+                        st.error(f'❌ Ya existe el código {n_cod}')
+                    else:
+                        new_prod = {'codigo':n_cod,'descripcion':n_desc,'producto':n_desc,'precio_cif_usd':n_precio,'precio_compra':n_precio,'cajas_pallet':n_cxp,'grupo':n_grupo,'activo':True,'tramos_precio':[]}
+                        data['products'].append(new_prod)
+                        save_data(data)
+                        st.success(f'✅ Producto {n_cod} añadido')
+                        st.rerun()
+                else:
+                    st.error('❌ Código y descripción son requeridos')
+
+        st.markdown('---')
+        st.markdown('#### 📋 Tabla de Productos (editable)')
+        if prods:
+            df_edit = pd.DataFrame([{
+                'Código': p.get('codigo',''),
+                'Descripción': p.get('descripcion','') or p.get('producto',''),
+                'Precio USD/caja': float(p.get('precio_cif_usd',0) or p.get('precio_compra',0)),
+                'Cajas/Pallet': int(p.get('cajas_pallet',200) or 200),
+                'Grupo': p.get('grupo','A'),
+                'Activo': p.get('activo', True),
+            } for p in prods])
+            edited_df = st.data_editor(
+                df_edit, use_container_width=True, hide_index=True, key='prods_editor',
+                column_config={
+                    'Código': st.column_config.TextColumn(disabled=True, width='small'),
+                    'Descripción': st.column_config.TextColumn(width='medium'),
+                    'Precio USD/caja': st.column_config.NumberColumn(format='$%.2f', min_value=0, width='small'),
+                    'Cajas/Pallet': st.column_config.NumberColumn(min_value=1, width='small'),
+                    'Grupo': st.column_config.SelectboxColumn(options=['A','B','C','D'], width='small'),
+                    'Activo': st.column_config.CheckboxColumn(width='small'),
+                })
+            sc1, sc2 = st.columns([2,1])
+            if sc1.button('💾 Guardar cambios', type='primary', key='save_prods'):
+                cambios = 0
+                for _i2, row in edited_df.iterrows():
+                    cod = row['Código']
+                    for j, p in enumerate(data['products']):
+                        if p.get('codigo') == cod:
+                            np2 = float(row['Precio USD/caja'])
+                            old = float(p.get('precio_cif_usd',0) or p.get('precio_compra',0))
+                            if abs(np2 - old) > 0.001:
+                                reg_cambio_precio(cod, old, np2); cambios += 1
+                            data['products'][j].update({'precio_cif_usd':np2,'precio_compra':np2,'descripcion':row['Descripción'],'producto':row['Descripción'],'cajas_pallet':int(row['Cajas/Pallet']),'grupo':row['Grupo'],'activo':bool(row['Activo'])})
+                            break
+                save_data(data); st.success(f'✅ Guardado. {cambios} precios actualizados.'); st.rerun()
+            del_prod = sc2.selectbox('Eliminar producto:', ['']+[p.get('codigo','') for p in prods], key='del_prod_sel')
+            if sc2.button('🗑️ Eliminar producto', key='del_prod_btn'):
+                if del_prod:
+                    data['products'] = [p for p in data['products'] if p.get('codigo') != del_prod]
+                    save_data(data); st.success(f'✅ {del_prod} eliminado'); st.rerun()
+
+        st.markdown('---')
+        st.markdown('#### 📉 Precios por Volumen (Tramos de Pallets)')
+        st.info('💡 Descuentos automáticos según los pallets pedidos. Los tramos globales aplican a todos los productos. Se pueden personalizar por producto.')
+        df_tramos = pd.DataFrame([{'Tramo':t['label'],'Pallets mín':t['min'],'Pallets máx':t['max'] if t['max']<9999 else '20+','Descuento':f"{t['descuento']*100:.0f}%"} for t in TRAMOS_VOLUMEN])
+        st.dataframe(df_tramos, use_container_width=True, hide_index=True)
+
+        with st.expander('⚙️ Personalizar tramos por producto', expanded=False):
+            if prods:
+                sel_prod_tramo = st.selectbox('Selecciona producto', ['']+[f"{p.get('codigo','')} - {p.get('descripcion','') or p.get('producto','')}" for p in prods], key='tramo_prod_sel')
+                if sel_prod_tramo:
+                    cod_sel = sel_prod_tramo.split(' - ')[0]
+                    prod_obj = next((p for p in data['products'] if p.get('codigo')==cod_sel), None)
+                    if prod_obj is not None:
+                        tramos_custom = prod_obj.get('tramos_precio', [])
+                        tc_data = [{'Tramo':t['label'],'Min':t['min'],'Max':t['max'] if t['max']<9999 else 9999,'Descuento %':(next((c.get('descuento',t['descuento']) for c in tramos_custom if c.get('min')==t['min']),t['descuento']))*100,'Personalizado':any(c.get('min')==t['min'] for c in tramos_custom)} for t in TRAMOS_VOLUMEN]
+                        tc_df = pd.DataFrame(tc_data)
+                        tc_ed = st.data_editor(tc_df, use_container_width=True, hide_index=True, key=f'tc_{cod_sel}',
+                            column_config={'Tramo':st.column_config.TextColumn(disabled=True),'Min':st.column_config.NumberColumn(disabled=True),'Max':st.column_config.NumberColumn(disabled=True),'Descuento %':st.column_config.NumberColumn(format='%.1f%%',min_value=0,max_value=50),'Personalizado':st.column_config.CheckboxColumn()})
+                        if st.button(f'Guardar tramos para {cod_sel}', key=f'save_tramo_{cod_sel}'):
+                            nt = [{'min':int(r['Min']),'max':int(r['Max']),'descuento':float(r['Descuento %'])/100} for _,r in tc_ed.iterrows() if r['Personalizado']]
+                            for j,p in enumerate(data['products']):
+                                if p.get('codigo')==cod_sel: data['products'][j]['tramos_precio']=nt; break
+                            save_data(data); st.success(f'✅ Tramos guardados para {cod_sel}'); st.rerun()
+
+        with st.expander('📊 Historial de cambios de precio', expanded=False):
+            hist = load_historial()
+            if hist:
+                df_h = pd.DataFrame(hist[-30:][::-1])
+                df_h['fecha'] = pd.to_datetime(df_h['fecha']).dt.strftime('%d/%m %H:%M')
+                st.dataframe(df_h[['fecha','producto','antes','despues','cambio_pct']].rename(columns={'fecha':'Fecha','producto':'Prod.','antes':'Antes $','despues':'Despés $','cambio_pct':'%'}),use_container_width=True,hide_index=True)
+            else: st.info('Sin historial')
+
+    # ── SUB-TAB 2: Destinos & Monedas ──
+    with sub2:
+        st.markdown('### 🌍 Destinos, Fletes & Monedas')
+        rates = get_exchange_rates()
+        st.caption(f'💱 Cotizaciones: 1 USD = {rates.get("EUR",0.92):.4f} EUR | {rates.get("GBP",0.79):.4f} GBP | {rates.get("CHF",0.89):.4f} CHF | {rates.get("AED",3.67):.4f} AED | {rates.get("MXN",17.5):.2f} MXN')
+        with st.expander('💹 Todas las cotizaciones del día', expanded=False):
+            rate_data = [{'Moneda':m,'Símbolo':MONEDA_SIMBOLO.get(m,''),'Tipo cambio (vs USD)':rates.get(m,1),'Ej: $100 USD =':f"{MONEDA_SIMBOLO.get(m,'')}{rates.get(m,1)*100:.2f}"} for m in MONEDAS]
+            st.dataframe(pd.DataFrame(rate_data),use_container_width=True,hide_index=True)
+        st.markdown('---')
+        with st.expander('➕ Añadir nuevo destino', expanded=False):
+            da1,da2,da3,da4 = st.columns([2,1,1,1])
+            n_dest_name = da1.text_input('Nombre destino',placeholder='Ciudad/País',key='nd_name')
+            n_dest_flete = da2.number_input('Flete USD/caja',min_value=0.0,value=2.5,step=0.1,format='%.2f',key='nd_flete')
+            n_dest_moneda = da3.selectbox('Moneda',MONEDAS,key='nd_moneda')
+            da4.markdown('<br>',unsafe_allow_html=True)
+            if da4.button('➕ Agregar',key='add_dest_btn',type='primary'):
+                if n_dest_name:
+                    data['config']['destinos'][n_dest_name]={'factor':n_dest_flete,'moneda':n_dest_moneda}
+                    save_data(data); st.success(f'✅ Destino {n_dest_name} añadido'); st.rerun()
+                else: st.error('Ingresa el nombre del destino')
+        st.markdown('#### 📋 Destinos (editable)')
+        if dests:
+            dest_rows = []
+            for k,v in dests.items():
+                flete = v.get('factor',0) if isinstance(v,dict) else float(v) if isinstance(v,(int,float)) else 0
+                moneda = v.get('moneda','USD') if isinstance(v,dict) else 'USD'
+                dest_rows.append({'Destino':k,'Flete USD/caja':flete,'Moneda':moneda,'Ref: CIF/pallet':round(flete*200,0)})
+            df_de = pd.DataFrame(dest_rows)
+            df_de_ed = st.data_editor(df_de,use_container_width=True,hide_index=True,key='dests_editor',
+                column_config={'Destino':st.column_config.TextColumn(disabled=True),'Flete USD/caja':st.column_config.NumberColumn(format='$%.2f',min_value=0),'Moneda':st.column_config.SelectboxColumn(options=MONEDAS),'Ref: CIF/pallet':st.column_config.NumberColumn(disabled=True,format='$%.0f')})
+            dc1,dc2 = st.columns([2,1])
+            if dc1.button('💾 Guardar destinos',type='primary',key='save_dests'):
+                nd = {r['Destino']:{'factor':float(r['Flete USD/caja']),'moneda':r['Moneda']} for _,r in df_de_ed.iterrows()}
+                data['config']['destinos']=nd; save_data(data); st.success('✅ Destinos guardados'); st.rerun()
+            del_dest=dc2.selectbox('Eliminar:',['']+ list(dests.keys()),key='del_dest_sel')
+            if dc2.button('🗑️ Eliminar',key='del_dest_btn'):
+                if del_dest: del data['config']['destinos'][del_dest]; save_data(data); st.rerun()
+
+            st.markdown('---')
+            st.markdown('#### 📊 Simulador CIF por destino con conversión de moneda')
+            ssc1,ssc2,ssc3 = st.columns(3)
+            sim_opts=[f"{p.get('codigo','')} - {p.get('descripcion','') or p.get('producto','')}" for p in prods if p.get('activo',True)]
+            sim_prod=ssc1.selectbox('Producto',sim_opts if sim_opts else ['Sin productos'],key='sim_prod')
+            sim_pallets=ssc2.number_input('Pallets',min_value=1,value=5,key='sim_pallets')
+            desc_vol=get_descuento_volumen(sim_pallets)
+            ssc3.markdown(f'<span style="color:#0066CC;font-weight:bold">{get_tramo_label(sim_pallets)}<br>Descuento: {desc_vol*100:.0f}%</span>',unsafe_allow_html=True)
+            if sim_prod and sim_prod!='Sin productos':
+                sim_cod=sim_prod.split(' - ')[0]
+                fob=get_fob_price(sim_cod,data)
+                sim_rows=[]
+                for dn,dv in dests.items():
+                    flete=dv.get('factor',0) if isinstance(dv,dict) else float(dv) if isinstance(dv,(int,float)) else 0
+                    moneda=dv.get('moneda','USD') if isinstance(dv,dict) else 'USD'
+                    cif=round((fob+flete)*(1-desc_vol),4)
+                    cif_m=convertir_precio(cif,moneda)
+                    sim_rows.append({'Destino':dn,'Precio USD/caja':f'${cif:.2f}',f'Precio {moneda}/caja':f'{MONEDA_SIMBOLO.get(moneda,"")}{cif_m:.2f}','Total pallet (200c)':f'${cif*200:.0f}','Descuento vol.':f'{desc_vol*100:.0f}%'})
+                st.dataframe(pd.DataFrame(sim_rows),use_container_width=True,hide_index=True)
+        else:
+            st.info('⚠️ No hay destinos. Añade uno arriba.')
+
+    # ── SUB-TAB 3: Importar Excel ──
+    with sub3:
+        st.markdown('### 📎 Importar desde Excel')
+        prods_ok=[p for p in prods if (p.get('precio_cif_usd',0) or p.get('precio_compra',0))>0]
+        if prods_ok: st.success(f'✅ Datos cargados: **{len(prods_ok)} productos** y **{len(dests)} destinos**')
+        else: st.warning('⚠️ No hay datos. Sube tu Excel.')
+        st.info('📎 Sube Cotizaciones.xlsx con hojas: CONFIGURACION, TABLA PRECIOS, TODOS DESTINOS')
+        uploaded=st.file_uploader('Actualizar Excel',type=['xlsx','xls'],key='xl_up2')
+        if uploaded:
+            try:
+                xl_bytes=uploaded.getvalue()
+                with open('Cotizaciones.xlsx','wb') as f: f.write(xl_bytes)
+                products,destinos_cfg=parse_excel_file(uploaded)
+                prods_v=[p for p in products if p.get('precio_cif_usd',0)>0]
+                if not prods_v: st.error('❌ No se encontraron precios válidos.')
+                else:
+                    nueva=load_data(); nueva['products']=products; nueva['config']['destinos']=destinos_cfg
+                    save_data(nueva); st.success(f'✅ {len(prods_v)} productos actualizados.'); st.rerun()
+            except Exception as e: st.error(f'❌ Error: {e}')
 
 def render_hacer_pedido():
     st.markdown('## 🛒 Crear Nuevo Pedido')
@@ -429,7 +577,12 @@ def render_hacer_pedido():
         cod=psel.split(' - ')[0]
         pd_=next((p for p in prods if p.get('codigo')==cod),{})
         precio=get_precio(cod,destino,data)
-        if seg: precio=round(precio*(1-seg['descuento']),2)
+        # Aplicar descuento de segmento Y descuento de volumen
+        _cart_pals = sum(i.get('pallets',0) for i in st.session_state.carrito)
+        _vol_disc = get_descuento_volumen(max(_cart_pals,1))
+        _seg_disc = seg['descuento'] if seg else 0
+        _total_disc = min(_vol_disc + _seg_disc, 0.30)  # Max 30% combined
+        precio = round(precio * (1 - _total_disc), 2)
         cxp=pd_.get('cajas_pallet',200) or 200
         pallets=round(cajas/cxp,2)
         item={'codigo':cod,'producto':pd_.get('descripcion','') or pd_.get('producto',''),'cajas':cajas,'pallets':pallets,'precio_usd':precio,'total':round(cajas*precio,2)}
@@ -470,35 +623,6 @@ def render_hacer_pedido():
             st.cache_data.clear()
 
 # ─── TAB PRECIOS ─────────────────────────────────────────────────────────
-def render_actualizar_precios():
-    st.markdown('## 💰 Actualizar Precios')
-    data=load_data(); prods=data.get('products',[])
-    if not prods: st.info('⚠️ No hay productos. Sube tu Excel en Cotización.'); return
-    st.markdown('### 📄 Precios - EDITABLE')
-    df=pd.DataFrame([{'Código':p.get('codigo',''),'Descripción':p.get('descripcion','') or p.get('producto',''),'Precio CIF USD':p.get('precio_cif_usd',0),'Cajas/Pallet':p.get('cajas_pallet',200)} for p in prods])
-    edited=st.data_editor(df,use_container_width=True,hide_index=True,key='precios_ed',num_rows='fixed')
-    if st.button('💾 Guardar Precios',type='primary'):
-        cambios=0
-        for i,row in edited.iterrows():
-            cod=row['Código']; np2=float(row['Precio CIF USD'])
-            orig=next((p for p in prods if p.get('codigo')==cod),None)
-            if orig and abs(np2-orig.get('precio_cif_usd',0))>0.001:
-                reg_cambio_precio(cod,orig.get('precio_cif_usd',0),np2)
-                orig['precio_cif_usd']=np2; cambios+=1
-        if cambios>0: save_data(data); st.success(f'✅ {cambios} precios actualizados')
-        else: st.info('Sin cambios')
-    st.markdown('---')
-    st.markdown('### 📈 Historial de Cambios')
-    hist=load_historial()
-    if hist:
-        df_h=pd.DataFrame(hist[-30:][::-1])
-        df_h['fecha']=pd.to_datetime(df_h['fecha']).dt.strftime('%d/%m/%Y %H:%M')
-        st.dataframe(df_h[['fecha','producto','antes','despues','cambio_pct','usuario','motivo']].rename(columns={'fecha':'Fecha','producto':'Producto','antes':'Antes','despues':'Después','cambio_pct':'Cambio%','usuario':'Usuario','motivo':'Motivo'}),use_container_width=True,hide_index=True)
-        h1,h2,h3=st.columns(3)
-        h1.metric('📝 Total',len(hist)); h2.metric('📈 Aumentos',sum(1 for h2x in hist if h2x.get('cambio_pct',0)>0)); h3.metric('⚠️ >20%',sum(1 for h2x in hist if abs(h2x.get('cambio_pct',0))>20))
-    else: st.info('Sin historial de cambios')
-
-# ─── TAB DESTINOS ────────────────────────────────────────────────────────
 def render_destinos():
     st.markdown('## 🌍 Todos los Destinos - Tarifas')
     data=load_data(); dests=data.get('config',{}).get('destinos',{})
@@ -821,6 +945,60 @@ def build_order_pdf(ped):
     buf.seek(0)
     return buf.getvalue(), 'application/pdf', '.pdf'
 
+def get_descuento_volumen(pallets):
+    """Retorna el descuento (0.0-0.15) según los pallets pedidos."""
+    for t in TRAMOS_VOLUMEN:
+        if t["min"] <= pallets <= t["max"]:
+            return t["descuento"]
+    return TRAMOS_VOLUMEN[-1]["descuento"]
+
+def get_precio_con_volumen(codigo, destino, tipo_precio, data, pallets):
+    """Precio base (FOB o CIF) con descuento por volumen aplicado."""
+    if tipo_precio == "CIF" and destino:
+        base = get_cif_price(codigo, destino, data)
+    else:
+        base = get_fob_price(codigo, data)
+    # Descuento por tramo de volumen
+    desc = get_descuento_volumen(pallets)
+    # Descuento extra por producto si tiene tramos personalizados
+    for p in data.get("products", []):
+        if p.get("codigo") == codigo and p.get("tramos_precio"):
+            for t in p["tramos_precio"]:
+                if t.get("min", 0) <= pallets <= t.get("max", 9999):
+                    desc = t.get("descuento", desc)
+                    break
+    return round(base * (1 - desc), 4)
+
+def get_tramo_label(pallets):
+    """Retorna la etiqueta del tramo de volumen actual."""
+    for t in TRAMOS_VOLUMEN:
+        if t["min"] <= pallets <= t["max"]:
+            return t["label"]
+    return TRAMOS_VOLUMEN[-1]["label"]
+
+@st.cache_data(ttl=3600)
+def get_exchange_rates():
+    """Obtiene cotizaciones en tiempo real desde exchangerate-api.com (free tier)."""
+    try:
+        import urllib.request
+        url = "https://open.er-api.com/v6/latest/USD"
+        with urllib.request.urlopen(url, timeout=5) as r:
+            rates = __import__("json").loads(r.read())
+        if rates.get("result") == "success":
+            return rates.get("rates", {})
+    except Exception:
+        pass
+    # Fallback con tasas aproximadas si no hay internet
+    return {"USD":1,"EUR":0.92,"GBP":0.79,"CHF":0.89,"AED":3.67,"CAD":1.36,"MXN":17.5,"BRL":4.97,"COP":3950}
+
+def convertir_precio(precio_usd, moneda):
+    """Convierte precio USD a la moneda destino."""
+    if moneda == "USD":
+        return precio_usd
+    rates = get_exchange_rates()
+    rate = rates.get(moneda, 1)
+    return round(precio_usd * rate, 4)
+
 def log_email(destinatario, asunto, tipo_email):
     el = load_email_log()
     el.append({'id': f'EMAIL-{len(el)+1:05d}', 'destinatario': destinatario, 'asunto': asunto, 'tipo': tipo_email, 'fecha': datetime.now().isoformat(), 'estado': 'simulado'})
@@ -1050,6 +1228,17 @@ def render_portal_pedido():
     st.markdown('---')
     # ── PASO 3: Selección de Productos ───────────────────────────
     st.markdown('### 3️⃣ Selecciona tus Productos')
+    # Mostrar tramo de volumen actual
+    _current_pallets = sum(i.get('pallets',0) for i in st.session_state.portal_carrito)
+    if _current_pallets > 0:
+        _tramo = get_tramo_label(_current_pallets)
+        _disc = get_descuento_volumen(_current_pallets)
+        if _disc > 0:
+            st.success(f'📉 Descuento por volumen activo: **{_tramo}** — {_disc*100:.0f}% de descuento en todos los precios 🎉')
+        else:
+            st.info(f'📦 Carrito actual: **{_current_pallets:.1f} pallets** | Agrega más para activar descuentos de volumen')
+    else:
+        st.caption('💡 Descuentos por volumen: 3-5 pallets -5% | 6-9 pallets -10% | 10-19 pallets -12% | 20+ pallets -15%')
     st.markdown('Ingresa la cantidad para cada producto que deseas agregar al carrito:')
 
     # Cabecera de la grilla
@@ -1065,14 +1254,15 @@ def render_portal_pedido():
         cod = p.get('codigo','')
         nombre_prod = p.get('descripcion','') or p.get('producto','') or cod
         cxp = int(p.get('cajas_pallet', 200) or 200)
-        if tipo_precio == 'CIF' and destino:
-            precio_u = get_cif_price(cod, destino, data)
-        else:
-            precio_u = get_fob_price(cod, data)
+        # Precio con descuento por volumen acumulado en carrito
+        _total_pallets = sum(i.get('pallets',0) for i in st.session_state.portal_carrito)
+        precio_u = get_precio_con_volumen(cod, destino, tipo_precio, data, max(_total_pallets, 1))
 
         gc = st.columns([4, 2, 2, 2, 1])
         gc[0].markdown(f'**{nombre_prod}**  \n<small style="color:#888">{cod}</small>', unsafe_allow_html=True)
-        gc[1].markdown(f'<span style="color:#0066CC;font-weight:bold">${precio_u:.2f}</span>', unsafe_allow_html=True)
+        _disc = get_descuento_volumen(max(_total_pallets,1))
+        _disc_txt = f' <span style="color:#28a745;font-size:0.8em">-{_disc*100:.0f}%</span>' if _disc>0 else ''
+        gc[1].markdown(f'<span style="color:#0066CC;font-weight:bold">${precio_u:.2f}</span>{_disc_txt}', unsafe_allow_html=True)
         qty_key = f'portal_qty_{cod}_{idx}'
         unit_key = f'portal_unit_{cod}_{idx}'
         qty_val = gc[2].number_input('Cant', min_value=0, value=0, step=1, key=qty_key, label_visibility='collapsed')
@@ -1132,7 +1322,17 @@ def render_portal_pedido():
         m1.metric('📦 Total Cajas', f"{sum(i['cajas'] for i in st.session_state.portal_carrito):,}")
         m2.metric('📍 Total Pallets', f"{sum(i['pallets'] for i in st.session_state.portal_carrito):.2f}")
         m3.metric('💰 Total', f'${tot:,.2f} USD')
-        st.caption(f'Precios en {tipo_precio}' + (f' — Destino: {destino}' if tipo_precio=='CIF' and destino else ''))
+        # Show currency info for CIF orders
+    _rates_portal = get_exchange_rates()
+    if tipo_precio == 'CIF' and destino:
+        _dv = data.get('config',{}).get('destinos',{}).get(destino,{})
+        _moneda = _dv.get('moneda','USD') if isinstance(_dv,dict) else 'USD'
+        _rate = _rates_portal.get(_moneda, 1)
+        _tot_conv = round(tot * _rate, 2)
+        _sym = MONEDA_SIMBOLO.get(_moneda, '')
+        st.caption(f'Precios CIF — Destino: {destino} | Moneda: {_moneda} | Total equiv.: {_sym}{_tot_conv:,.2f} {_moneda} (1 USD = {_rate:.4f} {_moneda})')
+    else:
+        st.caption('Precios FOB — El flete corre por cuenta del comprador')
         rem_col, _ = st.columns([1, 3])
         if rem_col.button('🗑️ Vaciar Carrito', key='portal_vaciar'):
             st.session_state.portal_carrito = []
@@ -1311,22 +1511,20 @@ def main():
         st.rerun()
     st.sidebar.caption('Export Haret © 2026 | order@exportharet.com')
 
-    tab1,tab2,tab3,tab4,tab5,tab6,tab7=st.tabs([
+    tab1,tab2,tab3,tab4,tab5,tab6=st.tabs([
         '📊 Dashboard',
-        '📄 Cotización & Destinos',
+        '📄 Catálogo & Precios',
         '🛒 Hacer Pedido',
-        '💰 Precios',
         '⚙️ Configuración',
         '📦 Pedidos',
         '👥 Clientes',
     ])
     with tab1: render_dashboard()
-    with tab2: render_cotizacion()
+    with tab2: render_catalogo()
     with tab3: render_hacer_pedido()
-    with tab4: render_actualizar_precios()
-    with tab5: render_configuracion()
-    with tab6: render_gestion_pedidos()
-    with tab7: render_clientes()
+    with tab4: render_configuracion()
+    with tab5: render_gestion_pedidos()
+    with tab6: render_clientes()
     st.markdown('---')
     st.markdown('<div style="text-align:center;color:#888;"><small>🚀 Export Haret © 2026 | Sistema Profesional de Gestión de Pedidos</small></div>',unsafe_allow_html=True)
 
