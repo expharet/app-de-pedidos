@@ -365,7 +365,11 @@ def render_destinos():
     st.markdown('## 🌍 Todos los Destinos - Tarifas')
     data=load_data(); dests=data.get('config',{}).get('destinos',{})
     if not dests: st.info('⚠️ Sube el Excel en Cotización para ver los destinos.'); return
-    st.dataframe(pd.DataFrame([{'Destino':k,'Moneda':v.get('moneda','USD'),'Factor CIF':v.get('factor',1.0)} for k,v in dests.items()]),use_container_width=True,hide_index=True)
+    rows_d=[]
+    for k,v in dests.items():
+        if isinstance(v,dict): rows_d.append({'Destino':k,'Moneda':v.get('moneda','USD'),'CIF':v.get('factor',1.0)})
+        else: rows_d.append({'Destino':k,'Moneda':'USD/EUR','CIF USD':round(float(v),2) if isinstance(v,(int,float)) else 0})
+    st.dataframe(pd.DataFrame(rows_d),use_container_width=True,hide_index=True)
 
 # ─── TAB GESTION PEDIDOS ───────────────────────────────────────────────
 def render_gestion_pedidos():
