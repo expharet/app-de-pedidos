@@ -420,7 +420,7 @@ def render_hacer_pedido():
         if seg: precio=round(precio*(1-seg['descuento']),2)
         cxp=pd_.get('cajas_pallet',200) or 200
         pallets=round(cajas/cxp,2)
-        item={'codigo':cod,'producto':pd_.get('descripcion',''),'cajas':cajas,'pallets':pallets,'precio_usd':precio,'total':round(cajas*precio,2)}
+        item={'codigo':cod,'producto':pd_.get('descripcion','') or pd_.get('producto',''),'cajas':cajas,'pallets':pallets,'precio_usd':precio,'total':round(cajas*precio,2)}
         ex_idx=next((i for i,x in enumerate(st.session_state.carrito) if x['codigo']==cod),None)
         if ex_idx is not None:
             st.session_state.carrito[ex_idx]['cajas']+=cajas
