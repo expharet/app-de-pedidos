@@ -1231,6 +1231,34 @@ def render_gestion_pedidos():
 # ─── TAB CONFIGURACION ──────────────────────────────────────────────
 def render_configuracion():
     st.markdown('## ⚙️ Configuración del Sistema')
+    # DEBUG TEMPORAL: leer estructura Excel
+    if st.checkbox('🔍 DEBUG: Ver estructura Excel TABLA PRECIOS', key='dbg_excel'):
+        try:
+            from openpyxl import load_workbook as _lw
+            import io as _io
+            if os.path.exists('Cotizaciones.xlsx'):
+                _wb2 = _lw('Cotizaciones.xlsx', data_only=True)
+                _ws2 = _wb2['TABLA PRECIOS']
+                st.write('**Filas 1-10 (cabeceras):**')
+                for _r in range(1, 11):
+                    _row_vals = [str(_ws2.cell(row=_r, column=_c).value or '') for _c in range(1, 25)]
+                    if any(v.strip() for v in _row_vals):
+                        st.write(f'Fila {_r}: {_row_vals}')
+                st.write('**Filas 28-40 (zona precios):**')
+                for _r in range(28, 42):
+                    _row_vals = [str(_ws2.cell(row=_r, column=_c).value or '') for _c in range(1, 25)]
+                    if any(v.strip() for v in _row_vals):
+                        st.write(f'Fila {_r}: {_row_vals}')
+                st.write('**Col 1-3, filas 30-45:**')
+                for _r in range(30, 46):
+                    _row_vals = {_c: _ws2.cell(row=_r, column=_c).value for _c in range(1, 6)}
+                    if any(_row_vals.values()):
+                        st.write(f'Fila {_r}: {_row_vals}')
+            else:
+                st.error('No se encuentra Cotizaciones.xlsx en el servidor')
+        except Exception as _de:
+            st.error(f'Debug error: {_de}')
+    # END DEBUG
     st.markdown('### 👤 Usuarios del Sistema')
     _users_file = 'users_custom.json'
     _users_data = _load(_users_file, {})
