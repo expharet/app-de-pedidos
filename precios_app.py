@@ -24,7 +24,7 @@ st.set_page_config(
     page_title="Export Haret - Sistema de Pedidos",
     page_icon="🚀",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="collapsed"
 )
 
 # ─── CONSTANTES ───────────────────────────────────────────────────────────────
@@ -1180,13 +1180,34 @@ def get_exchange_rates():
         import urllib.request
         url = "https://open.er-api.com/v6/latest/USD"
         with urllib.request.urlopen(url, timeout=5) as r:
-            rates = __import__("json").loads(r.read())
-        if rates.get("result") == "success":
-            return rates.get("rates", {})
+            rates_data = __import__("json").loads(r.read())
+        if rates_data.get("result") == "success":
+            return rates_data.get("rates", {})
     except Exception:
         pass
-    # Fallback con tasas aproximadas si no hay internet
     return {"USD":1,"EUR":0.92,"GBP":0.79,"CHF":0.89,"AED":3.67,"CAD":1.36,"MXN":17.5,"BRL":4.97,"COP":3950}
+
+@st.cache_data(ttl=3600)
+def get_exchange_rates_meta():
+    """Cotizaciones con metadatos: timestamp, fuente, live flag."""
+    try:
+        import urllib.request
+        url = "https://open.er-api.com/v6/latest/USD"
+        with urllib.request.urlopen(url, timeout=5) as r:
+            rd = __import__("json").loads(r.read())
+        if rd.get("result") == "success":
+            ts_str = rd.get("time_last_update_utc", "")
+            try:
+                from datetime import datetime as _dt
+                ts_dt = _dt.strptime(ts_str, "%a, %d %b %Y %H:%M:%S +0000")
+                ts_fmt = ts_dt.strftime("%d/%m/%Y %H:%M UTC")
+            except Exception:
+                ts_fmt = ts_str[:16] if ts_str else datetime.utcnow().strftime("%d/%m/%Y %H:%M UTC")
+            return {"rates": rd.get("rates", {}), "ts": ts_fmt, "source": "open.er-api.com", "live": True}
+    except Exception:
+        pass
+    ts_fmt = datetime.utcnow().strftime("%d/%m/%Y %H:%M UTC") + " (aprox.)"
+    return {"rates": {"USD":1,"EUR":0.92,"GBP":0.79,"CHF":0.89,"AED":3.67,"CAD":1.36,"MXN":17.5,"BRL":4.97,"COP":3950}, "ts": ts_fmt, "source": "referencia", "live": False}
 
 def convertir_precio(precio_usd, moneda):
     """Convierte precio USD a la moneda destino."""
@@ -1596,42 +1617,69 @@ def render_portal_pedido():
         _tot_c = sum(i['total'] for i in st.session_state.portal_carrito)
         _plt_c = sum(i.get('pallets',0) for i in st.session_state.portal_carrito)
         _cj_c = sum(i.get('cajas',0) for i in st.session_state.portal_carrito)
-        st.markdown('#### 🛒 Resumen del Pedido')
-        _rh = st.columns([4, 2, 2, 2, 3])
+        # Cotización en tiempo real
+        _rates_meta = get_exchange_rates_meta()
+        _rates_portal = _rates_meta['rates']
+        _rate_ts = _rates_meta['ts']
+        _rate_live = _rates_meta['live']
+        _rate_src = _rates_meta['source']
+        _eur_rate = _rates_portal.get('EUR', 0.92)
+        # Moneda destino
+        _moneda_dest = 'USD'
+        if tipo_precio == 'CIF' and destino:
+            _dv2 = data.get('config',{}).get('destinos',{}).get(destino,{})
+            _moneda_dest = _dv2.get('moneda','USD') if isinstance(_dv2,dict) else 'USD'
+        _dest_rate = _rates_portal.get(_moneda_dest, 1)
+        _show_dest = _moneda_dest not in ('USD', 'EUR')
+        # ── Tabla resumen ──
+        st.markdown(
+            '<div style="background:#f8faff;border:1px solid #ccd9ee;border-radius:10px;padding:14px 18px 10px;margin:8px 0"><b style="font-size:1.05em;color:#003E8C">🛒 Resumen del Pedido</b></div>',
+            unsafe_allow_html=True
+        )
+        # Headers tabla
+        _rh = st.columns([3, 1, 1, 1, 2, 2])
         _rh[0].markdown('**Producto**')
         _rh[1].markdown('**$/caja**')
         _rh[2].markdown('**Pallets**')
         _rh[3].markdown('**Cajas**')
-        _rh[4].markdown('**Subtotal USD**')
+        _rh[4].markdown('**Total USD**')
+        _rh[5].markdown('**€ Total EUR**')
         st.markdown('<hr style="margin:3px 0 5px;border-color:#ddd">', unsafe_allow_html=True)
+        # Filas por producto
         for _ci, _item in enumerate(st.session_state.portal_carrito):
-            _rc = st.columns([4, 2, 2, 2, 3])
+            _item_eur = round(_item['total'] * _eur_rate, 2)
+            _rc = st.columns([3, 1, 1, 1, 2, 2])
             _rc[0].markdown(f'**{_item["producto"]}**')
             _rc[1].markdown(f'${_item["precio_usd"]:.2f}')
             _rc[2].markdown(f'{_item["pallets"]:.2f}')
             _rc[3].markdown(f'{_item["cajas"]:,}')
             _rc[4].markdown(f'<b style="color:#003E8C">${_item["total"]:,.2f}</b>', unsafe_allow_html=True)
+            _rc[5].markdown(f'<span style="color:#1a7a3c">€{_item_eur:,.2f}</span>', unsafe_allow_html=True)
         st.markdown('<hr style="margin:5px 0 8px;border-color:#003E8C">', unsafe_allow_html=True)
-        _rt = st.columns([4, 2, 2, 2, 3])
+        # Fila TOTAL
+        _tot_eur = round(_tot_c * _eur_rate, 2)
+        _rt = st.columns([3, 1, 1, 1, 2, 2])
         _rt[0].markdown('**TOTAL**')
         _rt[1].markdown('')
         _rt[2].markdown(f'**{_plt_c:.2f}**')
         _rt[3].markdown(f'**{_cj_c:,}**')
         _rt[4].markdown(f'<b style="color:#003E8C;font-size:1.1em">${_tot_c:,.2f} USD</b>', unsafe_allow_html=True)
-        _rates_portal = get_exchange_rates()
-        if tipo_precio == 'CIF' and destino and st.session_state.portal_carrito:
-            _dv = data.get('config',{}).get('destinos',{}).get(destino,{})
-            _moneda = _dv.get('moneda','USD') if isinstance(_dv,dict) else 'USD'
-            if _moneda != 'USD':
-                _rate = _rates_portal.get(_moneda, 1)
-                _tot_conv = round(_tot_c * _rate, 2)
-                _sym = MONEDA_SIMBOLO.get(_moneda, _moneda)
-                _cc = st.columns([5, 4])
-                _cc[0].markdown(f'💱 **Equivalente en {_moneda}** (referencia — la transacción es en USD):')
-                _cc[1].markdown(f'<b style="color:#28a745;font-size:1.05em">{_sym}{_tot_conv:,.2f} {_moneda}</b><br><small style="color:#888">1 USD = {_rate:.3f} {_moneda}</small>', unsafe_allow_html=True)
-            else:
-                st.caption(f'Precios CIF — Destino: {destino} | {_moneda}')
-        elif tipo_precio == 'FOB':
+        _rt[5].markdown(f'<b style="color:#1a7a3c;font-size:1.1em">€{_tot_eur:,.2f}</b>', unsafe_allow_html=True)
+        # Moneda destino adicional (si no es USD ni EUR)
+        if _show_dest:
+            _tot_dest = round(_tot_c * _dest_rate, 2)
+            _sym_dest = MONEDA_SIMBOLO.get(_moneda_dest, _moneda_dest)
+            st.markdown(
+                f'<div style="background:#f0fff4;border:1px solid #c3e6cb;border-radius:6px;padding:8px 14px;margin:6px 0">💱 <b>Equiv. {_moneda_dest}</b> (ref.): <b style="color:#1a7a3c">{_sym_dest}{_tot_dest:,.2f} {_moneda_dest}</b> <small style="color:#888">1 USD = {_dest_rate:.4f} {_moneda_dest}</small></div>',
+                unsafe_allow_html=True
+            )
+        # Nota tipo de precio y tasa EUR
+        _live_lbl = '🟢 En vivo' if _rate_live else '⚪ Aprox.'
+        st.markdown(
+            f'<div style="margin:6px 0;padding:5px 0"><small style="color:#777">💱 1 USD = <b>€{_eur_rate:.4f} EUR</b> — {_live_lbl} | Fuente: {_rate_src} | Actualizado: {_rate_ts}</small><br><small style="color:#999"><i>Precios en EUR son de referencia. La transacción se realiza en USD.</i></small></div>',
+            unsafe_allow_html=True
+        )
+        if tipo_precio == 'FOB':
             st.caption('📦 Precios FOB — El flete corre por tu cuenta desde Quito/Guayaquil, Ecuador')
         if st.button('🗑️ Vaciar carrito', key='portal_vaciar', use_container_width=False):
             st.session_state.portal_carrito = []
@@ -1792,6 +1840,8 @@ def main():
         # Small admin access link in sidebar
         st.sidebar.markdown('### 🚀 Export Haret')
         st.sidebar.caption('Portal de Pedidos')
+        st.sidebar.markdown('---')
+        st.sidebar.markdown('<p style="text-align:center;margin:4px 0 8px"><a href="?view=admin" target="_self" style="color:#aaa;font-size:0.75em;text-decoration:none">🔒 Acceso administración</a></p>', unsafe_allow_html=True)
         st.sidebar.markdown('---')
         st.sidebar.caption('Export Haret © 2026 | order@exportharet.com')
         render_portal_pedido()
