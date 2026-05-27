@@ -958,12 +958,8 @@ def render_clientes():
         d1.markdown(f"**Email:** {sel}")
         d1.markdown(f"**Segmento:** {seg['badge']}")
         d2.markdown(f"**Pedidos:** {len(mp)}")
-        d2.markdown(f"**Facturación:** ${sum(p.get('total_usd',0) for p in mp):,.2f}")
+        d2.markdown('**Facturación:** $' + f"{sum(p.get('total_usd',0) for p in mp):,.2f}")
         d2.markdown(f"**Descuento:** {seg['descuento']*100:.0f}%")
-
-**Facturación:** ${sum(p.get('total_usd',0) for p in mp):,.2f}
-
-**Descuento:** {seg['descuento']*100:.0f}%")
         if mp:
             st.dataframe(pd.DataFrame([{'ID':p.get('id',''),'Destino':p.get('destino',''),'Total':f"${p.get('total_usd',0):,.2f}",'Estado':p.get('estado',''),'Fecha':p.get('fecha','')[:10]} for p in sorted(mp,key=lambda x:x.get('fecha',''),reverse=True)]),use_container_width=True,hide_index=True)
     st.markdown("---")
@@ -1657,7 +1653,7 @@ def render_portal_pedido():
         # Col 0: Nombre + specs del producto
         _kg_lbl = f'{_kg_x:.1f} kg/caja'.replace('.',',') if _kg_x else ''
         gc[0].markdown(
-            f'**{nombre_prod}**' + (f'  \n<small style="color:#888">{_kg_lbl}</small>' if _kg_lbl else ''),
+            f'**{nombre_prod}**' + (f'<br><small style="color:#888">{_kg_lbl}</small>' if _kg_lbl else ''),
             unsafe_allow_html=True
         )
         # Col 1: Precio por caja
