@@ -1,11 +1,11 @@
 {
   "config": {
-    "costo_caja": 1.0,
+    "costo_caja": 1,
     "merma_pct": 0.01,
-    "due": 280.0,
+    "due": 280,
     "peso_pallet": 29.9,
     "tara_caja": 0.4,
-    "transporte_interno": 60.0,
+    "transporte_interno": 60,
     "eur_usd": 1.1643,
     "grupos": {
       "A": {
@@ -122,18 +122,30 @@
       "NY/USA": "USD",
       "Miami/USA": "USD",
       "Berlín/Alemania": "EUR"
-    }
+    },
+    "flete_ref": 2.35
   },
   "products": [
     {
       "codigo": "F-PSG10",
       "producto": "Granadilla",
-      "kg_caja": 2.0,
+      "kg_caja": 2,
       "costo_caja_manual": 0.03,
       "precio_compra": 7.95,
       "margen_pct": 0.08,
       "grupo": "A",
-      "activo": true
+      "activo": true,
+      "precios_plt": [
+        17.16,
+        16.09,
+        15.49,
+        15.37,
+        15.31,
+        15.26,
+        15.18,
+        15.2,
+        15.18
+      ]
     },
     {
       "codigo": "F-PN016",
@@ -143,7 +155,18 @@
       "precio_compra": 6.5,
       "margen_pct": 0.1,
       "grupo": "C",
-      "activo": true
+      "activo": true,
+      "precios_plt": [
+        9.5,
+        9.5,
+        9.03,
+        9.03,
+        9.03,
+        8.55,
+        8.55,
+        8.55,
+        8.36
+      ]
     },
     {
       "codigo": "F-PPA01",
@@ -153,7 +176,18 @@
       "precio_compra": 13.5,
       "margen_pct": 0.08,
       "grupo": "B",
-      "activo": true
+      "activo": true,
+      "precios_plt": [
+        16.93,
+        16.93,
+        16.08,
+        16.08,
+        16.08,
+        15.24,
+        15.24,
+        15.24,
+        14.9
+      ]
     },
     {
       "codigo": "F-PSR02",
@@ -163,7 +197,18 @@
       "precio_compra": 19.19,
       "margen_pct": 0.055,
       "grupo": "F",
-      "activo": false
+      "activo": false,
+      "precios_plt": [
+        22.6,
+        22.6,
+        21.47,
+        21.47,
+        21.47,
+        20.34,
+        20.34,
+        20.34,
+        19.88
+      ]
     },
     {
       "codigo": "F-PSR05",
@@ -173,77 +218,165 @@
       "precio_compra": 13.6,
       "margen_pct": 0.055,
       "grupo": "F",
-      "activo": false
+      "activo": false,
+      "precios_plt": [
+        16.7,
+        16.7,
+        15.86,
+        15.86,
+        15.86,
+        15.03,
+        15.03,
+        15.03,
+        14.69
+      ]
     },
     {
       "codigo": "F-PSM09",
       "producto": "Maracuyá",
       "kg_caja": 2.5,
-      "costo_caja_manual": 0.0,
-      "precio_compra": 7.0,
+      "costo_caja_manual": 0,
+      "precio_compra": 7,
       "margen_pct": 0.08,
       "grupo": "C",
-      "activo": true
+      "activo": true,
+      "precios_plt": [
+        9.91,
+        9.91,
+        9.41,
+        9.41,
+        9.41,
+        8.92,
+        8.92,
+        8.92,
+        8.72
+      ]
     },
     {
       "codigo": "F-TAS04",
       "producto": "Tamarillo",
       "kg_caja": 2.5,
-      "costo_caja_manual": 0.0,
+      "costo_caja_manual": 0,
       "precio_compra": 6.5,
       "margen_pct": 0.1,
       "grupo": "C",
-      "activo": true
+      "activo": true,
+      "precios_plt": [
+        9.5,
+        9.5,
+        9.03,
+        9.03,
+        9.03,
+        8.55,
+        8.55,
+        8.55,
+        8.36
+      ]
     },
     {
       "codigo": "F-GNB010",
       "producto": "Soursop",
-      "kg_caja": 4.0,
+      "kg_caja": 4,
       "costo_caja_manual": null,
       "precio_compra": 13.14,
       "margen_pct": 0.12,
       "grupo": "I",
-      "activo": false
+      "activo": false,
+      "precios_plt": [
+        17.07,
+        17.07,
+        16.21,
+        16.21,
+        16.21,
+        15.36,
+        15.36,
+        15.36,
+        15.02
+      ]
     },
     {
       "codigo": "F-MPS03",
       "producto": "Sweet cucumber",
-      "kg_caja": 3.0,
-      "costo_caja_manual": 0.0,
+      "kg_caja": 3,
+      "costo_caja_manual": 0,
       "precio_compra": 5.25,
       "margen_pct": 0.11,
       "grupo": "C",
-      "activo": true
+      "activo": true,
+      "precios_plt": [
+        8.18,
+        8.18,
+        7.77,
+        7.77,
+        7.77,
+        7.36,
+        7.36,
+        7.36,
+        7.2
+      ]
     },
     {
       "codigo": "F-CCN017",
       "producto": "Cacao",
-      "kg_caja": 3.0,
+      "kg_caja": 3,
       "costo_caja_manual": null,
-      "precio_compra": 6.0,
+      "precio_compra": 6,
       "margen_pct": 0.1,
       "grupo": "D",
-      "activo": true
+      "activo": true,
+      "precios_plt": [
+        8.95,
+        8.95,
+        8.5,
+        8.5,
+        8.5,
+        8.06,
+        8.06,
+        8.06,
+        7.88
+      ]
     },
     {
       "codigo": "F-BCC013",
       "producto": "Babaco",
-      "kg_caja": 3.0,
+      "kg_caja": 3,
       "costo_caja_manual": null,
       "precio_compra": 8.6,
       "margen_pct": 0.1,
       "grupo": "D",
-      "activo": true
+      "activo": true,
+      "precios_plt": [
+        11.81,
+        11.81,
+        11.22,
+        11.22,
+        11.22,
+        10.63,
+        10.63,
+        10.63,
+        10.39
+      ]
     },
     {
       "codigo": "F-AHSS012",
       "producto": "Avocado",
-      "kg_caja": 4.0,
+      "kg_caja": 4,
       "costo_caja_manual": null,
       "precio_compra": 8.55,
       "margen_pct": 0.06,
       "grupo": "E",
-      "activo": false
+      "activo": false,
+      "precios_plt": [
+        11.41,
+        11.41,
+        10.84,
+        10.84,
+        10.84,
+        10.27,
+        10.27,
+        10.27,
+        10.04
+      ]
     },
     {
       "codigo": "F-BBB06",
@@ -253,47 +386,102 @@
       "precio_compra": 11.5,
       "margen_pct": 0.06,
       "grupo": "E",
-      "activo": false
+      "activo": false,
+      "precios_plt": [
+        14.54,
+        14.54,
+        13.81,
+        13.81,
+        13.81,
+        13.09,
+        13.09,
+        13.09,
+        12.8
+      ]
     },
     {
       "codigo": "F-ZPT020",
       "producto": "Zapote Mamey",
-      "kg_caja": 4.0,
+      "kg_caja": 4,
       "costo_caja_manual": null,
-      "precio_compra": 12.0,
+      "precio_compra": 12,
       "margen_pct": 0.18,
       "grupo": "E",
-      "activo": false
+      "activo": false,
+      "precios_plt": [
+        16.51,
+        16.51,
+        15.68,
+        15.68,
+        15.68,
+        14.86,
+        14.86,
+        14.86,
+        14.53
+      ]
     },
     {
       "codigo": "F-TX020",
       "producto": "Taxo",
       "kg_caja": 2.5,
-      "costo_caja_manual": 0.0,
+      "costo_caja_manual": 0,
       "precio_compra": 6.7,
       "margen_pct": 0.1,
       "grupo": "C",
-      "activo": true
+      "activo": true,
+      "precios_plt": [
+        9.72,
+        9.72,
+        9.23,
+        9.23,
+        9.23,
+        8.75,
+        8.75,
+        8.75,
+        8.55
+      ]
     },
     {
       "codigo": "F-UVP08",
       "producto": "Physalis",
       "kg_caja": 1.25,
-      "costo_caja_manual": 0.0,
+      "costo_caja_manual": 0,
       "precio_compra": 8.5,
       "margen_pct": 0.11,
       "grupo": "G",
-      "activo": true
+      "activo": true,
+      "precios_plt": [
+        11.79,
+        11.79,
+        11.2,
+        11.2,
+        11.2,
+        10.61,
+        10.61,
+        10.61,
+        10.37
+      ]
     },
     {
       "codigo": "F-UVP07",
       "producto": "Physalis - husk",
       "kg_caja": 1.5,
-      "costo_caja_manual": 0.0,
+      "costo_caja_manual": 0,
       "precio_compra": 7.25,
       "margen_pct": 0.11,
       "grupo": "H",
-      "activo": true
+      "activo": true,
+      "precios_plt": [
+        10.4,
+        10.4,
+        9.88,
+        9.88,
+        9.88,
+        9.36,
+        9.36,
+        9.36,
+        9.15
+      ]
     },
     {
       "codigo": "F-SLK011",
@@ -303,17 +491,39 @@
       "precio_compra": 12.2,
       "margen_pct": 0.1,
       "grupo": "C",
-      "activo": false
+      "activo": false,
+      "precios_plt": [
+        15.77,
+        15.77,
+        14.98,
+        14.98,
+        14.98,
+        14.19,
+        14.19,
+        14.19,
+        13.88
+      ]
     },
     {
       "codigo": "F-CAZ021",
       "producto": "Cane sugar",
-      "kg_caja": 4.0,
+      "kg_caja": 4,
       "costo_caja_manual": null,
       "precio_compra": 10.72,
       "margen_pct": 0.11,
       "grupo": "F",
-      "activo": true
+      "activo": true,
+      "precios_plt": [
+        14.25,
+        14.25,
+        13.54,
+        13.54,
+        13.54,
+        12.82,
+        12.82,
+        12.82,
+        12.54
+      ]
     }
   ],
   "minimos": {
