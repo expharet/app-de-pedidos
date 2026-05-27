@@ -2284,6 +2284,20 @@ def render_portal_pedido():
     _current_pallets = sum(i.get('pallets',0) for i in st.session_state.portal_carrito)
     # ── Indicador de volumen
     _desc_actual = get_descuento_volumen(max(_current_pallets, 1)) if _current_pallets >= 1 else 0.0
+    # PATCH UX-CIF U6: Detectar cruce de tramo (toast cuando precio baja)
+    if tipo_precio == 'CIF':
+        _ux_prev_tramo = st.session_state.get('portal_last_tramo', None)
+        _ux_curr_tramo_idx = -1
+        for _ti, _tt in enumerate(TRAMOS_VOLUMEN):
+            if _tt['min'] <= max(_current_pallets,1) <= _tt['max']:
+                _ux_curr_tramo_idx = _ti
+                break
+        if _ux_prev_tramo is not None and _ux_curr_tramo_idx > _ux_prev_tramo and _current_pallets >= 1:
+            try:
+                st.toast(f"🎉 ¡Desbloqueaste mejor precio! Tramo: {TRAMOS_VOLUMEN[_ux_curr_tramo_idx]['label']}", icon='💰')
+            except Exception:
+                pass
+        st.session_state['portal_last_tramo'] = _ux_curr_tramo_idx
     _next_tramo = None
     _pallets_para_siguiente = 0
     for _t in TRAMOS_VOLUMEN:
@@ -2379,6 +2393,21 @@ def render_portal_pedido():
                     f'</div>'
                     f'</div>'
                 )
+                # PATCH UX-CIF U7: sugerencia para completar pallet (solo CIF + parcial)
+                if tipo_precio == 'CIF' and _g_rem > 0:
+                    _ux_needed = _gv['cxp'] - _g_rem
+                    # Encontrar productos del mismo grupo NO en carrito
+                    _ux_codes_in = {_ci2.get('codigo','') for _ci2 in st.session_state.portal_carrito if _ci2.get('cajas',0) > 0}
+                    _ux_grp_prods = [pp for pp in (data.get('products') or []) if pp.get('grupo','') == _gk and pp.get('codigo','') not in _ux_codes_in]
+                    _ux_sug_txt = ''
+                    if _ux_grp_prods:
+                        _ux_names = ', '.join((pp.get('descripcion','') or pp.get('producto','') or pp.get('codigo','')) for pp in _ux_grp_prods[:3])
+                        _ux_sug_txt = f' · Completalo con: <b>{_ux_names}</b>'
+                    _grp_html.append(
+                        f'<div style="background:#fef9c3;border-left:3px solid #ca8a04;padding:6px 10px;margin:4px 0 8px;border-radius:6px;font-size:0.82rem;color:#713f12">'
+                        f'🎁 Te faltan <b>{_ux_needed} cj</b> para completar 1 pallet del Grupo {_gk} y mejorar el precio{_ux_sug_txt}'
+                        f'</div>'
+                    )
             _grp_html.append(
                 f'<div style="display:flex;justify-content:space-between;align-items:center;padding-top:8px;font-weight:700;color:#003E8C">'
                 f'<div>📊 Total pallets agrupados</div>'
@@ -2445,11 +2474,31 @@ def render_portal_pedido():
         _sym_x = MONEDA_SIMBOLO.get(_mon_x,_mon_x)
         _fob_x = get_fob_price(cod,data)
         # Precio segun volumen actual
+        # PATCH UX-CIF U4: calcular precio en proximo tramo y ahorro (solo CIF)
+        _ux_next_price = None
+        _ux_next_min = None
+        _ux_save_pct = 0
+        if tipo_precio == 'CIF':
+            # Encontrar siguiente tramo con mas pallets
+            for _tt in TRAMOS_VOLUMEN:
+                if _tt['min'] > max(_total_pallets_now, 1):
+                    _ux_next_min = int(_tt['min'])
+                    _ux_next_price = get_precio_con_volumen(cod, destino, tipo_precio, data, _ux_next_min)
+                    if _ux_next_price and precio_u and _ux_next_price < precio_u:
+                        _ux_save_pct = round((1 - _ux_next_price / precio_u) * 100, 1)
+                    break
         if _mon_x != 'USD' and tipo_precio == 'CIF' and _rate_x != 1.0:
             _lp_x = round(precio_u * _rate_x, 2)
-            gc[1].markdown(f'<b style="color:#003E8C">{_sym_x}{_lp_x:.2f}</b>', unsafe_allow_html=True)
+            _ux_next_html = ''
+            if _ux_next_price and _ux_save_pct > 0:
+                _lp_nx = round(_ux_next_price * _rate_x, 2)
+                _ux_next_html = f'<br><small style="color:#16a34a;font-size:0.72em">👇 Con {_ux_next_min}+ pal: {_sym_x}{_lp_nx:.2f} (-{_ux_save_pct}%)</small>'
+            gc[1].markdown(f'<b style="color:#003E8C">{_sym_x}{_lp_x:.2f}</b>{_ux_next_html}', unsafe_allow_html=True)
         else:
-            gc[1].markdown(f'<b style="color:#003E8C">${precio_u:.2f}</b>', unsafe_allow_html=True)
+            _ux_next_html = ''
+            if tipo_precio == 'CIF' and _ux_next_price and _ux_save_pct > 0:
+                _ux_next_html = f'<br><small style="color:#16a34a;font-size:0.72em">👇 Con {_ux_next_min}+ pal: ${_ux_next_price:.2f} (-{_ux_save_pct}%)</small>'
+            gc[1].markdown(f'<b style="color:#003E8C">${precio_u:.2f}</b>{_ux_next_html}', unsafe_allow_html=True)
         # Col 2: Cantidad con +/- nativo
         qty_val = gc[2].number_input(
             'Cantidad', min_value=0, value=_ex_qty, step=1,
@@ -2582,12 +2631,22 @@ def render_portal_pedido():
         # Filas por producto (cards responsive)
         for _ci, _item in enumerate(st.session_state.portal_carrito):
             _item_eur = round(_item['total'] * _eur_rate, 2)
+            # PATCH UX-CIF U1: badge ahorro vs precio base (1 pal) - solo CIF
+            _ux_save_html = ''
+            if tipo_precio == 'CIF':
+                _ux_base_price = get_precio_con_volumen(_item.get('codigo',''), destino, tipo_precio, data, 1)
+                _ux_curr_price = _item.get('precio_usd', 0)
+                if _ux_base_price and _ux_curr_price and _ux_base_price > _ux_curr_price:
+                    _ux_diff = round(_ux_base_price - _ux_curr_price, 2)
+                    _ux_pct = round((1 - _ux_curr_price / _ux_base_price) * 100, 1)
+                    _ux_save_html = f'<span class="eh-meta-cell" style="color:#16a34a;font-weight:600">💰 -${_ux_diff:.2f}/cj (-{_ux_pct}%)</span>'
             _resumen_html.append(f'''
             <div class="eh-resumen-card">
               <div class="eh-prod">{_item["producto"]}</div>
               <div class="eh-precio">${_item["total"]:,.2f}</div>
               <div class="eh-meta">
                 <span class="eh-meta-cell">${_item["precio_usd"]:.2f}/cj</span>
+                {_ux_save_html}
                 <span class="eh-meta-cell"><b>{_item["pallets"]:.2f}</b> plt</span>
                 <span class="eh-meta-cell"><b>{_item["cajas"]:,}</b> cj</span>
                 <span class="eh-meta-cell eh-eur">€{_item_eur:,.2f}</span>
@@ -2630,6 +2689,16 @@ def render_portal_pedido():
             tot_final = sum(i['total'] for i in st.session_state.portal_carrito)
             _tot_pal_fin = sum(i.get('pallets',0) for i in st.session_state.portal_carrito)
             _tot_caj_fin = sum(i.get('cajas',0) for i in st.session_state.portal_carrito)
+            # PATCH UX-CIF U8: calcular ahorro total vs precio base (1 pal) - solo CIF
+            _ux_total_save = 0.0
+            if tipo_precio == 'CIF':
+                for _pfi2 in st.session_state.portal_carrito:
+                    if _pfi2.get('cajas', 0) > 0:
+                        _ux_base_pr = get_precio_con_volumen(_pfi2.get('codigo',''), destino, tipo_precio, data, 1)
+                        _ux_curr_pr = _pfi2.get('precio_usd', 0)
+                        if _ux_base_pr and _ux_curr_pr and _ux_base_pr > _ux_curr_pr:
+                            _ux_total_save += (_ux_base_pr - _ux_curr_pr) * _pfi2.get('cajas', 0)
+            _ux_total_save = round(_ux_total_save, 2)
             tipo_str = tipo_precio + (f' → {destino}' if tipo_precio == 'CIF' and destino else '')
             # Destination currency
             _fin_mon = data.get('config',{}).get('destinos_moneda',{}).get(destino,'USD') if tipo_precio=='CIF' else 'USD'
@@ -2668,7 +2737,9 @@ def render_portal_pedido():
                 f'<h4>📝 Resumen del Pedido</h4>'
                 f'<div class="eh-cnf-meta"><b>Cliente:</b> {nombre} ({email_input})<br>'
                 f'<b>Empresa:</b> {empresa or "N/A"} &nbsp;|&nbsp; <b>País:</b> {pais or "N/A"}<br>'
-                f'<b>Modalidad:</b> {tipo_str} &nbsp;|&nbsp; <b>T. pago:</b> {p_term or "Por confirmar"}</div>'
+                f'<b>Modalidad:</b> {tipo_str} &nbsp;|&nbsp; <b>T. pago:</b> {p_term or "Por confirmar"}'
+                + (f'<br><span style="color:#16a34a;font-weight:600">💰 Ahorro por volumen: ${_ux_total_save:,.2f} USD</span>' if (tipo_precio == 'CIF' and _ux_total_save > 0) else '')
+                + '</div>'
                 f'{_prod_cards_html}'
                 '<div class="eh-cnf-total-row">'
                 f'<div><div class="eh-cnf-tl">🛒 TOTAL DEL PEDIDO</div><div class="eh-cnf-tv">${tot_final:,.2f} USD</div>{_fin_alt}</div>'
