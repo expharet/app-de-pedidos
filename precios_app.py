@@ -196,18 +196,18 @@ def render_dashboard():
         _logo = _Img.open('logo.png')
         _lc1, _lc2, _lc3 = st.columns([1, 2, 1])
         with _lc2: st.image(_logo, width=220)
-    st.markdown('## U0001F4CA Dashboard Ejecutivo')
+    st.markdown('## 📊 Dashboard Ejecutivo')
     pedidos=load_pedidos(); clients=load_clients(); data=load_data()
     c1,c2,c3,c4=st.columns(4)
     fac=sum(p.get('total_usd',0) for p in pedidos)
     vip=sum(1 for e in clients if segmentar(e,clients)['segmento']=='VIP')
     hoy_peds=len([p for p in pedidos if p.get('fecha','')[:10]==str(date.today())])
-    c1.metric('U0001F4E6 Pedidos',f'{len(pedidos):,}')
-    c2.metric('U0001F4B5 Facturación',f'${fac:,.0f}','USD')
-    c3.metric('U0001F465 Clientes',f'{len(clients):,}',f'{vip} VIP')
-    c4.metric('U0001F4EC Hoy',hoy_peds,'nuevos')
+    c1.metric('📦 Pedidos',f'{len(pedidos):,}')
+    c2.metric('💵 Facturación',f'${fac:,.0f}','USD')
+    c3.metric('👥 Clientes',f'{len(clients):,}',f'{vip} VIP')
+    c4.metric('📬 Hoy',hoy_peds,'nuevos')
     st.markdown('---')
-    st.markdown('### U0001F4CB Pedidos por Estado')
+    st.markdown('### 📋 Pedidos por Estado')
     ec={}
     for p in pedidos: ec[p.get('estado','Recibido')]=ec.get(p.get('estado','Recibido'),0)+1
     if ec:
@@ -215,7 +215,7 @@ def render_dashboard():
         for i,e in enumerate(ORDEN_ESTADOS): cols[i].metric(f"{ESTADO_ICONS.get(e,'')} {e}",ec.get(e,0))
     else: st.info('ℹ️ No hay pedidos. Crea uno en el tab **Hacer Pedido**.')
     st.markdown('---')
-    st.markdown('### U0001F4C8 Facturación Mensual (USD)')
+    st.markdown('### 📈 Facturación Mensual (USD)')
     if pedidos:
         _mes_data = {}
         for _p in pedidos:
@@ -225,7 +225,7 @@ def render_dashboard():
             _meses_sorted = sorted(_mes_data.keys())[-12:]
             _df_chart = pd.DataFrame({'Mes': _meses_sorted, 'Total USD': [round(_mes_data[m], 2) for m in _meses_sorted]}).set_index('Mes')
             st.bar_chart(_df_chart, use_container_width=True, height=250)
-    else: st.info('U0001F4CA Gráfico disponible cuando haya pedidos.')
+    else: st.info('📊 Gráfico disponible cuando haya pedidos.')
     st.markdown('---')
     with st.expander('⏱ SLA de Procesos', expanded=False):
         _,ss=calc_sla(pedidos)
@@ -233,7 +233,7 @@ def render_dashboard():
         s1.metric('✅ Cumplimiento',f"{ss['pct']:.1f}%",'Meta:95%')
         s2.metric('⚠️ Críticos',ss['crit'])
         s3.metric('⏱ Prom.h',f"{ss['prom']:.1f}h")
-        s4.metric('U0001F4CA Trans.',ss['tot'])
+        s4.metric('📊 Trans.',ss['tot'])
     st.markdown('---')
     st.markdown('### ⭐ Segmentación')
     segs={'VIP':0,'Regular':0,'Nuevo':0}
@@ -241,10 +241,10 @@ def render_dashboard():
     sg1,sg2,sg3=st.columns(3)
     sg1.metric('⭐ VIP',segs.get('VIP',0),'+5% desc.')
     sg2.metric('⚫ Regular',segs.get('Regular',0),'+2% desc.')
-    sg3.metric('U0001F195 Nuevo',segs.get('Nuevo',0))
+    sg3.metric('🆕 Nuevo',segs.get('Nuevo',0))
     if data.get('products',[]):
         st.markdown('---')
-        st.markdown(f"### U0001F4E6 Productos ({len(data['products'])} activos)")
+        st.markdown(f"### 📦 Productos ({len(data['products'])} activos)")
         _df_prods = pd.DataFrame([{'Código':p.get('codigo',''),'Producto':p.get('descripcion','') or p.get('producto',''),'Precio Compra':f"${p.get('precio_compra',0):.4f}",'Margen':f"{float(p.get('margen_pct',0.1) or 0.1)*100:.0f}%",'Activo':'✅' if p.get('activo',True) else '❌'} for p in data['products'][:15]])
         st.dataframe(_df_prods,use_container_width=True,hide_index=True)
 
@@ -709,19 +709,19 @@ def render_hacer_pedido():
     notas=st.text_area('Notas',placeholder='Instrucciones especiales...',key='hp_notas')
     ht1,ht2=st.columns(2)
     TOPH=['','Pago anticipado 100%','50% adelanto / 50% contra documentos','30% adelanto / 70% contra BL','Carta de cr\xe9dito (LC)','Pago a 30 d\xedas','Pago a 60 d\xedas','Otro']
-    hp_term=ht1.selectbox('\U0001F4CB T\xe9rminos de pago',TOPH,key='hp_term')
-    hp_ent=ht2.text_input('\U0001F4C5 Fecha entrega estimada',placeholder='ej: 2026-06-20',key='hp_ent')
-    notas_internas=st.text_area('U0001F512 Notas internas (no visibles al cliente)',placeholder='Instrucciones de almacén, condiciones especiales...',key='hp_notas_int',height=60)
+    hp_term=ht1.selectbox('\📋 T\xe9rminos de pago',TOPH,key='hp_term')
+    hp_ent=ht2.text_input('\📅 Fecha entrega estimada',placeholder='ej: 2026-06-20',key='hp_ent')
+    notas_internas=st.text_area('🔒 Notas internas (no visibles al cliente)',placeholder='Instrucciones de almacén, condiciones especiales...',key='hp_notas_int',height=60)
     if st.session_state.carrito:
         _tot_pre = sum(i['total'] for i in st.session_state.carrito)
         _plt_pre = sum(i.get('pallets',0) for i in st.session_state.carrito)
         st.markdown(
             f'<div style="background:#f0f7ff;border:1px solid #003E8C;border-radius:8px;padding:12px 18px;margin:8px 0">'
-            f'U0001F4CB <b>Resumen</b><br>'
+            f'📋 <b>Resumen</b><br>'
             f'&bull; Cliente: <b>{c_name}</b> ({c_email})<br>'
             f'&bull; Destino: <b>{destino}</b><br>'
             f'&bull; Productos: <b>{len(st.session_state.carrito)}</b> &nbsp; Pallets: <b>{_plt_pre:.2f}</b><br>'
-            f'&bull; U0001F4B0 Total: <b style="color:#003E8C">${_tot_pre:,.2f} USD</b>'
+            f'&bull; 💰 Total: <b style="color:#003E8C">${_tot_pre:,.2f} USD</b>'
             f'</div>',
             unsafe_allow_html=True
         )
@@ -758,15 +758,15 @@ def render_destinos():
 
 # ─── TAB GESTION PEDIDOS ──────────────────────────────────────────────
 def render_gestion_pedidos():
-    st.markdown('## U0001F4E6 Gestión de Pedidos')
+    st.markdown('## 📦 Gestión de Pedidos')
     pedidos=load_pedidos()
     f1,f2,f3=st.columns(3)
     fe=f1.selectbox('Estado',['Todos']+ORDEN_ESTADOS,key='gp_e')
     fc=f2.text_input('Cliente/ID',key='gp_c')
     fd=f3.selectbox('Destino',['Todos']+sorted(set(p.get('destino','') for p in pedidos if p.get('destino'))),key='gp_d')
     fd1,fd2=st.columns(2)
-    _fecha_desde = fd1.date_input('U0001F4C5 Desde', value=date.today() - timedelta(days=90), key='gp_desde')
-    _fecha_hasta = fd2.date_input('U0001F4C5 Hasta', value=date.today(), key='gp_hasta')
+    _fecha_desde = fd1.date_input('📅 Desde', value=date.today() - timedelta(days=90), key='gp_desde')
+    _fecha_hasta = fd2.date_input('📅 Hasta', value=date.today(), key='gp_hasta')
     filt=[p for p in pedidos if
         (fe=='Todos' or p.get('estado')==fe) and
         (not fc or fc.lower() in (p.get('client_name','')+p.get('id','')).lower()) and
@@ -774,13 +774,13 @@ def render_gestion_pedidos():
         (str(_fecha_desde) <= p.get('fecha','')[:10] <= str(_fecha_hasta))
     ]
     _tot_filt = sum(p.get('total_usd',0) for p in filt)
-    st.info(f'U0001F4E6 **{len(filt)} pedidos** filtrados | U0001F4B0 Total: $**{_tot_filt:,.2f}** USD')
+    st.info(f'📦 **{len(filt)} pedidos** filtrados | 💰 Total: $**{_tot_filt:,.2f}** USD')
     if filt:
         xb=exportar_excel(filt)
-        if xb: st.download_button('U0001F4E5 Excel',data=xb,file_name=f'pedidos_{date.today()}.xlsx',mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        if xb: st.download_button('📥 Excel',data=xb,file_name=f'pedidos_{date.today()}.xlsx',mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
     st.markdown('---')
     for ped in sorted(filt,key=lambda x:x.get('fecha',''),reverse=True):
-        icon=ESTADO_ICONS.get(ped.get('estado',''),'U0001F4E6')
+        icon=ESTADO_ICONS.get(ped.get('estado',''),'📦')
         with st.expander(f"{icon} #{ped.get('id','').upper()} • {ped.get('client_name','N/A')} • {ped.get('destino','')} • ${ped.get('total_usd',0):,.2f}"):
             cl1,cl2,cl3=st.columns(3)
             cl1.markdown(f"**Cliente:** {ped.get('client_name','')}"); cl1.markdown(f"**Email:** {ped.get('client_email','')}")
@@ -788,7 +788,7 @@ def render_gestion_pedidos():
             cl3.markdown(f"**Total:** ${ped.get('total_usd',0):,.2f}"); cl3.markdown(f"**Estado:** {ped.get('estado','')}")
             _bl_key = f'bl_{ped.get("id","")}'
             _bl_val = ped.get('bl_numero','')
-            _bl_new = st.text_input('U0001F6F3️ Nº BL / Contenedor', value=_bl_val, key=_bl_key, placeholder='ej: MSKU1234567')
+            _bl_new = st.text_input('🛳️ Nº BL / Contenedor', value=_bl_val, key=_bl_key, placeholder='ej: MSKU1234567')
             if _bl_new != _bl_val:
                 _all_p2 = load_pedidos()
                 for _ip2, _pp2 in enumerate(_all_p2):
@@ -813,7 +813,7 @@ def render_gestion_pedidos():
                     ep_rg=[{'Cod':i.get('codigo',''),'Producto':i.get('producto',''),'Cajas':int(i.get('cajas',0)),'Precio_USD':float(i.get('precio_usd',0))} for i in ped.get('productos',[])]
                     if ep_rg:
                         ep_eg=st.data_editor(pd.DataFrame(ep_rg),column_config={'Cod':st.column_config.TextColumn('Cod',disabled=True),'Producto':st.column_config.TextColumn('Prod',disabled=True),'Cajas':st.column_config.NumberColumn('Cajas',min_value=1,step=1),'Precio_USD':st.column_config.NumberColumn('$/cj',format='$%.4f')},use_container_width=True,num_rows='dynamic',key=f'g_ep_{ped.get("id","")}',hide_index=True)
-                    if st.button('U0001F4BE Guardar cambios',key=f'g_save_{ped.get("id","")}',type='primary'):
+                    if st.button('💾 Guardar cambios',key=f'g_save_{ped.get("id","")}',type='primary'):
                         all_p=load_pedidos(); dd_g=load_data()
                         for _i,_p in enumerate(all_p):
                             if _p.get('id')==ped.get('id'):
@@ -829,9 +829,9 @@ def render_gestion_pedidos():
                         save_pedidos(all_p); st.toast('✅ Pedido actualizado',icon='✅'); st.rerun()
             hist_g=ped.get('historial_estados',[])
             if hist_g:
-                with st.expander('U0001F4DC Historial',expanded=False):
+                with st.expander('📜 Historial',expanded=False):
                     for h in reversed(hist_g):
-                        h_ic=ESTADO_ICONS.get(h.get('estado',''),'U0001F4DC'); h_fe=h.get('fecha','')[:16].replace('T',' ')
+                        h_ic=ESTADO_ICONS.get(h.get('estado',''),'📜'); h_fe=h.get('fecha','')[:16].replace('T',' ')
                         h_no=h.get('nota',''); no_s=f' — {h_no}' if h_no else ''
                         st.caption(f"{h_ic} **{h.get('estado','')}** • {h_fe} • {h.get('usuario','')}{no_s}")
             _pdf_b, _pdf_m, _pdf_x = build_order_pdf(ped)
@@ -855,25 +855,25 @@ def render_gestion_pedidos():
 # ─── TAB CONFIGURACION ──────────────────────────────────────────────
 def render_configuracion():
     st.markdown('## ⚙️ Configuración del Sistema')
-    st.markdown('### U0001F464 Usuarios del Sistema')
+    st.markdown('### 👤 Usuarios del Sistema')
     _users_file = 'users_custom.json'
     _users_data = _load(_users_file, {})
     _all_users_display = []
     for _ue, _uv in USERS.items():
-        _all_users_display.append({'Email': _ue, 'Nombre': _uv['nombre'], 'Rol': _uv['rol'], 'Tipo': 'U0001F512 Sistema'})
+        _all_users_display.append({'Email': _ue, 'Nombre': _uv['nombre'], 'Rol': _uv['rol'], 'Tipo': '🔒 Sistema'})
     for _ue, _uv in _users_data.items():
         if _ue not in USERS:
-            _all_users_display.append({'Email': _ue, 'Nombre': _uv.get('nombre',''), 'Rol': _uv.get('rol','ventas'), 'Tipo': 'U0001F464 Custom'})
+            _all_users_display.append({'Email': _ue, 'Nombre': _uv.get('nombre',''), 'Rol': _uv.get('rol','ventas'), 'Tipo': '👤 Custom'})
     st.dataframe(pd.DataFrame(_all_users_display), use_container_width=True, hide_index=True)
     with st.expander('➕ Agregar / Cambiar Contraseña de Usuario', expanded=False):
         _un1, _un2 = st.columns(2)
-        _new_email = _un1.text_input('U0001F4E7 Email del usuario', key='cfg_new_email', placeholder='usuario@exportharet.com')
-        _new_nombre = _un2.text_input('U0001F464 Nombre', key='cfg_new_nombre')
+        _new_email = _un1.text_input('📧 Email del usuario', key='cfg_new_email', placeholder='usuario@exportharet.com')
+        _new_nombre = _un2.text_input('👤 Nombre', key='cfg_new_nombre')
         _np1, _np2, _np3 = st.columns(3)
-        _new_pwd = _np1.text_input('U0001F511 Contraseña', type='password', key='cfg_new_pwd')
+        _new_pwd = _np1.text_input('🔑 Contraseña', type='password', key='cfg_new_pwd')
         _new_rol = _np2.selectbox('Rol', ['admin', 'ventas'], key='cfg_new_rol')
         _np3.markdown('<br>', unsafe_allow_html=True)
-        if _np3.button('U0001F4BE Guardar Usuario', key='cfg_save_user', type='primary'):
+        if _np3.button('💾 Guardar Usuario', key='cfg_save_user', type='primary'):
             if not _new_email or not _new_pwd:
                 st.error('Email y contraseña son obligatorios')
             else:
@@ -882,15 +882,15 @@ def render_configuracion():
                 st.toast(f'✅ Usuario {_new_email} guardado', icon='✅')
                 st.rerun()
     if _users_data:
-        with st.expander('U0001F5D1️ Eliminar Usuario Custom', expanded=False):
+        with st.expander('🗑️ Eliminar Usuario Custom', expanded=False):
             _del_user = st.selectbox('Usuario a eliminar', list(_users_data.keys()), key='cfg_del_user')
-            if st.button('U0001F5D1️ Eliminar', key='cfg_del_btn', type='secondary'):
+            if st.button('🗑️ Eliminar', key='cfg_del_btn', type='secondary'):
                 del _users_data[_del_user]
                 _save(_users_file, _users_data)
                 st.toast(f'✅ Usuario {_del_user} eliminado')
                 st.rerun()
     st.markdown('---')
-    st.markdown('### U0001F4E7 Log de Emails')
+    st.markdown('### 📧 Log de Emails')
     elog=load_email_log()
     if elog:
         df_e=pd.DataFrame(elog[-20:][::-1])
@@ -898,7 +898,7 @@ def render_configuracion():
     else: st.info('Sin emails registrados')
     st.markdown('---')
     st.markdown('---')
-    st.markdown('### U0001F4E8 Emails de Pedidos')
+    st.markdown('### 📨 Emails de Pedidos')
     _pend_e = _load('pending_emails.json', [])
     _unsent_e = [e for e in _pend_e if not e.get('sent')]
     if _unsent_e:
@@ -908,9 +908,9 @@ def render_configuracion():
     elif _pend_e:
         st.success(f'✅ {len([e for e in _pend_e if e.get("sent")])} email(s) enviados correctamente')
     else:
-        st.info('U0001F4EC Sin historial de emails aún')
+        st.info('📬 Sin historial de emails aún')
     st.markdown('---')
-    st.markdown('### U0001F4E7 Estado SMTP (order@exportharet.com)')
+    st.markdown('### 📧 Estado SMTP (order@exportharet.com)')
     try:
         _smtp_cfg = st.secrets.get('email', {})
         _smtp_host = _smtp_cfg.get('smtp_host', '')
@@ -921,17 +921,17 @@ def render_configuracion():
     except:
         st.info('ℹ️ Configura SMTP en Streamlit Cloud → App settings → Secrets.')
     st.markdown('---')
-    st.markdown('### U0001F5C3️ Archivos de Datos')
+    st.markdown('### 🗃️ Archivos de Datos')
     for fname in [DATA_FILE,CLIENTS_FILE,PEDIDOS_FILE,HIST_FILE,EMAIL_FILE]:
         exists=os.path.exists(fname)
         st.markdown(f"{'\u2705' if exists else '\u274C'} `{fname}`")
 
 # ─── TAB CLIENTES ──────────────────────────────────────────────
 def render_clientes():
-    st.markdown('## U0001F465 Clientes')
+    st.markdown('## 👥 Clientes')
     clients=load_clients(); pedidos=load_pedidos()
     if not clients: st.info('No hay clientes. Se crean al hacer pedidos.'); return
-    _search = st.text_input('U0001F50D Buscar cliente', key='cli_search', placeholder='Nombre, email, empresa...')
+    _search = st.text_input('🔍 Buscar cliente', key='cli_search', placeholder='Nombre, email, empresa...')
     rows=[]
     for e,c in clients.items():
         if _search and _search.lower() not in (e + c.get('nombre','') + c.get('empresa','')).lower(): continue
@@ -940,12 +940,12 @@ def render_clientes():
         rows.append({'Nombre':c.get('nombre',''),'Email':e,'Empresa':c.get('empresa',''),'País':c.get('pais',''),'Segmento':seg['badge'],'Pedidos':len(mp),'Facturación':f"${sum(p.get('total_usd',0) for p in mp):,.2f}",'Descuento':f"{seg['descuento']*100:.0f}%"})
     st.dataframe(pd.DataFrame(rows),use_container_width=True,hide_index=True)
     st.caption(f'{len(rows)} de {len(clients)} clientes')
-    with st.expander('U0001F5D1️ Eliminar Cliente', expanded=False):
+    with st.expander('🗑️ Eliminar Cliente', expanded=False):
         _cli_opts = list(clients.keys())
         _del_cli = st.selectbox('Cliente a eliminar', _cli_opts, format_func=lambda e: f"{clients[e].get('nombre','')} ({e})", key='cli_del_sel')
         _cli_peds = [p for p in pedidos if p.get('client_email') == _del_cli]
         if _cli_peds: st.warning(f'⚠️ Este cliente tiene {len(_cli_peds)} pedidos. Se conservarán los pedidos.')
-        if st.button('U0001F5D1️ Eliminar Cliente', key='cli_del_btn', type='secondary'):
+        if st.button('🗑️ Eliminar Cliente', key='cli_del_btn', type='secondary'):
             if _del_cli in clients:
                 del clients[_del_cli]; save_clients(clients)
                 st.toast(f'✅ Cliente {_del_cli} eliminado'); st.rerun()
@@ -958,12 +958,16 @@ def render_clientes():
         d1.markdown(f"**Email:** {sel}")
         d1.markdown(f"**Segmento:** {seg['badge']}")
         d2.markdown(f"**Pedidos:** {len(mp)}")
-        d2.markdown('**Facturación:** $' + f"{sum(p.get('total_usd',0) for p in mp):,.2f}")
+        d2.markdown(f"**Facturación:** ${sum(p.get('total_usd',0) for p in mp):,.2f}")
         d2.markdown(f"**Descuento:** {seg['descuento']*100:.0f}%")
+
+**Facturación:** ${sum(p.get('total_usd',0) for p in mp):,.2f}
+
+**Descuento:** {seg['descuento']*100:.0f}%")
         if mp:
             st.dataframe(pd.DataFrame([{'ID':p.get('id',''),'Destino':p.get('destino',''),'Total':f"${p.get('total_usd',0):,.2f}",'Estado':p.get('estado',''),'Fecha':p.get('fecha','')[:10]} for p in sorted(mp,key=lambda x:x.get('fecha',''),reverse=True)]),use_container_width=True,hide_index=True)
     st.markdown("---")
-    st.markdown("### U0001F50D Ficha de Cliente")
+    st.markdown("### 🔍 Ficha de Cliente")
     _cl_list = list(clients.keys())
     if _cl_list:
         _sel=st.selectbox('Seleccionar cliente',_cl_list,format_func=lambda e:f"{clients[e].get('nombre','')} ({e})",key='sel_cl')
@@ -971,7 +975,7 @@ def render_clientes():
             _c=clients[_sel]; _seg=segmentar(_sel,clients); _mp=[p for p in pedidos if p.get('client_email')==_sel]
             col_f1,col_f2=st.columns([3,1])
             with col_f1:
-                st.markdown(f"#### U0001F464 {_c.get('nombre','')} {_seg['badge']}")
+                st.markdown(f"#### 👤 {_c.get('nombre','')} {_seg['badge']}")
                 fc1,fc2=st.columns(2)
                 f_nom=fc1.text_input('Nombre',value=_c.get('nombre',''),key='f_nom')
                 f_emp=fc2.text_input('Empresa',value=_c.get('empresa',''),key='f_emp')
@@ -981,18 +985,18 @@ def render_clientes():
                 TOPTC=['','Pago anticipado 100%','50% adelanto / 50% contra documentos','30% adelanto / 70% contra BL','Carta de crédito (LC)','Pago a 30 días','Pago a 60 días','Otro']
                 cur_tc=_c.get('terminos_habituales',''); tc_idx=TOPTC.index(cur_tc) if cur_tc in TOPTC else 0
                 f_term=st.selectbox('Términos habituales',TOPTC,index=tc_idx,key='f_term')
-                f_seg=st.text_input('U0001F4C5 Próximo seguimiento',value=_c.get('proximo_seguimiento',''),placeholder='ej: 2026-07-01',key='f_seg')
-                f_notas=st.text_area('U0001F4CB Notas internas (solo admin)',value=_c.get('notas_internas',''),height=90,key='f_notas',placeholder='Preferencias, condiciones especiales...')
-                if st.button('U0001F4BE Guardar ficha',type='primary',key='save_ficha_cl'):
+                f_seg=st.text_input('📅 Próximo seguimiento',value=_c.get('proximo_seguimiento',''),placeholder='ej: 2026-07-01',key='f_seg')
+                f_notas=st.text_area('📋 Notas internas (solo admin)',value=_c.get('notas_internas',''),height=90,key='f_notas',placeholder='Preferencias, condiciones especiales...')
+                if st.button('💾 Guardar ficha',type='primary',key='save_ficha_cl'):
                     clients[_sel].update({'nombre':f_nom,'empresa':f_emp,'telefono':f_tel,'pais':f_pais,'terminos_habituales':f_term,'proximo_seguimiento':f_seg,'notas_internas':f_notas})
                     save_clients(clients); st.toast('✅ Ficha guardada',icon='✅'); st.rerun()
             with col_f2:
                 st.metric('Pedidos',len(_mp))
                 st.metric('Facturación',f"${sum(p.get('total_usd',0) for p in _mp):,.2f}")
                 st.metric('Descuento',f"{_seg['descuento']*100:.0f}%")
-                if _c.get('proximo_seguimiento'): st.info(f"U0001F4C5 {_c.get('proximo_seguimiento')}")
+                if _c.get('proximo_seguimiento'): st.info(f"📅 {_c.get('proximo_seguimiento')}")
             if _mp:
-                st.markdown('#### U0001F4DC Historial de pedidos')
+                st.markdown('#### 📜 Historial de pedidos')
                 st.dataframe(pd.DataFrame([{'ID':p.get('id',''),'Destino':p.get('destino',''),'Total':f"${p.get('total_usd',0):,.2f}",'Terminos':p.get('terminos_pago',''),'Estado':p.get('estado',''),'Fecha':p.get('fecha','')[:10]} for p in sorted(_mp,key=lambda x:x.get('fecha',''),reverse=True)]),use_container_width=True,hide_index=True)
 
 def render_reportes():
@@ -1074,7 +1078,7 @@ def build_order_html(ped):
     e_row=f'<tr><td colspan="2" style="padding:6px;font-weight:bold;background:#f8f9fa">Entrega estimada:</td><td colspan="7" style="padding:6px">{f_entrega}</td></tr>' if f_entrega else ''
     return f'''<div style="font-family:Arial,sans-serif;max-width:750px;margin:0 auto;padding:20px">
       <div style="background:linear-gradient(135deg,#003E8C,#0066CC);color:white;padding:24px;border-radius:10px;margin-bottom:20px">
-        <h1 style="margin:0;font-size:1.6em">\U0001F680 Export Haret</h1>
+        <h1 style="margin:0;font-size:1.6em">\🚀 Export Haret</h1>
         <p style="margin:4px 0 0;opacity:.85">Confirmaci\xf3n de Pedido | Frutas Ex\xf3ticas Premium</p>
       </div>
       <table style="width:100%;border-collapse:collapse;margin-bottom:16px">
@@ -1351,7 +1355,7 @@ def send_order_email(ped):
     _notas_html = f'<p><b>Notas:</b> {notas}</p>' if notas else ''
     html = (f'<html><body style="font-family:Arial,sans-serif;color:#333">'
             f'<div style="background:#003E8C;padding:16px 24px;border-radius:8px">'
-            f'<h2 style="color:white;margin:0">\U0001F680 Export Haret \u2014 Nueva Orden Recibida</h2>'
+            f'<h2 style="color:white;margin:0">\🚀 Export Haret \u2014 Nueva Orden Recibida</h2>'
             f'</div><div style="padding:16px 0">'
             f'<table style="width:100%;border-collapse:collapse;font-size:14px">'
             f'<tr><td style="padding:6px"><b>N\u00ba Pedido:</b></td><td>{pid}</td>'
@@ -1375,7 +1379,7 @@ def send_order_email(ped):
             f'{_notas_html}'
             f'</div><p style="color:#888;font-size:11px">Export Haret \u00a9 2026 | order@exportharet.com</p>'
             f'</body></html>')
-    subject = f'\U0001F4E6 Nuevo Pedido {pid} \u2014 {nombre} ({empresa or email_c}) | ${total_usd:,.2f} USD'
+    subject = f'\📦 Nuevo Pedido {pid} \u2014 {nombre} ({empresa or email_c}) | ${total_usd:,.2f} USD'
     sent = False
     error_msg = ''
     try:
@@ -1435,7 +1439,7 @@ def render_portal_pedido():
         with _ph2: st.image(_logo2, width=200)
         st.markdown('<div style="text-align:center;margin-bottom:16px"><p style="color:#666;margin:0">Sistema de Pedidos — Frutas Exóticas Premium | order@exportharet.com</p></div>',unsafe_allow_html=True)
     else:
-        st.markdown('<div style="background:linear-gradient(135deg,#003E8C,#0066CC,#0099FF);padding:20px 30px;border-radius:12px;margin-bottom:24px;text-align:center"><h1 style="color:white;margin:0;font-size:1.8em">U0001F680 Export Haret</h1><p style="color:rgba(255,255,255,0.85);margin:4px 0 0">Sistema de Pedidos — Frutas Exóticas Premium</p></div>',unsafe_allow_html=True)
+        st.markdown('<div style="background:linear-gradient(135deg,#003E8C,#0066CC,#0099FF);padding:20px 30px;border-radius:12px;margin-bottom:24px;text-align:center"><h1 style="color:white;margin:0;font-size:1.8em">🚀 Export Haret</h1><p style="color:rgba(255,255,255,0.85);margin:4px 0 0">Sistema de Pedidos — Frutas Exóticas Premium</p></div>',unsafe_allow_html=True)
     if not prods:
         st.warning('⚠️ Catálogo no disponible. Contacte a order@exportharet.com')
         return
@@ -1653,7 +1657,7 @@ def render_portal_pedido():
         # Col 0: Nombre + specs del producto
         _kg_lbl = f'{_kg_x:.1f} kg/caja'.replace('.',',') if _kg_x else ''
         gc[0].markdown(
-            f'**{nombre_prod}**' + (f'<br><small style="color:#888">{_kg_lbl}</small>' if _kg_lbl else ''),
+            f'**{nombre_prod}**' + (f'  \n<small style="color:#888">{_kg_lbl}</small>' if _kg_lbl else ''),
             unsafe_allow_html=True
         )
         # Col 1: Precio por caja
@@ -1803,7 +1807,7 @@ def render_portal_pedido():
     </div>''', unsafe_allow_html=True)
 
         TOPT=['','Pago anticipado 100%','50% adelanto / 50% contra documentos','30% adelanto / 70% contra BL','Carta de cr\xe9dito (LC)','Pago a 30 d\xedas','Pago a 60 d\xedas','Otro']
-        p_term=st.selectbox('\U0001F4CB T\xe9rminos de pago (opcional)',TOPT,key='p_term')
+        p_term=st.selectbox('\📋 T\xe9rminos de pago (opcional)',TOPT,key='p_term')
         btn_guardar = st.button('📤 CONFIRMAR Y ENVIAR PEDIDO', type='primary', use_container_width=True, key='portal_guardar')
 
         if btn_guardar:
