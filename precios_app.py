@@ -764,6 +764,7 @@ def render_catalogo():
         st.caption('Edita los precios USD/caja directamente. Cada fila = 1 pallet total del pedido. Cambios se guardan en el cat\u00e1logo.')
 
         # Construir DataFrame editable: filas=productos, columnas=pallets 1-9
+        if 'price_edit_v' not in st.session_state: st.session_state.price_edit_v = 0
         _edit_rows = []
         for _p in prods:
             _precios_plt = _p.get('precios_plt', [None]*23)
@@ -820,7 +821,7 @@ def render_catalogo():
             column_config=_col_cfg_edit,
             use_container_width=True,
             num_rows='dynamic',
-            key='edit_precios_plt',
+            key=f'edit_precios_plt_{st.session_state.price_edit_v}',
             hide_index=True,
         )
         if st.button('\U0001f4be Guardar Precios', type='primary', use_container_width=True, key='btn_save_precios_plt'):
@@ -847,7 +848,8 @@ def render_catalogo():
             data['products'] = _new_prods
             save_data(data)
             st.toast('Precios guardados \u2705', icon='\u2705')
-            st.rerun()
+            st.session_state.price_edit_v = st.session_state.get('price_edit_v', 0) + 1
+        st.rerun()
 
     # ─── SUB-TAB 2: DESTINOS & MONEDAS ───────────────────────────────
     with sub2:
