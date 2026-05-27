@@ -2528,7 +2528,7 @@ def render_portal_pedido():
             </div>
             ''')
         _resumen_html.append('</div>')
-        st.markdown(''.join(_resumen_html), unsafe_allow_html=True)
+        st.markdown(''.join(line.lstrip() for line in ''.join(_resumen_html).split('\n')), unsafe_allow_html=True)
         # (Bloque antiguo de tabla y fila TOTAL eliminado — ahora se muestra arriba)
         # Moneda destino adicional (si no es USD ni EUR)
         if _show_dest:
