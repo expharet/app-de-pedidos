@@ -149,6 +149,61 @@ LANG_TEXTS = {
         'send_quote': '📤 Send request',
     }
 }
+
+# ── CSS personalizado y responsive ───────────────────────────────────────────
+CUSTOM_CSS = """
+<style>
+/* === RESPONSIVE MÓVIL === */
+@media (max-width: 768px) {
+    .stApp { font-size: 14px !important; }
+    div[data-testid="column"] { min-width: 0 !important; }
+    .stNumberInput input { font-size: 16px !important; }
+    .stSelectbox select { font-size: 16px !important; }
+    .product-row { flex-wrap: wrap !important; }
+}
+/* === MINI CARRITO FLOTANTE === */
+.cart-badge {
+    background: #003E8C;
+    color: white;
+    border-radius: 12px;
+    padding: 2px 10px;
+    font-weight: bold;
+    font-size: 0.85em;
+}
+/* === PROGRESS BAR MÍNIMO === */
+.min-progress {
+    height: 8px;
+    background: #e0e0e0;
+    border-radius: 4px;
+    margin: 4px 0 8px 0;
+}
+.min-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #f97316, #003E8C);
+    border-radius: 4px;
+    transition: width 0.3s ease;
+}
+/* === BOTONES === */
+.stButton > button[kind="primary"] { background: #003E8C !important; border-color: #003E8C !important; }
+.stButton > button[kind="primary"]:hover { background: #002d6b !important; }
+/* === RESUMEN PEDIDO === */
+.order-summary-box {
+    background: #f8faff;
+    border: 1.5px solid #003E8C;
+    border-radius: 10px;
+    padding: 16px;
+    margin: 12px 0;
+}
+/* === PRODUCT ROW === */
+.product-header { font-weight: 600; color: #555; font-size: 0.8em; border-bottom: 1px solid #eee; padding-bottom: 4px; margin-bottom: 4px; }
+/* === LANG BUTTONS === */
+div[data-testid="column"]:has(> div > div > button[title="Español"]),
+div[data-testid="column"]:has(> div > div > button[title="English"]) {
+    padding: 0 2px !important;
+}
+</style>
+"""
+
 PEDIDOS_FILE = "pedidos_data.json"
 CLIENTS_FILE = "clientes.json"
 HIST_FILE    = "precio_historial.json"
@@ -1422,6 +1477,63 @@ def build_order_pdf(ped):
         story.append(Paragraph(f'<b>Notas:</b> {notas}', ParagraphStyle('notas', fontSize=9, textColor=GRIS, spaceBefore=4)))
         story.append(Spacer(1, 0.2*cm))
 
+    # PATCH 24: Tabla de embalaje / packaging table
+    story.append(Spacer(1, 0.4*cm))
+    packing_title = Paragraph('<b>TABLA DE EMBALAJE ESTIMADA</b>', ParagraphStyle('ptitle2', fontSize=10, textColor=AZUL, fontName='Helvetica-Bold', spaceBefore=6))
+    story.append(packing_title)
+    story.append(Spacer(1, 0.2*cm))
+    packing_header = ['Producto', 'Pallets', 'Cajas', 'Kg/Caja', 'Peso Total Est.', 'Cajas/Pallet']
+    packing_rows = [packing_header]
+    _total_weight = 0
+    _total_pal_pk = 0
+    _total_caj_pk = 0
+    for _pk_item in ped.get('productos', []):
+        _pk_cajas = int(_pk_item.get('cajas', 0))
+        _pk_pallets = float(_pk_item.get('pallets', 0))
+        _pk_name = _pk_item.get('producto', '')
+        # Try to get kg_caja from product data
+        _pk_kg = 0
+        for _pp in get_data().get('products', []):
+            if _pp.get('codigo','') == _pk_item.get('codigo',''):
+                _pk_kg = float(_pp.get('kg_caja', 0) or 0)
+                break
+        _pk_weight = round(_pk_cajas * _pk_kg, 1) if _pk_kg else 0
+        _pk_cxp = round(_pk_cajas / _pk_pallets, 0) if _pk_pallets > 0 else 0
+        _total_weight += _pk_weight
+        _total_pal_pk += _pk_pallets
+        _total_caj_pk += _pk_cajas
+        packing_rows.append([
+            _pk_name,
+            f'{_pk_pallets:.1f}',
+            str(_pk_cajas),
+            f'{_pk_kg:.1f} kg' if _pk_kg else '—',
+            f'{_pk_weight:,.0f} kg' if _pk_weight else '—',
+            str(int(_pk_cxp)) if _pk_cxp else '—',
+        ])
+    packing_rows.append(['', f'{_total_pal_pk:.1f}', str(_total_caj_pk), '', f'{_total_weight:,.0f} kg' if _total_weight else '—', ''])
+    pk_col_widths = [5*cm, 2*cm, 2*cm, 2.5*cm, 3*cm, 2.5*cm]
+    pk_table = Table(packing_rows, colWidths=pk_col_widths, repeatRows=1)
+    pk_table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), AZUL),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, 0), 8),
+        ('FONTSIZE', (0, 1), (-1, -1), 8),
+        ('ALIGN', (1, 0), (-1, -1), 'CENTER'),
+        ('ROWBACKGROUNDS', (0, 1), (-1, -2), [colors.white, colors.HexColor('#F5F5F5')]),
+        ('BACKGROUND', (0, -1), (-1, -1), colors.HexColor('#DDEEFF')),
+        ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
+        ('BOX', (0, 0), (-1, -1), 0.5, AZUL),
+        ('INNERGRID', (0, 0), (-1, -1), 0.25, colors.HexColor('#CCCCCC')),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+        ('TOPPADDING', (0, 0), (-1, -1), 4),
+    ]))
+    story.append(pk_table)
+    story.append(Spacer(1, 0.2*cm))
+    pk_note = Paragraph('<i>* Pesos totales son estimados. El peso real puede variar ±5% según calibre y variedad. No incluye embalaje de pallet.</i>', ParagraphStyle('pknote', fontSize=7, textColor=GRIS))
+    story.append(pk_note)
+    story.append(Spacer(1, 0.3*cm))
+
     # --- Pie de pagina ---
     story.append(HRFlowable(width='100%', thickness=1, color=AZUL))
     story.append(Spacer(1, 0.2*cm))
@@ -1590,12 +1702,24 @@ def send_order_email(ped):
         smtp_pass = cfg.get('smtp_pass', '')
         from_addr = cfg.get('from_addr', smtp_user) or smtp_user
         if smtp_host and smtp_user and smtp_pass:
-            msg = MIMEMultipart('alternative')
+            msg = MIMEMultipart('mixed')
             msg['Subject'] = subject
             msg['From'] = from_addr
             msg['To'] = DEST
             msg['Reply-To'] = email_c
             msg.attach(MIMEText(html, 'html', 'utf-8'))
+            # PATCH 23: Attach PDF to email
+            try:
+                from email.mime.base import MIMEBase
+                from email import encoders as _enc
+                _pdf_bytes, _pdf_mime, _pdf_ext = build_order_pdf(ped)
+                _pdf_part = MIMEBase('application', 'octet-stream')
+                _pdf_part.set_payload(_pdf_bytes)
+                _enc.encode_base64(_pdf_part)
+                _pdf_part.add_header('Content-Disposition', f'attachment; filename="{pid}{_pdf_ext}"')
+                msg.attach(_pdf_part)
+            except Exception as _pe2:
+                log_email(DEST, subject, f'pdf_attach_error:{str(_pe2)[:100]}')
             with smtplib.SMTP(smtp_host, smtp_port) as server:
                 server.ehlo()
                 server.starttls()
@@ -1627,6 +1751,7 @@ def send_order_email(ped):
 
 def render_portal_pedido():
     """Página pública para que los clientes hagan pedidos. No requiere login de staff."""
+    st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
     data = load_data()
     prods = [p for p in data.get('products', []) if p.get('activo', True)]
     dests = data.get('config', {}).get('destinos', {})
@@ -1651,16 +1776,21 @@ def render_portal_pedido():
     # -- Selector de idioma (con rerun al cambiar) --
     if 'portal_lang' not in st.session_state:
         st.session_state['portal_lang'] = 'es'
-    _lcol1, _lcol2 = st.columns([9, 1])
-    with _lcol2:
-        _cur_lang = st.session_state.portal_lang
-        _lang_sel = st.selectbox('🌐', ['🇪🇸 ES', '🇬🇧 EN'],
-            index=0 if _cur_lang == 'es' else 1,
-            key='_portal_lang_sel', label_visibility='collapsed')
-        _new_lang = 'es' if 'ES' in _lang_sel else 'en'
-        if _new_lang != _cur_lang:
-            st.session_state['portal_lang'] = _new_lang
-            st.rerun()
+    # PATCH 5: Language selector as flag buttons
+    _cur_lang = st.session_state.get('portal_lang', 'es')
+    _lbtn_c1, _lbtn_c2, _lbtn_c3 = st.columns([8, 1, 1])
+    with _lbtn_c2:
+        _es_type = 'primary' if _cur_lang == 'es' else 'secondary'
+        if st.button('🇪🇸', key='btn_lang_es', help='Español', use_container_width=True, type=_es_type):
+            if _cur_lang != 'es':
+                st.session_state['portal_lang'] = 'es'
+                st.rerun()
+    with _lbtn_c3:
+        _en_type = 'primary' if _cur_lang == 'en' else 'secondary'
+        if st.button('🇬🇧', key='btn_lang_en', help='English', use_container_width=True, type=_en_type):
+            if _cur_lang != 'en':
+                st.session_state['portal_lang'] = 'en'
+                st.rerun()
     _T = LANG_TEXTS[st.session_state.portal_lang]
 
     for k, v in [('portal_email',''),('portal_registered',False),('portal_client_data',{}),('portal_carrito',[])]:
@@ -1739,7 +1869,10 @@ def render_portal_pedido():
             empresa = c2.text_input(_T['empresa_label'], key='portal_empresa', value=st.session_state.get('portal_empresa',''))
             c3, c4 = st.columns(2)
             telefono = c3.text_input(_T['telefono_label'], placeholder=_T['telefono_ph'], key='portal_telefono', value=st.session_state.get('portal_telefono',''))
-            pais = c4.text_input(_T['pais_label'], key='portal_pais', value=st.session_state.get('portal_pais',''))
+            _paises_opts = ['Afghanistan','Albania','Algeria','Andorra','Angola','Argentina','Armenia','Australia','Austria','Azerbaijan','Bahrain','Bangladesh','Belarus','Belgium','Belize','Benin','Bolivia','Bosnia and Herzegovina','Botswana','Brazil','Bulgaria','Burkina Faso','Cambodia','Cameroon','Canada','Chile','China','Colombia','Congo','Costa Rica','Croatia','Cuba','Czech Republic','Denmark','Dominican Republic','Ecuador','Egypt','El Salvador','Estonia','Ethiopia','Finland','France','Georgia','Germany','Ghana','Greece','Guatemala','Haiti','Honduras','Hungary','India','Indonesia','Iran','Iraq','Ireland','Israel','Italy','Jamaica','Japan','Jordan','Kazakhstan','Kenya','Kuwait','Latvia','Lebanon','Libya','Lithuania','Luxembourg','Madagascar','Malaysia','Mali','Malta','Mexico','Moldova','Mongolia','Morocco','Mozambique','Myanmar','Netherlands','New Zealand','Nicaragua','Nigeria','Norway','Oman','Pakistan','Panama','Paraguay','Peru','Philippines','Poland','Portugal','Qatar','Romania','Russia','Rwanda','Saudi Arabia','Senegal','Serbia','Singapore','Slovakia','Slovenia','Somalia','South Africa','South Korea','Spain','Sri Lanka','Sudan','Sweden','Switzerland','Syria','Taiwan','Tanzania','Thailand','Tunisia','Turkey','Uganda','Ukraine','United Arab Emirates','United Kingdom','United States','Uruguay','Uzbekistan','Venezuela','Vietnam','Yemen','Zambia','Zimbabwe']
+_pais_cur = st.session_state.get('portal_pais','Spain')
+_pais_idx = _paises_opts.index(_pais_cur) if _pais_cur in _paises_opts else _paises_opts.index('Spain')
+pais = c4.selectbox(_T['pais_label'], options=_paises_opts, index=_pais_idx, key='portal_pais')
             if show_register:
                 st.caption(_T['auto_register'])
 
@@ -1795,9 +1928,35 @@ def render_portal_pedido():
                             for _pit in op.get('productos',[]):
                                 st.caption(f'• {_pit.get("producto","")} — {_pit.get("cajas",0)} cj | {_pit.get("pallets",0):.2f} plt | ${_pit.get("total",0):,.2f}')
                         can_cancel = op_estado not in ['Cancelado','Entregado','Enviado']
+                        # PATCH 17: Repetir pedido button
+                        _rp_c1, _rp_c2, _rp_c3 = st.columns([1, 1, 3])
+                        if _rp_c1.button(f'\U0001f501 Repetir', key=f'repeat_{op_id}', help='Cargar en carrito', use_container_width=True):
+                            _repeat_prods = op.get('productos', [])
+                            if _repeat_prods:
+                                st.session_state.portal_carrito = []
+                                _rep_data = load_data()
+                                for _rp in _repeat_prods:
+                                    _rp_cod = _rp.get('codigo','')
+                                    _rp_cajas = int(_rp.get('cajas',0))
+                                    _rp_pallets = float(_rp.get('pallets',0))
+                                    _rp_unit = _rp.get('unidad','Pallets')
+                                    _rp_prod = _rp.get('producto','')
+                                    _rp_precio = float(_rp.get('precio_usd',0))
+                                    _rp_total = float(_rp.get('total',0))
+                                    if _rp_cajas > 0:
+                                        st.session_state.portal_carrito.append({'codigo':_rp_cod,'producto':_rp_prod,'cajas':_rp_cajas,'pallets':_rp_pallets,'precio_usd':_rp_precio,'total':_rp_total,'unidad':_rp_unit})
+                                        for _ri, _p2 in enumerate(_rep_data.get('products',[])):
+                                            if _p2.get('codigo','') == _rp_cod:
+                                                _rqv = _rp_pallets if _rp_unit=='Pallets' else _rp_cajas
+                                                st.session_state[f'portal_qty_{_rp_cod}_{_ri}'] = int(_rqv)
+                                                st.session_state[f'portal_unit_{_rp_cod}_{_ri}'] = _rp_unit
+                                                break
+                                st.success(f'\u2705 Pedido {op_id} cargado. Revisa y confirma.')
+                                st.rerun()
+                            else:
+                                st.warning('Este pedido no tiene productos registrados.')
                         if can_cancel:
-                            st.markdown('')
-                            if st.button(f'🗑 Solicitar cancelación — {op_id}', key=f'cancel_{op_id}', type='secondary'):
+                            if _rp_c2.button(f'\ud83d\uddd1 Cancelar', key=f'cancel_{op_id}', type='secondary', use_container_width=True):
                                 st.session_state[f'confirm_cancel_{op_id}'] = True
                         if st.session_state.get(f'confirm_cancel_{op_id}'):
                             st.warning(f'⚠️ ¿Confirmas la cancelación del pedido **{op_id}**? Se notificará a nuestro equipo.')
@@ -1859,17 +2018,55 @@ def render_portal_pedido():
             _next_tramo = _t
             _pallets_para_siguiente = max(0, _t['min'] - _current_pallets)
             break
+    # PATCH 9: Progress bar toward minimum order
+    _min_order = 3
+    _progress_pct = min(1.0, _current_pallets / _min_order)
+    _progress_fill_pct = int(_progress_pct * 100)
     if _current_pallets == 0:
-        st.warning(_T['min_order_empty'])
+        _min_valido = False
+        _progress_color = '#e0e0e0'
+        _progress_text = _T.get('min_order_empty', '📋 Pedido mínimo: 3 pallets — Añade productos para comenzar')
+        _progress_icon = '⚪'
+    elif _current_pallets < _min_order:
+        _min_valido = False
+        _progress_color = '#f97316'
+        _needed = _min_order - _current_pallets
+        _progress_text = f'⚠️ {_current_pallets:.1f}/{_min_order} pallets — Faltan {_needed:.1f} pallets para el mínimo'
+        _progress_icon = '🟡'
     else:
-        _min_valido = _current_pallets >= 3
-        if not _min_valido:
-            st.warning(_T['min_order_short'].format(plt=_current_pallets, needed=max(0, 3-_current_pallets)))
-        else:
-            _next_hint = ''
-            if _next_tramo and _pallets_para_siguiente > 0:
-                _next_hint = f' — Con {int(_next_tramo["min"])}+ pallets el precio por caja baja aún más.'
-            st.info(f'📦 **{_current_pallets:.1f} pallets en carrito**{_next_hint}')
+        _min_valido = True
+        _progress_color = '#16a34a'
+        _next_hint = ''
+        if _next_tramo and _pallets_para_siguiente > 0:
+            _next_hint = f' | Con {int(_next_tramo["min"])}+ pallets el precio baja aún más 🚀'
+        _progress_text = f'✅ {_current_pallets:.1f}/{_min_order} pallets{_next_hint}'
+        _progress_icon = '🟢'
+    st.markdown(
+        f'<div style="margin: 4px 0 2px 0; font-size:0.88rem">{_progress_icon} {_progress_text}</div>'
+        f'<div style="height:8px;background:#e9ecef;border-radius:6px;margin-bottom:8px">'
+        f'<div style="height:100%;width:{_progress_fill_pct}%;background:{_progress_color};border-radius:6px;transition:width 0.4s"></div>'
+        f'</div>',
+        unsafe_allow_html=True
+    )
+    # PATCH 2: Live mini-carrito summary
+    _cart_total_usd = sum(i.get('total',0) for i in st.session_state.portal_carrito)
+    _cart_total_pal = sum(i.get('pallets',0) for i in st.session_state.portal_carrito)
+    _cart_total_caj = sum(i.get('cajas',0) for i in st.session_state.portal_carrito)
+    _cart_items = len([i for i in st.session_state.portal_carrito if i.get('cajas',0) > 0])
+    if _cart_items > 0:
+        _cart_dest_mon = data.get('config',{}).get('destinos_moneda',{}).get(destino,'USD') if tipo_precio=='CIF' else 'USD'
+        _cart_rate = get_exchange_rates().get(_cart_dest_mon, 1.0)
+        _cart_sym = MONEDA_SIMBOLO.get(_cart_dest_mon, _cart_dest_mon)
+        _cart_total_dest = round(_cart_total_usd * _cart_rate, 2) if _cart_dest_mon != 'USD' and _cart_rate != 1.0 else None
+        _alt_total = f'  ~  {_cart_sym}{_cart_total_dest:,.2f} {_cart_dest_mon}' if _cart_total_dest else ''
+        _s_prods = 's' if _cart_items != 1 else ''
+        _cart_html = (
+            f'<div style="background:#e8f0fe;border:1.5px solid #003E8C;border-radius:8px;padding:8px 14px;margin:6px 0;display:flex;justify-content:space-between;align-items:center">'
+            f'<span style="font-weight:600;color:#003E8C">🛒 Carrito: {_cart_items} producto{_s_prods} | {_cart_total_pal:.1f} pal | {_cart_total_caj:,} cj</span>'
+            f'<span style="font-weight:700;color:#003E8C;font-size:1.1em">💰 ${_cart_total_usd:,.2f} USD{_alt_total}</span>'
+            f'</div>'
+        )
+        st.markdown(_cart_html, unsafe_allow_html=True)
     hc = st.columns([4, 2, 3, 2, 2])
     hc[0].markdown('**Producto**')
     hc[1].markdown('**Precio/cja**')
@@ -1936,15 +2133,19 @@ def render_portal_pedido():
             key=unit_key, label_visibility='collapsed'
         )
         unit_sel = unit_sel_raw
-        # Col 4: Cajas calculadas (solo informacion)
+        # Col 4: Cajas calculadas (solo informacion) — PATCH 8
         if qty_val > 0:
             if unit_sel == 'Pallets':
                 _n_cajas = int(qty_val * cxp)
                 _n_pallets = float(qty_val)
+                _cajas_label = f'**{_n_cajas:,}** cj'
+                _cajas_sub = f'<small style="color:#888">{int(qty_val)}p × {cxp}cj/p</small>'
             else:
                 _n_cajas = int(qty_val)
                 _n_pallets = round(_n_cajas / cxp, 2)
-            gc[4].markdown(f'<span style="color:#333;font-size:0.9rem">{_n_cajas:,} cj</span>', unsafe_allow_html=True)
+                _cajas_label = f'**{_n_cajas:,}** cj'
+                _cajas_sub = f'<small style="color:#888">≈ {_n_pallets:.1f} pal</small>'
+            gc[4].markdown(f'{_cajas_label}\n{_cajas_sub}', unsafe_allow_html=True)
             # Agregar al nuevo carrito
             _new_carrito.append({
                 'codigo': cod, 'producto': nombre_prod,
@@ -2045,21 +2246,52 @@ def render_portal_pedido():
         st.markdown(_T['step4'])
         notas = st.text_area('📝 Notas / instrucciones especiales', placeholder='Ej: Entrega en almacén X, condiciones especiales...', key='portal_notas')
 
-        # Mostrar resumen antes de confirmar
-        if st.session_state.portal_carrito and email_input and nombre:
-            tot_final = sum(i['total'] for i in st.session_state.portal_carrito)
-            tipo_str = tipo_precio + (f' → {destino}' if tipo_precio == 'CIF' and destino else '')
-            st.markdown(f'''
-    <div style="background:#f0f7ff;border:1px solid #003E8C;border-radius:8px;padding:12px 18px;margin:8px 0">
-    📋 <b>Resumen del Pedido</b><br>
-    &bull; Cliente: <b>{nombre}</b> ({email_input})<br>
-    &bull; Productos: <b>{len(st.session_state.portal_carrito)}</b><br>
-    &bull; Modalidad: <b>{tipo_str}</b><br>
-    &bull; <span style="font-size:1.1em">💰 Total: <b style="color:#003E8C">${tot_final:,.2f} USD</b></span>
-    </div>''', unsafe_allow_html=True)
-
         TOPT=['','Pago anticipado 100%','50% adelanto / 50% contra documentos','30% adelanto / 70% contra BL','Carta de cr\xe9dito (LC)','Pago a 30 d\xedas','Pago a 60 d\xedas','Otro']
         p_term=st.selectbox('\📋 T\xe9rminos de pago (opcional)',TOPT,key='p_term')
+        # PATCH 19: Full order summary before confirm
+        if st.session_state.portal_carrito and email_input and nombre:
+            tot_final = sum(i['total'] for i in st.session_state.portal_carrito)
+            _tot_pal_fin = sum(i.get('pallets',0) for i in st.session_state.portal_carrito)
+            _tot_caj_fin = sum(i.get('cajas',0) for i in st.session_state.portal_carrito)
+            tipo_str = tipo_precio + (f' → {destino}' if tipo_precio == 'CIF' and destino else '')
+            # Destination currency
+            _fin_mon = data.get('config',{}).get('destinos_moneda',{}).get(destino,'USD') if tipo_precio=='CIF' else 'USD'
+            _fin_rate = get_exchange_rates().get(_fin_mon, 1.0)
+            _fin_sym = MONEDA_SIMBOLO.get(_fin_mon, _fin_mon)
+            _fin_dest_total = round(tot_final * _fin_rate, 2) if _fin_mon != 'USD' and _fin_rate != 1.0 else None
+            _fin_alt = f'<br><span style="font-size:0.88em;color:#555">≈ {_fin_sym}{_fin_dest_total:,.2f} {_fin_mon}</span>' if _fin_dest_total else ''
+            # Build product table rows
+            _prod_rows_html = ''
+            for _pfi in st.session_state.portal_carrito:
+                if _pfi.get('cajas', 0) > 0:
+                    _prod_rows_html += (
+                        f'<tr><td style="padding:3px 8px">{_pfi.get("codigo","")}</td>'
+                        f'<td style="padding:3px 8px">{_pfi.get("producto","")}</td>'
+                        f'<td style="padding:3px 8px;text-align:center">{int(_pfi.get("pallets",0)):.0f} pal / {int(_pfi.get("cajas",0))} cj</td>'
+                        f'<td style="padding:3px 8px;text-align:right">${_pfi.get("precio_usd",0):.2f}</td>'
+                        f'<td style="padding:3px 8px;text-align:right;font-weight:600">${_pfi.get("total",0):,.2f}</td></tr>'
+                    )
+            st.markdown(
+                f'<div style="background:#f0f7ff;border:2px solid #003E8C;border-radius:10px;padding:16px 20px;margin:10px 0">'
+                f'<h4 style="margin:0 0 10px 0;color:#003E8C">📝 Resumen del Pedido</h4>'
+                f'<p style="margin:2px 0"><b>Cliente:</b> {nombre} ({email_input})</p>'
+                f'<p style="margin:2px 0"><b>Empresa:</b> {empresa or "N/A"} &nbsp;|&nbsp; <b>País:</b> {pais or "N/A"}</p>'
+                f'<p style="margin:2px 0"><b>Modalidad:</b> {tipo_str} &nbsp;|&nbsp; <b>T. pago:</b> {p_term or "Por confirmar"}</p>'
+                f'<table style="width:100%;border-collapse:collapse;margin:10px 0;font-size:0.9em">'
+                f'<thead><tr style="background:#003E8C;color:white">'
+                f'<th style="padding:4px 8px;text-align:left">Cód</th>'
+                f'<th style="padding:4px 8px;text-align:left">Producto</th>'
+                f'<th style="padding:4px 8px;text-align:center">Cantidad</th>'
+                f'<th style="padding:4px 8px;text-align:right">$/cja</th>'
+                f'<th style="padding:4px 8px;text-align:right">Total USD</th></tr></thead>'
+                f'<tbody>{_prod_rows_html}</tbody>'
+                f'<tfoot><tr style="background:#e8f0fe"><td colspan="3" style="padding:5px 8px;font-weight:700">TOTAL: {_tot_pal_fin:.1f} pallets | {_tot_caj_fin:,} cajas</td>'
+                f'<td></td><td style="padding:5px 8px;text-align:right;font-weight:700;font-size:1.05em"><b>${tot_final:,.2f} USD</b>{_fin_alt}</td></tr></tfoot>'
+                f'</table>'
+                f'</div>',
+                unsafe_allow_html=True
+            )
+
         btn_guardar = st.button(_T['confirm_btn'], type='primary', use_container_width=True, key='portal_guardar')
 
         if btn_guardar:
@@ -2119,7 +2351,7 @@ def render_portal_pedido():
                 st.session_state['ultimo_pedido'] = ped
                 st.session_state.portal_carrito = []
                 st.success(_T['order_confirmed'].format(pid=pid))
-                st.info(f'📧 Recibirás confirmación en **{email_input}** en 24-48h. Haz seguimiento en la pestaña **Mis Pedidos** arriba. Consultas: order@exportharet.com')
+                st.info(f'📧 Tu pedido ha sido enviado a **order@exportharet.com** para su confirmación. Nuestro equipo te contactará en 24-48h. Sigue el estado en la pestaña **Mis Pedidos** ↑'.com')
 
     # ── Acciones post-pedido ─────────────────────────────────────────────────
     if st.session_state.get('ultimo_pedido'):
@@ -2146,7 +2378,7 @@ def render_portal_pedido():
         _dest_wa = ped_saved.get('destino', '')
         wa_text = f'Pedido {pid_saved} Export Haret | ${tot_wa:,.2f} USD | {_tipo_wa} {_dest_wa} | {_prods_str}'
         wa_encoded = wa_text.replace(' ', '%20').replace('\n', '%0A')
-        wa_url = f'https://wa.me/+1?text={wa_encoded}'
+        wa_url = f'https://wa.me/34641076116?text={wa_encoded}'
         ac2.link_button('💬 WhatsApp', wa_url, use_container_width=True)
         # Email
         subject = f'Pedido {pid_saved} — Export Haret'
