@@ -886,8 +886,8 @@ def render_hacer_pedido():
     notas=st.text_area('Notas',placeholder='Instrucciones especiales...',key='hp_notas')
     ht1,ht2=st.columns(2)
     TOPH=['','Pago anticipado 100%','50% adelanto / 50% contra documentos','30% adelanto / 70% contra BL','Carta de cr\xe9dito (LC)','Pago a 30 d\xedas','Pago a 60 d\xedas','Otro']
-    hp_term=ht1.selectbox('\📋 T\xe9rminos de pago',TOPH,key='hp_term')
-    hp_ent=ht2.text_input('\📅 Fecha entrega estimada',placeholder='ej: 2026-06-20',key='hp_ent')
+    hp_term=ht1.selectbox('📋 Términos de pago',TOPH,key='hp_term')
+    hp_ent=ht2.text_input('📅 Fecha entrega estimada',placeholder='ej: 2026-06-20',key='hp_ent')
     notas_internas=st.text_area('🔒 Notas internas (no visibles al cliente)',placeholder='Instrucciones de almacén, condiciones especiales...',key='hp_notas_int',height=60)
     if st.session_state.carrito:
         _tot_pre = sum(i['total'] for i in st.session_state.carrito)
@@ -1687,7 +1687,7 @@ def send_order_email(ped):
             f'{_notas_html}'
             f'</div><p style="color:#888;font-size:11px">Export Haret \u00a9 2026 | order@exportharet.com</p>'
             f'</body></html>')
-    subject = f'\📦 Nuevo Pedido {pid} \u2014 {nombre} ({empresa or email_c}) | ${total_usd:,.2f} USD'
+    subject = f'📦 Nuevo Pedido {pid} — {nombre} ({empresa or email_c}) | ${total_usd:,.2f} USD'
     sent = False
     error_msg = ''
     try:
@@ -1766,8 +1766,13 @@ def render_portal_pedido():
         st.markdown('<div style="text-align:center;margin-bottom:16px"><p style="color:#666;margin:0">Sistema de Pedidos — Frutas Exóticas Premium | order@exportharet.com</p></div>',unsafe_allow_html=True)
     else:
         st.markdown('<div style="background:linear-gradient(135deg,#003E8C,#0066CC,#0099FF);padding:20px 30px;border-radius:12px;margin-bottom:24px;text-align:center"><h1 style="color:white;margin:0;font-size:1.8em">🚀 Export Haret</h1><p style="color:rgba(255,255,255,0.85);margin:4px 0 0">Sistema de Pedidos — Frutas Exóticas Premium</p></div>',unsafe_allow_html=True)
+    # Init lang EARLY so _T is available for error messages
+    if 'portal_lang' not in st.session_state:
+        st.session_state['portal_lang'] = 'es'
+
     if not prods:
-        st.warning(_T['no_catalog'])
+        _T_early = LANG_TEXTS[st.session_state.get('portal_lang','es')]
+        st.warning(_T_early['no_catalog'])
         return
 
     portal_clients = load_portal_clients()
@@ -1854,7 +1859,7 @@ def render_portal_pedido():
                     if not st.session_state.get('portal_nombre'):
                         st.session_state['portal_nombre'] = _last_ord.get('client_name','')
                     if not st.session_state.get('portal_empresa'):
-                        st.session_state['portal_empresa'] = _last_ord.get('client_empresa','')
+                        st.session_state['portal_empresa'] = _last_ord.get('empresa','')
             st.info(_T['not_registered'])
             show_register = True
 
@@ -2242,12 +2247,12 @@ def render_portal_pedido():
     st.markdown('---')
 
     if st.session_state.portal_carrito:
-            # ── PASO 4: Confirmar y Enviar Pedido ────────────────────────────────────
+        # ── PASO 4: Confirmar y Enviar Pedido ────────────────────────────────────
         st.markdown(_T['step4'])
-        notas = st.text_area('📝 Notas / instrucciones especiales', placeholder='Ej: Entrega en almacén X, condiciones especiales...', key='portal_notas')
+        notas = st.text_area(_T.get('notes_label','📝 Notas / instrucciones especiales'), placeholder=_T.get('notes_ph','Ej: Entrega en almacén X, condiciones especiales...'), key='portal_notas')
 
         TOPT=['','Pago anticipado 100%','50% adelanto / 50% contra documentos','30% adelanto / 70% contra BL','Carta de cr\xe9dito (LC)','Pago a 30 d\xedas','Pago a 60 d\xedas','Otro']
-        p_term=st.selectbox('\📋 T\xe9rminos de pago (opcional)',TOPT,key='p_term')
+        p_term=st.selectbox('📋 Términos de pago (opcional)',TOPT,key='p_term')
         # PATCH 19: Full order summary before confirm
         if st.session_state.portal_carrito and email_input and nombre:
             tot_final = sum(i['total'] for i in st.session_state.portal_carrito)
@@ -2309,6 +2314,12 @@ def render_portal_pedido():
                 _pc_p=[p for p in _tod_p if p.get('id','').startswith(f'PED-{_yn_p}')]
                 pid=f'PED-{_yn_p}-{len(_pc_p)+1:04d}'
                 tot = sum(i['total'] for i in st.session_state.portal_carrito)
+                # Ensure rates/currency vars are available (fallback if not defined in cart block)
+                if '_rates_portal' not in dir():
+                    _rates_portal = get_exchange_rates_meta()['rates']
+                if '_moneda_dest' not in dir():
+                    _dv_fb = data.get('config',{}).get('destinos',{}).get(destino,{})
+                    _moneda_dest = _dv_fb.get('moneda','USD') if isinstance(_dv_fb,dict) else 'USD'
                 ped = {
                     'id': pid,
                     'client_email': email_input,
@@ -2350,6 +2361,8 @@ def render_portal_pedido():
                 # Guardar pedido en session para acciones post-guardado
                 st.session_state['ultimo_pedido'] = ped
                 st.session_state.portal_carrito = []
+                # Clear step-4 fields so next order starts clean
+                for _k in ['portal_notas','p_term']: st.session_state.pop(_k, None)
                 st.success(_T['order_confirmed'].format(pid=pid))
                 st.info(f"📧 Tu pedido ha sido enviado a **order@exportharet.com** para su confirmación. Nuestro equipo te contactará en 24-48h. Sigue el estado en la pestaña **Mis Pedidos** ↑")
 
@@ -2388,6 +2401,7 @@ def render_portal_pedido():
 
         if st.button(_T['new_order_btn'], key='nuevo_portal'):
             st.session_state['ultimo_pedido'] = None
+            for _k in ['portal_notas','p_term']: st.session_state.pop(_k, None)
             st.rerun()
 
     st.markdown('---')
