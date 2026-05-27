@@ -109,8 +109,8 @@ def login_page():
                 st.rerun()
             else: st.error('❌ Email o contraseña incorrectos')
         st.markdown('---')
-        st.caption('👤 admin@exportharet.com / admin123')
-        st.caption('👤 ventas@exportharet.com / ventas123')
+    st.caption('🔒 Acceso restringido al personal autorizado.')
+    # credentials hidden for security
 
 # ─── BUSINESS LOGIC ──────────────────────────────────────────────────────
 def segmentar(email, clients):
@@ -238,6 +238,22 @@ def render_dashboard():
         s2.metric('⚠️ Críticos',ss['crit'])
         s3.metric('⏱ Prom.h',f"{ss['prom']:.1f}h")
         s4.metric('📊 Trans.',ss['tot'])
+    st.markdown('---')
+    st.markdown('---')
+    # —— Alertas pedidos nuevos ——
+    _nuevos = [p for p in pedidos if p.get('estado','') == 'Recibido']
+    if _nuevos:
+        st.markdown(f'### 🔔 Pedidos Nuevos Sin Atender ({len(_nuevos)})')
+        _col_alerta = 'background:#fff3cd;border-left:4px solid #ffc107;border-radius:6px;padding:10px 14px;margin:4px 0'
+        for _np in sorted(_nuevos, key=lambda x: x.get('fecha',''), reverse=True)[:5]:
+            _np_id = _np.get('id','').upper()
+            _np_cliente = _np.get('client_name','')
+            _np_total = _np.get('total_usd',0)
+            _np_fecha = _np.get('fecha','')[:16].replace('T',' ')
+            _np_dest = _np.get('destino','')
+            st.markdown(f'<div style="{_col_alerta}">📦 <b>{_np_id}</b> — {_np_cliente} — <b>${_np_total:,.2f} USD</b> — {_np_dest} — <small style="color:#888">{_np_fecha}</small></div>', unsafe_allow_html=True)
+        if len(_nuevos) > 5:
+            st.caption(f'... y {len(_nuevos)-5} pedido(s) más en el tab 📦 Pedidos')
     st.markdown('---')
     st.markdown('### ⭐ Segmentación')
     segs={'VIP':0,'Regular':0,'Nuevo':0}
@@ -1433,11 +1449,16 @@ def send_order_email(ped):
             log_email(DEST, subject, 'smtp_enviado')
             sent = True
         else:
-            error_msg = 'SMTP no configurado en Streamlit Secrets'
-            log_email(DEST, subject, 'smtp_sin_config')
+            _missing = []
+            if not smtp_host: _missing.append('smtp_host')
+            if not smtp_user: _missing.append('smtp_user')
+            if not smtp_pass: _missing.append('smtp_pass')
+            error_msg = f'SMTP no configurado. Faltan: {", ".join(_missing)}. Ir a Streamlit Cloud → App settings → Secrets y agregar [email] smtp_host / smtp_user / smtp_pass / smtp_port / from_addr'
+            log_email(DEST, subject, f'smtp_sin_config: {error_msg}')
     except Exception as e:
-        error_msg = str(e)[:120]
+        error_msg = str(e)[:200]
         log_email(DEST, subject, f'smtp_error:{error_msg}')
+    # Siempre guardar en pending_emails.json para auditoria
     try:
         _pf = 'pending_emails.json'
         _pe = _load(_pf, [])
@@ -1474,7 +1495,35 @@ def render_portal_pedido():
     for k, v in [('portal_email',''),('portal_registered',False),('portal_client_data',{}),('portal_carrito',[])]:
         if k not in st.session_state: st.session_state[k] = v
 
+    # Pre-fill email from last confirmed order (persistence #17)
+    if not st.session_state.get('portal_email') and st.session_state.get('_portal_last_confirmed_email'):
+        st.session_state['portal_email'] = st.session_state['_portal_last_confirmed_email']
     # ── PASO 1: Identificación del cliente ────────────────────────────────────
+    # Progress bar - steps indicator
+    _step1_done = bool(st.session_state.get('portal_email',''))
+    _step2_done = bool(st.session_state.get('portal_carrito',[]))
+    _step_html = '''<div style="display:flex;align-items:center;gap:0;margin:0 0 18px 0;background:#f8faff;border-radius:10px;padding:10px 16px">
+  <div style="flex:1;text-align:center">
+    <div style="background:#003E8C;color:white;border-radius:50%;width:28px;height:28px;display:inline-flex;align-items:center;justify-content:center;font-weight:bold;font-size:0.85em">1</div>
+    <div style="font-size:0.75em;color:#003E8C;font-weight:bold;margin-top:2px">Tus Datos</div>
+  </div>
+  <div style="flex:0.5;height:3px;background:#ccd9ee;border-radius:2px"></div>
+  <div style="flex:1;text-align:center">
+    <div style="background:#6c9fd4;color:white;border-radius:50%;width:28px;height:28px;display:inline-flex;align-items:center;justify-content:center;font-weight:bold;font-size:0.85em">2</div>
+    <div style="font-size:0.75em;color:#6c9fd4;margin-top:2px">Precio & Destino</div>
+  </div>
+  <div style="flex:0.5;height:3px;background:#ccd9ee;border-radius:2px"></div>
+  <div style="flex:1;text-align:center">
+    <div style="background:#6c9fd4;color:white;border-radius:50%;width:28px;height:28px;display:inline-flex;align-items:center;justify-content:center;font-weight:bold;font-size:0.85em">3</div>
+    <div style="font-size:0.75em;color:#6c9fd4;margin-top:2px">Productos</div>
+  </div>
+  <div style="flex:0.5;height:3px;background:#ccd9ee;border-radius:2px"></div>
+  <div style="flex:1;text-align:center">
+    <div style="background:#6c9fd4;color:white;border-radius:50%;width:28px;height:28px;display:inline-flex;align-items:center;justify-content:center;font-weight:bold;font-size:0.85em">4</div>
+    <div style="font-size:0.75em;color:#6c9fd4;margin-top:2px">Confirmar</div>
+  </div>
+</div>'''
+    st.markdown(_step_html, unsafe_allow_html=True)
     st.markdown('### 1️⃣ Tus Datos')
     email_input = st.text_input('📧 Tu correo electrónico', placeholder='tu@empresa.com', key='portal_email_input', value=st.session_state.portal_email)
 
