@@ -656,7 +656,7 @@ def render_catalogo():
                     _pc = float(_p.get('precio_compra', 0) or 0)
                     _mg = float(_p.get('margen_pct', 0.1) or 0.1)
                     _precio_cif = round(_pc * (1 + _mg) + _dest_flete_v, 4) if _pc > 0 else None
-                _row[_short_name if (_col_names.count(_col_names[_pi])==1) else _col_names_full[_pi]] = _precio_cif
+                _row[_col_names[_pi]] = _precio_cif
             _tbl_rows.append(_row)
 
         df_plt = pd.DataFrame(_tbl_rows).set_index('Pallets')
