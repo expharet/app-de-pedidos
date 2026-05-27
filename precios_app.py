@@ -45,30 +45,108 @@ MONEDA_SIMBOLO = {"USD": "$", "EUR": "€", "GBP": "£", "CHF": "Fr", "AED": "د
 # -- IDIOMA / LANGUAGE TRANSLATIONS --
 LANG_TEXTS = {
     'es': {
+        'step1': '### 1️⃣ Tus Datos',
+        'step2': '### 2️⃣ Tipo de Precio y Destino',
+        'step3': '### 3️⃣ Selecciona tus Productos',
+        'step4': '### 4️⃣ Confirmar Pedido',
         'email_label': '📧 Tu correo electrónico',
         'email_ph': 'tu@empresa.com',
+        'no_catalog': '⚠️ Catálogo no disponible. Contacte a order@exportharet.com',
+        'enter_email': '📧 **Ingresa tu correo electrónico arriba para continuar**',
+        'welcome_back': '✅ Bienvenido de vuelta, **{name}**!',
         'not_registered': '📝 Correo no registrado — completa tus datos para continuar.',
-        'welcome_back': 'Bienvenido de vuelta',
         'nombre_label': '👤 Nombre completo *',
         'empresa_label': '🏢 Empresa',
         'telefono_label': '📱 Teléfono / WhatsApp',
+        'telefono_ph': '+34 600 000 000',
         'pais_label': '🌍 País',
+        'auto_register': '🔒 Al guardar el pedido, tu cuenta quedará registrada automáticamente.',
         'tab_datos': '👤 Mis Datos',
-        'tab_pedidos': '📦 Mis Pedidos',
-        'place_order': '🚀 Confirmar Pedido',
+        'tab_pedidos': '📦 Mis Pedidos ({n})',
+        'no_orders': '📦 Aún no tienes pedidos. ¡Haz tu primer pedido a continuación!',
+        'price_type_label': '💲 Tipo de precio',
+        'price_type_help': 'FOB = Precio en origen (sin flete). CIF = Precio incluye flete al destino.',
+        'dest_label': '🌍 Destino',
+        'no_dest': '⚠️ No hay destinos configurados',
+        'flete_caption': '🛫 Flete incluido: **${flete:.2f} USD/caja** | {orig} → {dest}',
+        'cif_info': '📍 **Incoterm CIF** — Precio incluye costo + flete hasta **{dest}**. Embarcamos desde **{orig}**.',
+        'fob_info': '📦 **FOB (Free On Board)** — El precio **no incluye flete**. Tú coordinas el transporte desde Ecuador.',
+        'fob_origin': '📌 Origen de embarque: **Quito o Guayaquil, Ecuador**',
+        'min_order_empty': '📋 **Pedido mínimo: 3 pallets** — Añade productos para comenzar tu pedido',
+        'min_order_short': '📋 **Pedido mínimo: 3 pallets** — Tienes {plt:.1f} plt. Añade más productos.',
+        'cart_fob': '📦 Precios FOB — El flete corre por tu cuenta desde Quito/Guayaquil, Ecuador',
+        'clear_cart': '🗑️ Vaciar carrito',
+        'notes_label': '📝 Notas / instrucciones especiales',
+        'notes_ph': 'Ej: Entrega en almén frigorífico, embalaje especial...',
+        'payment_terms': '📋 Términos de pago (opcional)',
+        'confirm_btn': '📤 CONFIRMAR Y ENVIAR PEDIDO',
+        'err_email': '❌ Ingresa tu correo electrónico',
+        'err_nombre': '❌ Ingresa tu nombre completo',
+        'err_cart': '❌ Agrega al menos un producto al carrito',
+        'err_destino': '❌ Selecciona un destino para precio CIF',
+        'order_confirmed': '✅ **Pedido {pid} confirmado y enviado**',
+        'order_email_sent': '📧 Recibirás confirmación en **{email}** en 24-48h.',
+        'download_pdf': '⬇️ Descargar Albarán PDF',
+        'new_order_btn': '🔄 Nuevo Pedido',
+        'quote_expander': '💬 Solicitar cotización especial',
+        'quote_intro': '**¿Necesitas presupuesto personalizado?** Rellena el formulario y te contactamos en 24h.',
+        'quote_name_lbl': 'Tu nombre / empresa',
+        'quote_name_ph': 'Nombre o empresa',
+        'quote_msg_lbl': 'Mensaje adicional',
+        'quote_msg_ph': 'Condiciones especiales...',
+        'send_quote': '📤 Enviar solicitud',
     },
     'en': {
+        'step1': '### 1️⃣ Your Details',
+        'step2': '### 2️⃣ Price Type & Destination',
+        'step3': '### 3️⃣ Select your Products',
+        'step4': '### 4️⃣ Confirm Order',
         'email_label': '📧 Your email address',
         'email_ph': 'you@company.com',
+        'no_catalog': '⚠️ Catalogue not available. Contact order@exportharet.com',
+        'enter_email': '📧 **Enter your email address above to continue**',
+        'welcome_back': '✅ Welcome back, **{name}**!',
         'not_registered': '📝 Email not registered — please complete your details to continue.',
-        'welcome_back': 'Welcome back',
         'nombre_label': '👤 Full name *',
         'empresa_label': '🏢 Company',
         'telefono_label': '📱 Phone / WhatsApp',
+        'telefono_ph': '+1 000 000 0000',
         'pais_label': '🌍 Country',
+        'auto_register': '🔒 By placing your order, your account will be registered automatically.',
         'tab_datos': '👤 My Details',
-        'tab_pedidos': '📦 My Orders',
-        'place_order': '🚀 Confirm Order',
+        'tab_pedidos': '📦 My Orders ({n})',
+        'no_orders': '📦 No orders yet. Place your first order below!',
+        'price_type_label': '💲 Price type',
+        'price_type_help': 'FOB = Ex-works price (no freight). CIF = Price includes freight to destination.',
+        'dest_label': '🌍 Destination',
+        'no_dest': '⚠️ No destinations configured',
+        'flete_caption': '🛫 Freight included: **${flete:.2f} USD/box** | {orig} → {dest}',
+        'cif_info': '📍 **Incoterm CIF** — Price includes cost + freight to **{dest}**. We ship from **{orig}**.',
+        'fob_info': '📦 **FOB (Free On Board)** — Price **does not include freight**. You arrange transport from Ecuador.',
+        'fob_origin': '📌 Port of origin: **Quito or Guayaquil, Ecuador**',
+        'min_order_empty': '📋 **Minimum order: 3 pallets** — Add products to start your order',
+        'min_order_short': '📋 **Minimum order: 3 pallets** — You have {plt:.1f} plt. Add more products.',
+        'cart_fob': '📦 FOB prices — Freight is your responsibility from Quito/Guayaquil, Ecuador',
+        'clear_cart': '🗑️ Clear cart',
+        'notes_label': '📝 Notes / special instructions',
+        'notes_ph': 'e.g. Delivery to cold storage, special packaging...',
+        'payment_terms': '📋 Payment terms (optional)',
+        'confirm_btn': '📤 CONFIRM AND SEND ORDER',
+        'err_email': '❌ Please enter your email address',
+        'err_nombre': '❌ Please enter your full name',
+        'err_cart': '❌ Please add at least one product to your cart',
+        'err_destino': '❌ Please select a destination for CIF pricing',
+        'order_confirmed': '✅ **Order {pid} confirmed and sent**',
+        'order_email_sent': '📧 Confirmation will be sent to **{email}** within 24-48h.',
+        'download_pdf': '⬇️ Download Order PDF',
+        'new_order_btn': '🔄 New Order',
+        'quote_expander': '💬 Request special quote',
+        'quote_intro': '**Need a custom quote?** Fill in the form and we will contact you within 24h.',
+        'quote_name_lbl': 'Your name / company',
+        'quote_name_ph': 'Your name or company',
+        'quote_msg_lbl': 'Additional message',
+        'quote_msg_ph': 'Special conditions...',
+        'send_quote': '📤 Send request',
     }
 }
 PEDIDOS_FILE = "pedidos_data.json"
@@ -299,7 +377,6 @@ def render_dashboard():
 
 # ─── TAB COTIZACION ───────────────────────────────────────────────────
 
-
 # ── Mapa columnas Excel → código producto (igual que vigilar_excel.py) ──────
 COL_MAP = {
      4: "F-PSG10",    5: "F-PN016",    6: "F-PPA01",
@@ -309,7 +386,6 @@ COL_MAP = {
     16: "F-BBB06",   17: "F-ZPT020",  18: "F-TX020",
     19: "F-UVP08",   20: "F-UVP07",
 }
-
 
 def parse_excel_file(xl_path):
     """
@@ -388,7 +464,6 @@ def parse_excel_file(xl_path):
 
     return products, destinos_cfg
 
-
 def auto_load_excel():
     """Auto-carga Cotizaciones.xlsx al inicio si los productos no tienen precios válidos."""
     data = load_data()
@@ -413,7 +488,6 @@ def auto_load_excel():
             save_data(nueva)
     except Exception:
         pass  # ignorar errores de auto-carga
-
 
 def render_catalogo():
     """Tab unificado: Tabla de precios tipo Excel + Destinos + Importar."""
@@ -689,7 +763,6 @@ def render_catalogo():
                     st.warning("No se encontraron productos validos en el archivo.")
             except Exception as e:
                 st.error(f"Error al importar: {e}")
-
 
 def render_hacer_pedido():
     st.markdown('## 🛒 Crear Nuevo Pedido')
@@ -1106,7 +1179,6 @@ def render_reportes():
         if xb: st.download_button('📥 Exportar Reporte',data=xb,file_name=f'reporte_{fd}_{fh}.xlsx',mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',type='primary')
 
 # ─── MAIN ─────────────────────────────────────────────────────────────────
-
 
 # ─── PORTAL CLIENT FILES ─────────────────────────────────────────────────────
 PORTAL_CLIENTS_FILE = 'portal_clientes.json'
@@ -1570,21 +1642,25 @@ def render_portal_pedido():
     else:
         st.markdown('<div style="background:linear-gradient(135deg,#003E8C,#0066CC,#0099FF);padding:20px 30px;border-radius:12px;margin-bottom:24px;text-align:center"><h1 style="color:white;margin:0;font-size:1.8em">🚀 Export Haret</h1><p style="color:rgba(255,255,255,0.85);margin:4px 0 0">Sistema de Pedidos — Frutas Exóticas Premium</p></div>',unsafe_allow_html=True)
     if not prods:
-        st.warning('⚠️ Catálogo no disponible. Contacte a order@exportharet.com')
+        st.warning(_T['no_catalog'])
         return
 
     portal_clients = load_portal_clients()
 
     # Init session state for portal
-    # -- Selector de idioma --
+    # -- Selector de idioma (con rerun al cambiar) --
     if 'portal_lang' not in st.session_state:
         st.session_state['portal_lang'] = 'es'
     _lcol1, _lcol2 = st.columns([9, 1])
     with _lcol2:
+        _cur_lang = st.session_state.portal_lang
         _lang_sel = st.selectbox('🌐', ['🇪🇸 ES', '🇬🇧 EN'],
-            index=0 if st.session_state.portal_lang == 'es' else 1,
+            index=0 if _cur_lang == 'es' else 1,
             key='_portal_lang_sel', label_visibility='collapsed')
-        st.session_state['portal_lang'] = 'es' if 'ES' in _lang_sel else 'en'
+        _new_lang = 'es' if 'ES' in _lang_sel else 'en'
+        if _new_lang != _cur_lang:
+            st.session_state['portal_lang'] = _new_lang
+            st.rerun()
     _T = LANG_TEXTS[st.session_state.portal_lang]
 
     for k, v in [('portal_email',''),('portal_registered',False),('portal_client_data',{}),('portal_carrito',[])]:
@@ -1619,8 +1695,8 @@ def render_portal_pedido():
   </div>
 </div>'''
     st.markdown(_step_html, unsafe_allow_html=True)
-    st.markdown('### 1️⃣ Tus Datos')
-    email_input = st.text_input('📧 Tu correo electrónico', placeholder='tu@empresa.com', key='portal_email_input', value=st.session_state.portal_email)
+    st.markdown(_T['step1'])
+    email_input = st.text_input(_T['email_label'], placeholder=_T['email_ph'], key='portal_email_input', value=st.session_state.portal_email)
 
     client_data = {}
     is_registered = False
@@ -1637,7 +1713,7 @@ def render_portal_pedido():
                 st.session_state['portal_telefono'] = client_data.get('telefono', '')
                 st.session_state['portal_pais'] = client_data.get('pais', '')
                 st.session_state['portal_last_email'] = email_input
-            st.success(f'✅ Bienvenido de vuelta, **{client_data.get("nombre",email_input)}**!')
+            st.success(_T['welcome_back'].format(name=client_data.get('nombre',email_input)))
         else:
             if st.session_state.get('portal_last_email') != email_input:
                 st.session_state['portal_last_email'] = email_input
@@ -1649,27 +1725,27 @@ def render_portal_pedido():
                         st.session_state['portal_nombre'] = _last_ord.get('client_name','')
                     if not st.session_state.get('portal_empresa'):
                         st.session_state['portal_empresa'] = _last_ord.get('client_empresa','')
-            st.info('📝 Correo no registrado — completa tus datos para continuar.')
+            st.info(_T['not_registered'])
             show_register = True
 
     if email_input:
         _client_orders_all = [p for p in load_pedidos() if p.get('client_email','').lower() == email_input.lower()]
         _n_orders = len(_client_orders_all)
-        tab_datos, tab_historial = st.tabs(['👤 Mis Datos', f'📦 Mis Pedidos ({_n_orders})'])
+        tab_datos, tab_historial = st.tabs([_T['tab_datos'], _T['tab_pedidos'].format(n=_n_orders)])
 
         with tab_datos:
             c1, c2 = st.columns(2)
-            nombre = c1.text_input('👤 Nombre completo *', key='portal_nombre', value=st.session_state.get('portal_nombre',''))
-            empresa = c2.text_input('🏢 Empresa', key='portal_empresa', value=st.session_state.get('portal_empresa',''))
+            nombre = c1.text_input(_T['nombre_label'], key='portal_nombre', value=st.session_state.get('portal_nombre',''))
+            empresa = c2.text_input(_T['empresa_label'], key='portal_empresa', value=st.session_state.get('portal_empresa',''))
             c3, c4 = st.columns(2)
-            telefono = c3.text_input('📱 Teléfono / WhatsApp', placeholder='+34 600 000 000', key='portal_telefono', value=st.session_state.get('portal_telefono',''))
-            pais = c4.text_input('🌍 País', key='portal_pais', value=st.session_state.get('portal_pais',''))
+            telefono = c3.text_input(_T['telefono_label'], placeholder=_T['telefono_ph'], key='portal_telefono', value=st.session_state.get('portal_telefono',''))
+            pais = c4.text_input(_T['pais_label'], key='portal_pais', value=st.session_state.get('portal_pais',''))
             if show_register:
-                st.caption('🔒 Al guardar el pedido, tu cuenta quedará registrada automáticamente.')
+                st.caption(_T['auto_register'])
 
         with tab_historial:
             if not _client_orders_all:
-                st.info('📦 Aún no tienes pedidos. ¡Haz tu primer pedido a continuación!')
+                st.info(_T['no_orders'])
             else:
                 st.markdown(f'#### 📋 {_n_orders} Pedido(s) realizados')
                 for op in sorted(_client_orders_all, key=lambda x: x.get('fecha',''), reverse=True):
@@ -1745,33 +1821,33 @@ def render_portal_pedido():
         st.markdown('---')
     else:
         nombre = empresa = telefono = pais = ''
-        st.info('📧 **Ingresa tu correo electrónico arriba para continuar**')
+        st.info(_T['enter_email'])
         return
     # ── PASO 2: Tipo de precio + Destino ─────────────────────────────────────
-    st.markdown('### 2️⃣ Tipo de Precio y Destino')
+    st.markdown(_T['step2'])
     t1, t2 = st.columns([1, 2])
-    tipo_precio = t1.radio('💲 Tipo de precio', ['FOB', 'CIF'], key='portal_tipo', horizontal=True,
-        help='FOB = Precio en origen (sin flete). CIF = Precio incluye flete al destino.')
+    tipo_precio = t1.radio(_T['price_type_label'], ['FOB', 'CIF'], key='portal_tipo', horizontal=True,
+        help=_T['price_type_help'])
     destino = ''
     dest_flete = 0.0
     if tipo_precio == 'CIF':
         dest_opts = list(dests.keys()) if dests else []
         if not dest_opts:
-            t2.warning('No hay destinos configurados')
+            t2.warning(_T['no_dest'])
         else:
-            destino = t2.selectbox('🌍 Destino', dest_opts, key='portal_dest')
+            destino = t2.selectbox(_T['dest_label'], dest_opts, key='portal_dest')
             dest_val = dests.get(destino, 0)
             dest_flete = float(dest_val) if isinstance(dest_val, (int, float)) else dest_val.get('factor', 0) if isinstance(dest_val, dict) else 0
             _puerto_orig = 'Quito/Guayaquil, Ecuador'
-            t2.caption(f'🛫 Flete incluido: **${dest_flete:.2f} USD/caja** | {_puerto_orig} → {destino}')
-            t2.info(f'📍 **Incoterm CIF** — Precio incluye costo + flete hasta **{destino}**. Embarcamos desde **{_puerto_orig}**.')
+            t2.caption(_T['flete_caption'].format(flete=dest_flete, orig=_puerto_orig, dest=destino))
+            t2.info(_T['cif_info'].format(dest=destino, orig=_puerto_orig))
     else:
-        t2.info('📦 **FOB (Free On Board)** — El precio **no incluye flete**. Tú coordinas el transporte desde Ecuador (Quito / Guayaquil) hasta tu destino.')
-        t2.caption('📌 Origen de embarque: **Quito o Guayaquil, Ecuador**')
+        t2.info(_T['fob_info'])
+        t2.caption(_T['fob_origin'])
 
     st.markdown('---')
     # ── PASO 3: Selección de Productos ───────────────────────────────
-    st.markdown('### 3️⃣ Selecciona tus Productos')
+    st.markdown(_T['step3'])
     # Banner pedido mínimo
     _current_pallets = sum(i.get('pallets',0) for i in st.session_state.portal_carrito)
     # ── Indicador de volumen
@@ -1784,11 +1860,11 @@ def render_portal_pedido():
             _pallets_para_siguiente = max(0, _t['min'] - _current_pallets)
             break
     if _current_pallets == 0:
-        st.warning('📋 **Pedido mínimo: 3 pallets** — Añade productos para comenzar tu pedido')
+        st.warning(_T['min_order_empty'])
     else:
         _min_valido = _current_pallets >= 3
         if not _min_valido:
-            st.warning(f'📋 **Pedido mínimo: 3 pallets** — Tienes {_current_pallets:.1f} plt. Añade más para alcanzar el mínimo.')
+            st.warning(_T['min_order_short'].format(plt=_current_pallets, needed=max(0, 3-_current_pallets)))
         else:
             _next_hint = ''
             if _next_tramo and _pallets_para_siguiente > 0:
@@ -1958,15 +2034,15 @@ def render_portal_pedido():
             unsafe_allow_html=True
         )
         if tipo_precio == 'FOB':
-            st.caption('📦 Precios FOB — El flete corre por tu cuenta desde Quito/Guayaquil, Ecuador')
-        if st.button('🗑️ Vaciar carrito', key='portal_vaciar', use_container_width=False):
+            st.caption(_T['cart_fob'])
+        if st.button(_T['clear_cart'], key='portal_vaciar', use_container_width=False):
             st.session_state.portal_carrito = []
             st.rerun()
     st.markdown('---')
 
     if st.session_state.portal_carrito:
             # ── PASO 4: Confirmar y Enviar Pedido ────────────────────────────────────
-        st.markdown('### 4️⃣ Confirmar Pedido')
+        st.markdown(_T['step4'])
         notas = st.text_area('📝 Notas / instrucciones especiales', placeholder='Ej: Entrega en almacén X, condiciones especiales...', key='portal_notas')
 
         # Mostrar resumen antes de confirmar
@@ -1984,17 +2060,17 @@ def render_portal_pedido():
 
         TOPT=['','Pago anticipado 100%','50% adelanto / 50% contra documentos','30% adelanto / 70% contra BL','Carta de cr\xe9dito (LC)','Pago a 30 d\xedas','Pago a 60 d\xedas','Otro']
         p_term=st.selectbox('\📋 T\xe9rminos de pago (opcional)',TOPT,key='p_term')
-        btn_guardar = st.button('📤 CONFIRMAR Y ENVIAR PEDIDO', type='primary', use_container_width=True, key='portal_guardar')
+        btn_guardar = st.button(_T['confirm_btn'], type='primary', use_container_width=True, key='portal_guardar')
 
         if btn_guardar:
             if not email_input:
-                st.error('❌ Ingresa tu correo electrónico')
+                st.error(_T['err_email'])
             elif not nombre:
-                st.error('❌ Ingresa tu nombre completo')
+                st.error(_T['err_nombre'])
             elif not st.session_state.portal_carrito:
-                st.error('❌ Agrega al menos un producto al carrito')
+                st.error(_T['err_cart'])
             elif tipo_precio == 'CIF' and not destino:
-                st.error('❌ Selecciona un destino para precio CIF')
+                st.error(_T['err_destino'])
             else:
                 _tod_p=load_pedidos()
                 _yn_p=datetime.now().strftime('%Y')
@@ -2042,7 +2118,7 @@ def render_portal_pedido():
                 # Guardar pedido en session para acciones post-guardado
                 st.session_state['ultimo_pedido'] = ped
                 st.session_state.portal_carrito = []
-                st.success(f'✅ **Pedido {pid} confirmado y enviado**')
+                st.success(_T['order_confirmed'].format(pid=pid))
                 st.info(f'📧 Recibirás confirmación en **{email_input}** en 24-48h. Haz seguimiento en la pestaña **Mis Pedidos** arriba. Consultas: order@exportharet.com')
 
     # ── Acciones post-pedido ─────────────────────────────────────────────────
@@ -2056,7 +2132,7 @@ def render_portal_pedido():
         ac1, ac2, ac3 = st.columns(3)
         # Descargar PDF albarán
         ac1.download_button(
-            label='⬇️ Descargar Albarán PDF',
+            label=_T['download_pdf'],
             data=pdf_bytes,
             file_name=f'{pid_saved}{pdf_ext}',
             mime=pdf_mime,
@@ -2071,29 +2147,29 @@ def render_portal_pedido():
         wa_text = f'Pedido {pid_saved} Export Haret | ${tot_wa:,.2f} USD | {_tipo_wa} {_dest_wa} | {_prods_str}'
         wa_encoded = wa_text.replace(' ', '%20').replace('\n', '%0A')
         wa_url = f'https://wa.me/+1?text={wa_encoded}'
-        ac2.link_button('💬 Compartir por WhatsApp', wa_url, use_container_width=True)
+        ac2.link_button('💬 WhatsApp', wa_url, use_container_width=True)
         # Email
         subject = f'Pedido {pid_saved} — Export Haret'
         body = f'Mi pedido {pid_saved} por ${tot_wa:,.2f} USD ha sido confirmado.'
         mailto_url = f'mailto:order@exportharet.com?subject={subject.replace(" ","%20")}&body={body.replace(" ","%20")}'
-        ac3.link_button('📧 Enviar por Email', mailto_url, use_container_width=True)
+        ac3.link_button('📧 Email', mailto_url, use_container_width=True)
 
-        if st.button('🆕 Hacer otro pedido', key='nuevo_portal'):
+        if st.button(_T['new_order_btn'], key='nuevo_portal'):
             st.session_state['ultimo_pedido'] = None
             st.rerun()
 
     st.markdown('---')
     st.markdown('---')
-    with st.expander('💬 Solicitar cotización especial',expanded=False):
-        st.markdown('**¿Necesitas presupuesto personalizado?** Rellena el formulario y te contactaremos en 24-48h.')
+    with st.expander(_T['quote_expander'],expanded=False):
+        st.markdown(_T['quote_intro'])
         _cc1,_cc2=st.columns(2)
-        _cn=_cc1.text_input('Tu nombre / empresa',key='cnom',placeholder='Nombre o empresa')
-        _ce=_cc2.text_input('Tu email',value=st.session_state.get('portal_email_input',''),key='ceml')
+        _cn=_cc1.text_input(_T['quote_name_lbl'],key='cnom',placeholder=_T['quote_name_ph'])
+        _ce=_cc2.text_input(_T['email_label'],value=st.session_state.get('portal_email_input',''),key='ceml')
         _cd=_cc1.text_input('Destino',key='cdst',placeholder='ej: Madrid, España')
         _cplt=_cc2.number_input('Pallets aprox.',min_value=1,max_value=200,value=5,key='cplt')
         _cpro=st.text_area('Productos de interés',key='cpro',placeholder='ej: 3 pallets Granadilla...',height=70)
-        _cmsg=st.text_area('Mensaje adicional',key='cmsg',placeholder='Condiciones especiales...',height=70)
-        if st.button('📨 Enviar solicitud de cotización',key='bcot',type='primary',use_container_width=True):
+        _cmsg=st.text_area(_T['quote_msg_lbl'],key='cmsg',placeholder=_T['quote_msg_ph'],height=70)
+        if st.button(_T['send_quote'], key='bcot', type='primary', use_container_width=True):
             if not _ce or not _cpro: st.error('Completa email y productos de interés')
             else:
                 _cy=datetime.now().strftime('%Y');_cpv=[p for p in load_pedidos() if p.get('id','').startswith(f'COT-{_cy}')]
