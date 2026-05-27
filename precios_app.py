@@ -958,12 +958,10 @@ def render_clientes():
         d1.markdown(f"**Email:** {sel}")
         d1.markdown(f"**Segmento:** {seg['badge']}")
         d2.markdown(f"**Pedidos:** {len(mp)}")
-        d2.markdown(f"**Facturación:** ${sum(p.get('total_usd',0) for p in mp):,.2f}")
+        d2.markdown('**Facturación:** $' + str(round(sum(p.get('total_usd',0) for p in mp), 2)))
         d2.markdown(f"**Descuento:** {seg['descuento']*100:.0f}%")
 
 **Facturación:** ${sum(p.get('total_usd',0) for p in mp):,.2f}
-
-**Descuento:** {seg['descuento']*100:.0f}%")
         if mp:
             st.dataframe(pd.DataFrame([{'ID':p.get('id',''),'Destino':p.get('destino',''),'Total':f"${p.get('total_usd',0):,.2f}",'Estado':p.get('estado',''),'Fecha':p.get('fecha','')[:10]} for p in sorted(mp,key=lambda x:x.get('fecha',''),reverse=True)]),use_container_width=True,hide_index=True)
     st.markdown("---")
