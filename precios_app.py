@@ -5,6 +5,7 @@ import os
 import io
 import hashlib
 import uuid
+import logging
 from datetime import datetime, date, timedelta
 from typing import Dict, List, Optional
 from PIL import Image
@@ -18,6 +19,10 @@ try:
     REPORTLAB_OK = True
 except ImportError:
     REPORTLAB_OK = False
+
+# ─── LOGGING SETUP ───────────────────────────────────────────────────────────
+logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(name)s: %(message)s')
+logger = logging.getLogger('exportharet')
 
 # ─── PAGE CONFIG ─────────────────────────────────────────────────────────────
 st.set_page_config(
@@ -72,8 +77,8 @@ LANG_TEXTS = {
         'cif_info': '📍 **Incoterm CIF** — Precio incluye costo + flete hasta **{dest}**. Embarcamos desde **{orig}**.',
         'fob_info': '📦 **FOB (Free On Board)** — El precio **no incluye flete**. Tú coordinas el transporte desde Ecuador.',
         'fob_origin': '📌 Origen de embarque: **Quito o Guayaquil, Ecuador**',
-        'min_order_empty': '📋 **Pedido mínimo: 3 pallets** — Añade productos para comenzar tu pedido',
-        'min_order_short': '📋 **Pedido mínimo: 3 pallets** — Tienes {plt:.1f} plt. Añade más productos.',
+        'min_order_empty': '📋 <strong>Pedido mínimo: 3 pallets</strong> — Añade productos para comenzar tu pedido',
+        'min_order_short': '📋 <strong>Pedido mínimo: 3 pallets</strong> — Tienes {plt:.1f} plt. Añade más productos.',
         'cart_fob': '📦 Precios FOB — El flete corre por tu cuenta desde Quito/Guayaquil, Ecuador',
         'clear_cart': '🗑️ Vaciar carrito',
         'notes_label': '📝 Notas / instrucciones especiales',
@@ -125,8 +130,8 @@ LANG_TEXTS = {
         'cif_info': '📍 **Incoterm CIF** — Price includes cost + freight to **{dest}**. We ship from **{orig}**.',
         'fob_info': '📦 **FOB (Free On Board)** — Price **does not include freight**. You arrange transport from Ecuador.',
         'fob_origin': '📌 Port of origin: **Quito or Guayaquil, Ecuador**',
-        'min_order_empty': '📋 **Minimum order: 3 pallets** — Add products to start your order',
-        'min_order_short': '📋 **Minimum order: 3 pallets** — You have {plt:.1f} plt. Add more products.',
+        'min_order_empty': '📋 <strong>Minimum order: 3 pallets</strong> — Add products to start your order',
+        'min_order_short': '📋 <strong>Minimum order: 3 pallets</strong> — You have {plt:.1f} plt. Add more products.',
         'cart_fob': '📦 FOB prices — Freight is your responsibility from Quito/Guayaquil, Ecuador',
         'clear_cart': '🗑️ Clear cart',
         'notes_label': '📝 Notes / special instructions',
@@ -223,7 +228,8 @@ def _load(path, default):
     try:
         if os.path.exists(path):
             with open(path,'r',encoding='utf-8') as f: return json.load(f)
-    except: pass
+    except Exception as e:
+        logger.warning(f'Error loading {path}: {e}')
     return default
 
 def _save(path, data):
@@ -351,7 +357,8 @@ def calc_sla(pedidos):
                 h2=(t2-t1).total_seconds()/3600
                 meta=metas.get(f'{de}_{a}')
                 if meta: slas.append({'p':p.get('id',''),'tr':f'{de}→{a}','h':round(h2,1),'m':meta,'ok':h2<=meta})
-            except: pass
+            except Exception as e:
+                logger.debug(f'SLA calc skip: {e}')
     tot=len(slas) or 1
     ok=sum(1 for s in slas if s['ok'])
     return slas,{'pct':round(ok/tot*100,1),'crit':tot-ok,'tot':len(slas),'prom':round(sum(s['h'] for s in slas)/tot,1)}
@@ -1308,7 +1315,8 @@ def render_configuracion():
             st.success(f'✅ SMTP activo: {_smtp_cfg.get("smtp_user","?")} → {_smtp_host}:{_smtp_cfg.get("smtp_port",587)} | Emails van a order@exportharet.com')
         else:
             st.warning('⚠️ SMTP no configurado — agregar en Streamlit Secrets: [email] smtp_host / smtp_user / smtp_pass')
-    except:
+    except Exception as e:
+        logger.debug(f'SMTP secrets not accessible: {e}')
         st.info('ℹ️ Configura SMTP en Streamlit Cloud → App settings → Secrets.')
     st.markdown('---')
     st.markdown('### 🗃️ Archivos de Datos')
@@ -2014,9 +2022,11 @@ def render_portal_pedido():
     # -- Selector de idioma (con rerun al cambiar) --
     if 'portal_lang' not in st.session_state:
         st.session_state['portal_lang'] = 'es'
-    # PATCH 5: Language selector as flag buttons
+    # PATCH 5: Language selector as flag buttons (with label)
     _cur_lang = st.session_state.get('portal_lang', 'es')
     _lbtn_c1, _lbtn_c2, _lbtn_c3 = st.columns([8, 1, 1])
+    with _lbtn_c1:
+        st.markdown("<div style='text-align:right;padding-top:6px;color:#666;font-size:0.85rem;'>🌐 Idioma / Language</div>", unsafe_allow_html=True)
     with _lbtn_c2:
         _es_type = 'primary' if _cur_lang == 'es' else 'secondary'
         if st.button('🇪🇸', key='btn_lang_es', help='Español', use_container_width=True, type=_es_type):
@@ -2220,6 +2230,17 @@ def render_portal_pedido():
         nombre = empresa = telefono = pais = ''
         st.info(_T['enter_email'])
         return
+    # PATCH VAL: Hard validation - require valid email + name before continuing
+    import re as _re_val
+    _email_pat = r'^[^@\s]+@[^@\s]+\.[^@\s]+'
+    _email_ok = bool(_re_val.match(_email_pat, (email_input or '').strip()))
+    _nombre_val = (st.session_state.get('portal_nombre','') or '').strip()
+    if not _email_ok:
+        st.warning('📧 Ingresa un correo electrónico válido para continuar.' if st.session_state.portal_lang=='es' else '📧 Please enter a valid email address to continue.')
+        return
+    if not _nombre_val:
+        st.warning('👤 Ingresa tu nombre completo para continuar.' if st.session_state.portal_lang=='es' else '👤 Please enter your full name to continue.')
+        return
     # ── PASO 2: Tipo de precio + Destino ─────────────────────────────────────
     st.markdown(_T['step2'])
     t1, t2 = st.columns([1, 2])
@@ -2264,7 +2285,7 @@ def render_portal_pedido():
     if _current_pallets == 0:
         _min_valido = False
         _progress_color = '#e0e0e0'
-        _progress_text = _T.get('min_order_empty', '📋 Pedido mínimo: 3 pallets — Añade productos para comenzar')
+        _progress_text = _T.get('min_order_empty', '📋 <strong>Pedido mínimo: 3 pallets</strong> — Añade productos para comenzar')
         _progress_icon = '⚪'
     elif _current_pallets < _min_order:
         _min_valido = False
@@ -2436,40 +2457,79 @@ def render_portal_pedido():
             _moneda_dest = _dv2.get('moneda','USD') if isinstance(_dv2,dict) else 'USD'
         _dest_rate = _rates_portal.get(_moneda_dest, 1)
         _show_dest = _moneda_dest not in ('USD', 'EUR')
-        # ── Tabla resumen ──
-        st.markdown(
-            '<div style="background:#f8faff;border:1px solid #ccd9ee;border-radius:10px;padding:14px 18px 10px;margin:8px 0"><b style="font-size:1.05em;color:#003E8C">🛒 Resumen del Pedido</b></div>',
-            unsafe_allow_html=True
-        )
-        # Headers tabla
-        _rh = st.columns([3, 1, 1, 1, 2, 2])
-        _rh[0].markdown('**Producto**')
-        _rh[1].markdown('**$/caja**')
-        _rh[2].markdown('**Pallets**')
-        _rh[3].markdown('**Cajas**')
-        _rh[4].markdown('**Total USD**')
-        _rh[5].markdown('**€ Total EUR**')
-        st.markdown('<hr style="margin:3px 0 5px;border-color:#ddd">', unsafe_allow_html=True)
-        # Filas por producto
+        # ── Resumen del pedido (responsive: cards en móvil, tabla en desktop) ──
+        # Total destacado arriba para reducir scroll en móvil
+        _tot_eur = round(_tot_c * _eur_rate, 2)
+        _resumen_html = ['<div class="eh-resumen-wrap">']
+        # CSS local
+        _resumen_html.append('''<style>
+        .eh-resumen-wrap { margin: 8px 0 14px; }
+        .eh-resumen-total {
+            background: linear-gradient(135deg,#003E8C 0%,#1a4f9e 100%);
+            color: #fff; border-radius: 12px; padding: 14px 18px;
+            display: flex; justify-content: space-between; align-items: center;
+            flex-wrap: wrap; gap: 10px; margin-bottom: 12px;
+            box-shadow: 0 4px 12px rgba(0,62,140,0.15);
+        }
+        .eh-resumen-total .eh-tot-lbl { font-size: 0.85rem; opacity: 0.85; text-transform: uppercase; letter-spacing: 0.5px; }
+        .eh-resumen-total .eh-tot-val { font-size: 1.45rem; font-weight: 700; line-height: 1.1; }
+        .eh-resumen-total .eh-tot-eur { font-size: 1rem; opacity: 0.92; }
+        .eh-resumen-total .eh-tot-meta { font-size: 0.82rem; opacity: 0.88; }
+        .eh-resumen-card {
+            background: #fff; border: 1px solid #e1e7f0; border-radius: 10px;
+            padding: 10px 14px; margin-bottom: 8px; display: grid;
+            grid-template-columns: 1fr auto; gap: 4px 12px; align-items: center;
+        }
+        .eh-resumen-card .eh-prod { font-weight: 600; color: #1a2540; font-size: 0.98rem; }
+        .eh-resumen-card .eh-precio { color: #003E8C; font-weight: 700; text-align: right; white-space: nowrap; }
+        .eh-resumen-card .eh-meta { grid-column: 1 / -1; display: flex; justify-content: space-between; align-items: center; font-size: 0.82rem; color: #6c7a93; padding-top: 2px; border-top: 1px dashed #eef1f7; margin-top: 2px; }
+        .eh-resumen-card .eh-meta b { color: #1a2540; font-weight: 600; }
+        .eh-resumen-card .eh-eur { color: #1a7a3c; font-weight: 600; }
+        @media (min-width: 740px) {
+          .eh-resumen-card { grid-template-columns: 2.3fr 0.9fr 0.9fr 0.9fr 1.1fr 1fr; gap: 6px 10px; }
+          .eh-resumen-card .eh-prod { grid-column: auto; }
+          .eh-resumen-card .eh-precio { text-align: right; }
+          .eh-resumen-card .eh-meta { grid-column: auto; display: contents; border: none; padding: 0; margin: 0; font-size: 0.92rem; color: #1a2540; }
+          .eh-resumen-card .eh-meta-cell { padding: 0; }
+        }
+        </style>''')
+        # Total card destacado arriba
+        _moneda_extra = ''
+        if _show_dest:
+            _tot_dest = round(_tot_c * _dest_rate, 2)
+            _sym_dest = MONEDA_SIMBOLO.get(_moneda_dest, _moneda_dest)
+            _moneda_extra = f' &nbsp;·&nbsp; <span style="opacity:0.9">{_sym_dest}{_tot_dest:,.2f} {_moneda_dest}</span>'
+        _resumen_html.append(f'''
+        <div class="eh-resumen-total">
+          <div>
+            <div class="eh-tot-lbl">🛒 Total del pedido</div>
+            <div class="eh-tot-val">${_tot_c:,.2f} USD</div>
+            <div class="eh-tot-eur">≈ €{_tot_eur:,.2f}{_moneda_extra}</div>
+          </div>
+          <div style="text-align:right">
+            <div class="eh-tot-meta">📦 {_plt_c:.2f} pallets · {_cj_c:,} cajas</div>
+            <div class="eh-tot-meta">🧾 {len(st.session_state.portal_carrito)} producto(s)</div>
+          </div>
+        </div>
+        ''')
+        # Filas por producto (cards responsive)
         for _ci, _item in enumerate(st.session_state.portal_carrito):
             _item_eur = round(_item['total'] * _eur_rate, 2)
-            _rc = st.columns([3, 1, 1, 1, 2, 2])
-            _rc[0].markdown(f'**{_item["producto"]}**')
-            _rc[1].markdown(f'${_item["precio_usd"]:.2f}')
-            _rc[2].markdown(f'{_item["pallets"]:.2f}')
-            _rc[3].markdown(f'{_item["cajas"]:,}')
-            _rc[4].markdown(f'<b style="color:#003E8C">${_item["total"]:,.2f}</b>', unsafe_allow_html=True)
-            _rc[5].markdown(f'<span style="color:#1a7a3c">€{_item_eur:,.2f}</span>', unsafe_allow_html=True)
-        st.markdown('<hr style="margin:5px 0 8px;border-color:#003E8C">', unsafe_allow_html=True)
-        # Fila TOTAL
-        _tot_eur = round(_tot_c * _eur_rate, 2)
-        _rt = st.columns([3, 1, 1, 1, 2, 2])
-        _rt[0].markdown('**TOTAL**')
-        _rt[1].markdown('')
-        _rt[2].markdown(f'**{_plt_c:.2f}**')
-        _rt[3].markdown(f'**{_cj_c:,}**')
-        _rt[4].markdown(f'<b style="color:#003E8C;font-size:1.1em">${_tot_c:,.2f} USD</b>', unsafe_allow_html=True)
-        _rt[5].markdown(f'<b style="color:#1a7a3c;font-size:1.1em">€{_tot_eur:,.2f}</b>', unsafe_allow_html=True)
+            _resumen_html.append(f'''
+            <div class="eh-resumen-card">
+              <div class="eh-prod">{_item["producto"]}</div>
+              <div class="eh-precio">${_item["total"]:,.2f}</div>
+              <div class="eh-meta">
+                <span class="eh-meta-cell">${_item["precio_usd"]:.2f}/cj</span>
+                <span class="eh-meta-cell"><b>{_item["pallets"]:.2f}</b> plt</span>
+                <span class="eh-meta-cell"><b>{_item["cajas"]:,}</b> cj</span>
+                <span class="eh-meta-cell eh-eur">€{_item_eur:,.2f}</span>
+              </div>
+            </div>
+            ''')
+        _resumen_html.append('</div>')
+        st.markdown(''.join(_resumen_html), unsafe_allow_html=True)
+        # (Bloque antiguo de tabla y fila TOTAL eliminado — ahora se muestra arriba)
         # Moneda destino adicional (si no es USD ni EUR)
         if _show_dest:
             _tot_dest = round(_tot_c * _dest_rate, 2)
