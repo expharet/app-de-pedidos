@@ -2297,9 +2297,15 @@ def render_portal_pedido():
     st.markdown('''<style>
     /* Bigger +/- buttons on number_input (P8) */
     div[data-testid="stNumberInput"] button {
-        min-width: 38px !important;
-        min-height: 38px !important;
-        font-size: 1.1rem !important;
+        min-width: 44px !important;
+        min-height: 44px !important;
+        font-size: 1.25rem !important;
+        font-weight: 700 !important;
+    }
+    div[data-testid="stNumberInput"] input {
+        min-height: 44px !important;
+        font-size: 1.05rem !important;
+        text-align: center !important;
     }
     /* Sticky catalog header (P11) */
     .eh-cat-header {
@@ -2902,7 +2908,7 @@ def render_portal_pedido():
         st.markdown(f'''<div style="background:linear-gradient(135deg,#1a6b8a,#0d4d6b);padding:20px 24px;border-radius:12px;margin:12px 0;">
           <div style="font-size:1.8em;">&#x2705;</div>
           <h3 style="color:#fff;margin:8px 0 4px;">Pedido {pid_saved} enviado</h3>
-          <p style="color:#d0eaf5;margin:0;">Gracias <b>{_nom_post}</b> — hemos recibido tu pedido y te contactaremos en 24-48 h para confirmar detalles.</p>
+          <p style="color:#d0eaf5;margin:0;">✅ <b>Gracias {_nom_post}</b>, hemos recibido tu pedido correctamente.<br>📞 Nuestro equipo se pondrá en contacto contigo en <b>menos de 24 horas</b> para confirmar disponibilidad, precios finales y logística.<br>📧 También recibirás confirmación por email cuando el pedido sea procesado.</p>
         </div>''', unsafe_allow_html=True)
         pdf_bytes, pdf_mime, pdf_ext = build_order_pdf(ped_saved)
         # Acciones en columnas
