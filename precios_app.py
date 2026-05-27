@@ -126,7 +126,7 @@ LANG_TEXTS = {
         'no_catalog': '⚠️ Catalogue not available. Contact order@exportharet.com',
         'enter_email': '📧 **Enter your email address above to continue**',
         'welcome_back': '✅ Welcome back, **{name}**!',
-        'not_registered': '✨ Welcome! You're new here — complete your details to create your account and get started.',
+        'not_registered': '✨ Welcome! You are new here — complete your details to create your account and get started.',
         'nombre_label': '👤 Full name *',
         'empresa_label': '🏢 Company',
         'telefono_label': '📱 Phone / WhatsApp',
