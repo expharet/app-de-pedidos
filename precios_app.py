@@ -25,9 +25,12 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(na
 logger = logging.getLogger('exportharet')
 
 # ─── PAGE CONFIG ─────────────────────────────────────────────────────────────
+# Logo dinamico: usar logo.png si existe, sino emoji generico
+import os as _os_init
+_PAGE_ICON = 'logo.png' if _os_init.path.exists('logo.png') else '📋'
 st.set_page_config(
     page_title="Export Haret - Sistema de Pedidos",
-    page_icon="🚀",
+    page_icon=_PAGE_ICON,
     layout="wide",
     initial_sidebar_state="collapsed"
 )
@@ -2397,7 +2400,7 @@ def render_portal_pedido():
                 _g_breakdown = f"{_g_full} pallet(s) completo(s)" + (f" + {_g_rem}/{_gv['cxp']} cj parciales" if _g_rem else "")
                 _grp_html.append(
                     f'<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px dashed #e2e8f0">'
-                    f'<div><b style="color:#003E8C">Grupo {_gk}</b> <small style="color:#666">— {_gv["nombre"]}</small></div>'
+                    f'<div><b style="color:#003E8C">Grupo {_gk}</b> <small style="color:#666">— {" · ".join(sorted(set(_gv["productos"])))}</small></div>'
                     f'<div style="text-align:right;font-size:0.9rem">'
                     f'<b>{_gv["cajas"]:,} cj</b> / {_gv["cxp"]} cj-pal = <b style="color:#16a34a">{_g_pal_exact:.2f} pal</b>'
                     f'<br><small style="color:#888">{_g_breakdown}</small>'
@@ -2498,18 +2501,15 @@ def render_portal_pedido():
                     if _ux_next_price and precio_u and _ux_next_price < precio_u:
                         _ux_save_pct = round((1 - _ux_next_price / precio_u) * 100, 1)
                     break
+        # Badge sutil de descuento por volumen (solo CIF, si hay siguiente tramo)
+        _ux_badge_html = ''
+        if tipo_precio == 'CIF' and _ux_next_price and _ux_save_pct > 0:
+            _ux_badge_html = f'<div style="display:inline-block;background:#dcfce7;color:#15803d;font-size:0.7em;font-weight:600;padding:1px 7px;border-radius:10px;margin-top:3px">-{_ux_save_pct:.0f}% desde {_ux_next_min} pal</div>'
         if _mon_x != 'USD' and tipo_precio == 'CIF' and _rate_x != 1.0:
             _lp_x = round(precio_u * _rate_x, 2)
-            _ux_next_html = ''
-            if _ux_next_price and _ux_save_pct > 0:
-                _lp_nx = round(_ux_next_price * _rate_x, 2)
-                _ux_next_html = f'<br><small style="color:#16a34a;font-size:0.72em">👇 Con {_ux_next_min}+ pal: {_sym_x}{_lp_nx:.2f} (-{_ux_save_pct}%)</small>'
-            gc[1].markdown(f'<b style="color:#003E8C">{_sym_x}{_lp_x:.2f}</b>{_ux_next_html}', unsafe_allow_html=True)
+            gc[1].markdown(f'<b style="color:#003E8C">{_sym_x}{_lp_x:.2f}</b><br>{_ux_badge_html}', unsafe_allow_html=True)
         else:
-            _ux_next_html = ''
-            if tipo_precio == 'CIF' and _ux_next_price and _ux_save_pct > 0:
-                _ux_next_html = f'<br><small style="color:#16a34a;font-size:0.72em">👇 Con {_ux_next_min}+ pal: ${_ux_next_price:.2f} (-{_ux_save_pct}%)</small>'
-            gc[1].markdown(f'<b style="color:#003E8C">${precio_u:.2f}</b>{_ux_next_html}', unsafe_allow_html=True)
+            gc[1].markdown(f'<b style="color:#003E8C">${precio_u:.2f}</b><br>{_ux_badge_html}', unsafe_allow_html=True)
         # Col 2: Cantidad con +/- nativo
         qty_val = gc[2].number_input(
             'Cantidad', min_value=0, value=_ex_qty, step=1,
@@ -2958,7 +2958,15 @@ def main():
     # ── MODO PORTAL (PÚBLICO) ─────────────────────────────────────────────────
     if st.session_state.app_mode == 'portal':
         # Small admin access link in sidebar
-        st.sidebar.markdown('### 🚀 Export Haret')
+        # Sidebar branding: logo si existe, sino texto sin emoji
+        try:
+            import os as _osbrand
+            if _osbrand.path.exists('logo.png'):
+                st.sidebar.image('logo.png', use_container_width=True)
+            else:
+                st.sidebar.markdown('### Export Haret')
+        except Exception:
+            st.sidebar.markdown('### Export Haret')
         st.sidebar.caption('Portal de Pedidos')
         st.sidebar.markdown('---')
         st.sidebar.markdown('<p style="text-align:center;margin:4px 0 8px"><a href="?view=admin" target="_self" style="color:#aaa;font-size:0.75em;text-decoration:none">🔒 Acceso administración</a></p>', unsafe_allow_html=True)
