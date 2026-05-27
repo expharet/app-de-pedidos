@@ -2570,7 +2570,7 @@ def render_portal_pedido():
             _fin_sym = MONEDA_SIMBOLO.get(_fin_mon, _fin_mon)
             _fin_dest_total = round(tot_final * _fin_rate, 2) if _fin_mon != 'USD' and _fin_rate != 1.0 else None
             _fin_alt = f'<br><span style="font-size:0.88em;color:#555">≈ {_fin_sym}{_fin_dest_total:,.2f} {_fin_mon}</span>' if _fin_dest_total else ''
-# Build mobile-friendly responsive cards summary
+            # Build mobile-friendly responsive cards summary
                         _prod_cards_html = ''
                         for _pfi in st.session_state.portal_carrito:
                             if _pfi.get('cajas', 0) > 0:
