@@ -477,8 +477,8 @@ def parse_excel_file(xl_path):
     #      11=Margen$, 12=PrecioFOBFinal, 13=Flete/caja, 14=CIF_USD,
     #      15=CIF_$/kg, 16=USD_1Pal, 17=USD_2Pal, ..., 24=USD_9Pal
     PLT_COL_START = 16  # columna openpyxl donde empieza USD 1 Pal
-    PLT_COL_END = 35    # columna openpyxl donde termina USD 20 Pal (inclusive)
-    N_PALLETS = PLT_COL_END - PLT_COL_START + 1  # = 20
+    PLT_COL_END = 38    # columna openpyxl donde termina USD 23 Pal (inclusive)
+    N_PALLETS = PLT_COL_END - PLT_COL_START + 1  # = 23
 
     row_prices = {}  # codigo -> {precios_plt:[...], precio_compra:..., flete_caja:...}
     for r in range(7, 35):
@@ -629,7 +629,7 @@ def render_catalogo():
         # ── Tabla estilo Excel: filas=pallets, columnas=productos ────
         st.caption(f'Precios CIF hasta **{_dest_sel}** | Flete: **${_dest_flete_v:.2f} USD/caja** | Todos los precios en USD/caja. A mayor volumen total del pedido, menor precio.')
 
-        N_PALLETS = 20  # columnas en el Excel (1..20 pallets)
+        N_PALLETS = 23  # columnas en el Excel (1..23 pallets)
         # Construir filas: cada fila = 1 pallet, cada columna = 1 producto
         _tbl_rows = []
         _col_names = []
@@ -678,7 +678,7 @@ def render_catalogo():
             return styles
 
         _df_styled = df_plt.style.apply(_style_plt, axis=None).format('${:.2f}', na_rep='—')
-        st.dataframe(_df_styled, use_container_width=True, height=min(50 + 38*(N_PALLETS+1), 900))
+        st.dataframe(_df_styled, use_container_width=True, height=min(50 + 38*(N_PALLETS+1), 950))
 
         st.caption('\U0001f7e2 Verde = precio m\u00e1s bajo (m\u00e1s volumen). La app usa autom\u00e1ticamente el precio correspondiente al total de pallets del pedido.')
 
@@ -714,8 +714,8 @@ def render_catalogo():
         # Construir DataFrame editable: filas=productos, columnas=pallets 1-9
         _edit_rows = []
         for _p in prods:
-            _precios_plt = _p.get('precios_plt', [None]*20)
-            while len(_precios_plt) < 20: _precios_plt.append(None)
+            _precios_plt = _p.get('precios_plt', [None]*23)
+            while len(_precios_plt) < 23: _precios_plt.append(None)
             _edit_rows.append({
                 'Cod': _p.get('codigo',''),
                 'Producto': _p.get('producto','') or _p.get('descripcion',''),
@@ -740,10 +740,13 @@ def render_catalogo():
                 '17 Plt': _precios_plt[16],
                 '18 Plt': _precios_plt[17],
                 '19 Plt': _precios_plt[18],
-                '20 Plt': _precios_plt[19]
+                '20 Plt': _precios_plt[19],
+                '21 Plt': _precios_plt[20],
+                '22 Plt': _precios_plt[21],
+                '23 Plt': _precios_plt[22]
             })
         _df_edit = pd.DataFrame(_edit_rows)
-        _plt_cols = ['1 Plt','2 Plt','3 Plt','4 Plt','5 Plt','6 Plt','7 Plt','8 Plt','9 Plt','10 Plt','11 Plt','12 Plt','13 Plt','14 Plt','15 Plt','16 Plt','17 Plt','18 Plt','19 Plt','20 Plt']
+        _plt_cols = ['1 Plt','2 Plt','3 Plt','4 Plt','5 Plt','6 Plt','7 Plt','8 Plt','9 Plt','10 Plt','11 Plt','12 Plt','13 Plt','14 Plt','15 Plt','16 Plt','17 Plt','18 Plt','19 Plt','20 Plt','21 Plt','22 Plt','23 Plt']
         _col_cfg_edit = {
             'Cod': st.column_config.TextColumn('C\u00f3digo', disabled=True, width='small'),
             'Producto': st.column_config.TextColumn('Producto', width='medium'),
@@ -1560,8 +1563,8 @@ def build_order_pdf(ped):
 
 def get_precio_por_pallets(codigo, total_pallets, data):
     """Retorna el precio USD/caja para un producto segun el total de pallets del pedido.
-    Usa la tabla directa de precios del Excel (precios_plt: lista de hasta 20 valores para 1..20 pallets).
-    Si total_pallets >= 20, usa el precio de 20 pallets. Precio incluye flete (CIF base Madrid).
+    Usa la tabla directa de precios del Excel (precios_plt: lista de hasta 23 valores para 1..23 pallets).
+    Si total_pallets >= 23, usa el precio de 23 pallets. Precio incluye flete (CIF base Madrid).
     """
     pals = max(1, int(total_pallets))
     for p in data.get('products', []):
@@ -2520,52 +2523,7 @@ def render_portal_pedido():
     st.markdown('<div style="text-align:center;color:#888"><small>Export Haret © 2026 | order@exportharet.com | Frutas Exóticas Premium</small></div>', unsafe_allow_html=True)
 
 # ─── MAIN ────────────────────────────────────────────────────────────────────
-
-def render_debug_excel():
-    """Debug: lee Cotizaciones.xlsx y muestra precios por pallets."""
-    import os, json
-    st.markdown('## 🔍 DEBUG: Precios Excel por Pallets')
-    xl_path = 'Cotizaciones.xlsx'
-    if not os.path.exists(xl_path):
-        st.error('Cotizaciones.xlsx no encontrado')
-        return
-    try:
-        from openpyxl import load_workbook as _lw
-        wb = _lw(xl_path, data_only=True)
-        ws = None
-        for sname in wb.sheetnames:
-            if 'TABLA' in sname.upper() or 'PRECIO' in sname.upper():
-                ws = wb[sname]
-                break
-        if ws is None:
-            ws = wb.active
-        st.write('Sheet:', ws.title)
-        # Find header row - row 6
-        headers = [ws.cell(6, c).value for c in range(1, 50)]
-        st.write('Headers (cols 1-49):', headers)
-        # Dump all product rows
-        results = []
-        for r in range(7, 40):
-            cod = ws.cell(r, 2).value
-            if not cod or not isinstance(cod, str): continue
-            row_data = {'cod': str(cod).strip(), 'nom': str(ws.cell(r, 3).value or '').strip()}
-            for c in range(16, 45):
-                v = ws.cell(r, c).value
-                row_data[f'c{c}'] = round(float(v), 4) if v and isinstance(v, (int, float)) else None
-            results.append(row_data)
-        import json as _json
-        st.text(_json.dumps(results, indent=2))
-    except Exception as e:
-        st.error(f'Error: {e}')
-
-
 def main():
-
-    # DEBUG MODE
-    qp = st.query_params
-    if qp.get('debug') == 'excel':
-        render_debug_excel()
-        return
     init_session()
     auto_load_excel()
 
