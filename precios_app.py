@@ -633,7 +633,13 @@ def render_catalogo():
         with _fc1:
             st.markdown('### \U0001f4cb Tabla de Precios por Pallets (USD/caja)')
 
+        # P1-buscador: filtrar productos por nombre/c\u00f3digo/categor\u00eda
+        _search_q = st.text_input('\ud83d\udd0d Buscar producto', placeholder='nombre, c\u00f3digo o categor\u00eda...', key='cat_search_q')
         prods_vis = prods if _show_inactive else [p for p in prods if p.get('activo', True)]
+        if _search_q:
+            _sq = _search_q.lower().strip()
+            prods_vis = [p for p in prods_vis if _sq in (p.get('producto','') + ' ' + p.get('codigo','') + ' ' + p.get('categoria','') + ' ' + p.get('grupo','')).lower()]
+            st.caption(f'{len(prods_vis)} resultado(s) para: **{_search_q}**')
         dest_list = list(dests.keys())
 
         if not prods_vis:
