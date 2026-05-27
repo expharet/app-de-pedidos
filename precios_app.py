@@ -1463,9 +1463,9 @@ def render_portal_pedido():
             destino = t2.selectbox('🌍 Destino', dest_opts, key='portal_dest')
             dest_val = dests.get(destino, 0)
             dest_flete = float(dest_val) if isinstance(dest_val, (int, float)) else dest_val.get('factor', 0) if isinstance(dest_val, dict) else 0
-            _puerto_orig = 'Guayaquil, Ecuador'
+            _puerto_orig = 'Quito/Guayaquil, Ecuador'
             t2.caption(f'🛫 Flete incluido: **${dest_flete:.2f} USD/caja** | {_puerto_orig} → {destino}')
-            t2.info(f'📍 **Incoterm CIF** — Precio incluye costo + seguro + flete hasta **{destino}**. Embarcamos desde **{_puerto_orig}**.')
+            t2.info(f'📍 **Incoterm CIF** — Precio incluye costo + flete hasta **{destino}**. Embarcamos desde **{_puerto_orig}**.')
     else:
         t2.info('📦 **FOB (Free On Board)** — El precio **no incluye flete**. Tú coordinas el transporte desde Ecuador (Quito / Guayaquil) hasta tu destino.')
         t2.caption('📌 Origen de embarque: **Quito o Guayaquil, Ecuador**')
@@ -1475,9 +1475,8 @@ def render_portal_pedido():
     st.markdown('### 3️⃣ Selecciona tus Productos')
     # Banner pedido mínimo
     _current_pallets = sum(i.get('pallets',0) for i in st.session_state.portal_carrito)
-    # ── Widget de precios por volumen
+    # ── Indicador de volumen
     _desc_actual = get_descuento_volumen(max(_current_pallets, 1)) if _current_pallets >= 1 else 0.0
-    _tramo_actual = get_tramo_label(max(_current_pallets, 1)) if _current_pallets >= 1 else '1-2 Pallets'
     _next_tramo = None
     _pallets_para_siguiente = 0
     for _t in TRAMOS_VOLUMEN:
@@ -1486,51 +1485,19 @@ def render_portal_pedido():
             _pallets_para_siguiente = max(0, _t['min'] - _current_pallets)
             break
     if _current_pallets == 0:
-        st.markdown("""
-<div style="background:linear-gradient(135deg,#f0f7ff,#e8f4fd);border:1px solid #b8d9f7;border-radius:10px;padding:14px 18px;margin-bottom:8px">
-<b style="color:#003E8C;font-size:1em">&#128202; Precios por Volumen</b><br>
-<small style="color:#555">Cuantos m&#225;s pallets pides, mejor precio por caja:</small><br><br>
-<table style="width:100%;border-collapse:collapse;font-size:0.82em">
-<tr style="background:#003E8C;color:white"><th style="padding:5px 8px;text-align:left">Volumen</th><th style="padding:5px 8px;text-align:center">Descuento</th><th style="padding:5px 8px;text-align:left">Beneficio</th></tr>
-<tr style="background:#fff3cd"><td style="padding:4px 8px"><b>1-2 Pallets</b></td><td style="padding:4px 8px;text-align:center">Precio base</td><td style="padding:4px 8px;color:#856404">Min. pedido: 3 pallets</td></tr>
-<tr style="background:#d4edda"><td style="padding:4px 8px"><b>3-5 Pallets</b></td><td style="padding:4px 8px;text-align:center;color:#28a745;font-weight:bold">-5%</td><td style="padding:4px 8px;color:#155724">Acceso al portal &#10003;</td></tr>
-<tr><td style="padding:4px 8px"><b>6-9 Pallets</b></td><td style="padding:4px 8px;text-align:center;color:#0066cc;font-weight:bold">-10%</td><td style="padding:4px 8px;color:#0066cc">Mayor ahorro por caja</td></tr>
-<tr style="background:#f0f4ff"><td style="padding:4px 8px"><b>10-19 Pallets</b></td><td style="padding:4px 8px;text-align:center;color:#6f42c1;font-weight:bold">-12%</td><td style="padding:4px 8px;color:#6f42c1">Precio mayorista</td></tr>
-<tr style="background:#e8f4fd"><td style="padding:4px 8px"><b>20+ Pallets</b></td><td style="padding:4px 8px;text-align:center;color:#003E8C;font-weight:bold">-15%</td><td style="padding:4px 8px;color:#003E8C"><b>Mejor precio disponible</b></td></tr>
-</table></div>""", unsafe_allow_html=True)
-        st.warning('📋 **Pedido mínimo: 3 pallets** — Añade productos para ver precios según volumen')
+        st.warning('📋 **Pedido mínimo: 3 pallets** — Añade productos para comenzar tu pedido')
     else:
         _min_valido = _current_pallets >= 3
-        _color_b = '#d4edda' if _desc_actual > 0 else ('#fff3cd' if not _min_valido else '#e8f4fd')
-        _border_b = '#28a745' if _desc_actual > 0 else ('#f0ad4e' if not _min_valido else '#b8d9f7')
-        _desc_str = f'-{int(_desc_actual*100)}% sobre precio base' if _desc_actual > 0 else 'Añade más pallets para descuento'
-        _next_hint = ''
-        if _next_tramo and _pallets_para_siguiente > 0:
-            _next_hint = f' &nbsp;<b style="color:#003E8C">&#128200; Solo {_pallets_para_siguiente:.0f} pallet(s) más para -{int(_next_tramo["descuento"]*100)}%</b>'
-        _barra_items = [
-            (3, 5, '#28a745', '3-5 plt<br>-5%'),
-            (6, 9, '#0066cc', '6-9 plt<br>-10%'),
-            (10, 19, '#6f42c1', '10-19 plt<br>-12%'),
-            (20, 9999, '#003E8C', '20+ plt<br>-15%'),
-        ]
-        _barra_html = ''
-        for _bmin, _bmax, _bcol, _blbl in _barra_items:
-            _b_active = _bmin <= _current_pallets <= _bmax
-            _b_done = _current_pallets > _bmax
-            _b_bg = _bcol if (_b_active or _b_done) else '#e0e0e0'
-            _b_txt = 'white' if (_b_active or _b_done) else '#999'
-            _barra_html += f'<div style="flex:1;background:{_b_bg};padding:5px 3px;text-align:center;font-size:0.68em;color:{_b_txt};border-radius:4px;margin:0 2px"><b>{_blbl}</b></div>'
-        _icon_b = '💹' if _desc_actual > 0 else '📋'
-        st.markdown(f"""
-<div style="background:{_color_b};border:1px solid {_border_b};border-radius:10px;padding:11px 16px;margin-bottom:8px">
-<div><b style="font-size:1.02em">{_icon_b} {_current_pallets:.1f} pallets en carrito</b> &mdash; Tramo: <b>{_tramo_actual}</b> &mdash; <span style="color:#003E8C"><b>{_desc_str}</b></span>{_next_hint}</div>
-<div style="display:flex;margin-top:8px;border-radius:6px;overflow:hidden">{_barra_html}</div>
-</div>""", unsafe_allow_html=True)
         if not _min_valido:
             st.warning(f'📋 **Pedido mínimo: 3 pallets** — Tienes {_current_pallets:.1f} plt. Añade más para alcanzar el mínimo.')
+        else:
+            _next_hint = ''
+            if _next_tramo and _pallets_para_siguiente > 0:
+                _next_hint = f' — Con {int(_next_tramo["min"])}+ pallets el precio por caja baja aún más.'
+            st.info(f'📦 **{_current_pallets:.1f} pallets en carrito**{_next_hint}')
     hc = st.columns([4, 2, 3, 2, 2])
     hc[0].markdown('**Producto**')
-    hc[1].markdown('**Precio/cja**' + (' &#128200;' if _current_pallets >= 3 else ''))
+    hc[1].markdown('**Precio/cja**')
     hc[2].markdown('**Cantidad**')
     hc[3].markdown('**Unidad**')
     hc[4].markdown('**Cajas**')
@@ -1575,29 +1542,12 @@ def render_portal_pedido():
         _rate_x = get_exchange_rates().get(_mon_x,1.0)
         _sym_x = MONEDA_SIMBOLO.get(_mon_x,_mon_x)
         _fob_x = get_fob_price(cod,data)
-        # Precio con indicador de descuento por volumen
-        _base_price_x = get_fob_price(cod, data) if tipo_precio == 'FOB' else get_cif_price(cod, destino, data)
-        _disc_x = get_descuento_volumen(max(_current_pallets, 1)) if _current_pallets >= 1 else 0.0
+        # Precio segun volumen actual
         if _mon_x != 'USD' and tipo_precio == 'CIF' and _rate_x != 1.0:
             _lp_x = round(precio_u * _rate_x, 2)
-            _lp_base_x = round(_base_price_x * _rate_x, 2)
-            if _disc_x > 0 and abs(_lp_base_x - _lp_x) > 0.001:
-                gc[1].markdown(
-                    f'<span style="color:#aaa;text-decoration:line-through;font-size:0.8em">{_sym_x}{_lp_base_x:.2f}</span><br>'
-                    f'<b style="color:#28a745">{_sym_x}{_lp_x:.2f}</b>'
-                    f'<span style="color:#28a745;font-size:0.75em"> -{int(_disc_x*100)}%</span>',
-                    unsafe_allow_html=True)
-            else:
-                gc[1].markdown(f'<b style="color:#003E8C">{_sym_x}{_lp_x:.2f}</b>', unsafe_allow_html=True)
+            gc[1].markdown(f'<b style="color:#003E8C">{_sym_x}{_lp_x:.2f}</b>', unsafe_allow_html=True)
         else:
-            if _disc_x > 0 and _base_price_x > 0 and abs(_base_price_x - precio_u) > 0.001:
-                gc[1].markdown(
-                    f'<span style="color:#aaa;text-decoration:line-through;font-size:0.8em">${_base_price_x:.2f}</span><br>'
-                    f'<b style="color:#28a745">${precio_u:.2f}</b>'
-                    f'<span style="color:#28a745;font-size:0.75em"> -{int(_disc_x*100)}%</span>',
-                    unsafe_allow_html=True)
-            else:
-                gc[1].markdown(f'<b style="color:#003E8C">${precio_u:.2f}</b>', unsafe_allow_html=True)
+            gc[1].markdown(f'<b style="color:#003E8C">${precio_u:.2f}</b>', unsafe_allow_html=True)
         # Col 2: Cantidad con +/- nativo
         qty_val = gc[2].number_input(
             'Cantidad', min_value=0, value=_ex_qty, step=1,
@@ -1646,51 +1596,46 @@ def render_portal_pedido():
         _tot_c = sum(i['total'] for i in st.session_state.portal_carrito)
         _plt_c = sum(i.get('pallets',0) for i in st.session_state.portal_carrito)
         _cj_c = sum(i.get('cajas',0) for i in st.session_state.portal_carrito)
-        # Header carrito
-        st.markdown(
-            f'#### 🛒 Resumen del Pedido &nbsp;'
-            f'<span style="font-size:0.8em;color:#555;background:#f0f7ff;padding:3px 10px;border-radius:12px">'
-            f'{len(st.session_state.portal_carrito)} producto(s) · {_plt_c:.1f} plt · {_cj_c:,} cj · **${_tot_c:,.2f} USD**</span>',
-            unsafe_allow_html=True
-        )
-        # Tabla carrito
-        ch = st.columns([5, 2, 2, 3])
-        ch[0].markdown('**Producto**')
-        ch[1].markdown('**Pallets**')
-        ch[2].markdown('**Cajas**')
-        ch[3].markdown('**Total USD**')
+        st.markdown('#### 🛒 Resumen del Pedido')
+        _rh = st.columns([4, 2, 2, 2, 3])
+        _rh[0].markdown('**Producto**')
+        _rh[1].markdown('**$/caja**')
+        _rh[2].markdown('**Pallets**')
+        _rh[3].markdown('**Cajas**')
+        _rh[4].markdown('**Subtotal USD**')
         st.markdown('<hr style="margin:3px 0 5px;border-color:#ddd">', unsafe_allow_html=True)
-        for ci, item in enumerate(st.session_state.portal_carrito):
-            cc = st.columns([5, 2, 2, 3])
-            cc[0].markdown(
-                f'**{item["producto"]}**  \n<small style="color:#888">'
-                f'${item["precio_usd"]:.2f}/cj</small>',
-                unsafe_allow_html=True
-            )
-            cc[1].markdown(f'{item["pallets"]:.2f}')
-            cc[2].markdown(f'{item["cajas"]:,}')
-            cc[3].markdown(f'<b style="color:#003E8C">${item["total"]:,.2f}</b>', unsafe_allow_html=True)
-        st.markdown('<hr style="margin:5px 0 8px;border-color:#ddd">', unsafe_allow_html=True)
-        # Totales y acciones
-        _tc1, _tc2, _tc3, _tc4 = st.columns([2, 2, 2, 2])
-        _tc1.metric('📦 Pallets', f'{_plt_c:.2f}')
-        _tc2.metric('📋 Cajas', f'{_cj_c:,}')
-        _tc3.metric('💰 Total', f'${_tot_c:,.2f}')
-        if _tc4.button('🗑️ Vaciar todo', key='portal_vaciar', use_container_width=True):
+        for _ci, _item in enumerate(st.session_state.portal_carrito):
+            _rc = st.columns([4, 2, 2, 2, 3])
+            _rc[0].markdown(f'**{_item["producto"]}**')
+            _rc[1].markdown(f'${_item["precio_usd"]:.2f}')
+            _rc[2].markdown(f'{_item["pallets"]:.2f}')
+            _rc[3].markdown(f'{_item["cajas"]:,}')
+            _rc[4].markdown(f'<b style="color:#003E8C">${_item["total"]:,.2f}</b>', unsafe_allow_html=True)
+        st.markdown('<hr style="margin:5px 0 8px;border-color:#003E8C">', unsafe_allow_html=True)
+        _rt = st.columns([4, 2, 2, 2, 3])
+        _rt[0].markdown('**TOTAL**')
+        _rt[1].markdown('')
+        _rt[2].markdown(f'**{_plt_c:.2f}**')
+        _rt[3].markdown(f'**{_cj_c:,}**')
+        _rt[4].markdown(f'<b style="color:#003E8C;font-size:1.1em">${_tot_c:,.2f} USD</b>', unsafe_allow_html=True)
+        _rates_portal = get_exchange_rates()
+        if tipo_precio == 'CIF' and destino and st.session_state.portal_carrito:
+            _dv = data.get('config',{}).get('destinos',{}).get(destino,{})
+            _moneda = _dv.get('moneda','USD') if isinstance(_dv,dict) else 'USD'
+            if _moneda != 'USD':
+                _rate = _rates_portal.get(_moneda, 1)
+                _tot_conv = round(_tot_c * _rate, 2)
+                _sym = MONEDA_SIMBOLO.get(_moneda, _moneda)
+                _cc = st.columns([5, 4])
+                _cc[0].markdown(f'💱 **Equivalente en {_moneda}** (referencia — la transacción es en USD):')
+                _cc[1].markdown(f'<b style="color:#28a745;font-size:1.05em">{_sym}{_tot_conv:,.2f} {_moneda}</b><br><small style="color:#888">1 USD = {_rate:.3f} {_moneda}</small>', unsafe_allow_html=True)
+            else:
+                st.caption(f'Precios CIF — Destino: {destino} | {_moneda}')
+        elif tipo_precio == 'FOB':
+            st.caption('📦 Precios FOB — El flete corre por tu cuenta desde Quito/Guayaquil, Ecuador')
+        if st.button('🗑️ Vaciar carrito', key='portal_vaciar', use_container_width=False):
             st.session_state.portal_carrito = []
             st.rerun()
-        # Info moneda CIF
-    _rates_portal = get_exchange_rates()
-    if tipo_precio == 'CIF' and destino and st.session_state.portal_carrito:
-        _dv = data.get('config',{}).get('destinos',{}).get(destino,{})
-        _moneda = _dv.get('moneda','USD') if isinstance(_dv,dict) else 'USD'
-        _rate = _rates_portal.get(_moneda, 1)
-        _tot_cif = sum(i['total'] for i in st.session_state.portal_carrito)
-        _tot_conv = round(_tot_cif * _rate, 2)
-        _sym = MONEDA_SIMBOLO.get(_moneda, '')
-        st.caption(f'Precios CIF — Destino: {destino} | Moneda: {_moneda} | Equiv.: {_sym}{_tot_conv:,.2f} {_moneda} (1 USD = {_rate:.2f} {_moneda})')
-    elif tipo_precio == 'FOB':
-        st.caption('Precios FOB — El flete corre por cuenta del comprador')
     st.markdown('---')
 
     if st.session_state.portal_carrito:
