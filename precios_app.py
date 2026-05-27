@@ -1724,8 +1724,8 @@ def build_order_pdf(ped):
             f'{_pk_weight:,.0f} kg' if _pk_weight else '—',
             str(_pk_cxp_grp) if _pk_cxp_grp else '—',
         ])
-    packing_rows.append(['', f'{_total_pal_pk:.1f}', str(_total_caj_pk), '', f'{_total_weight:,.0f} kg' if _total_weight else '—', ''])
-    pk_col_widths = [5*cm, 2*cm, 2*cm, 2.5*cm, 3*cm, 2.5*cm]
+    packing_rows.append(['TOTAL', '', f'{_total_pal_pk:.1f}', str(_total_caj_pk), '', f'{_total_weight:,.0f} kg' if _total_weight else '—', ''])
+    pk_col_widths = [4.5*cm, 1.5*cm, 1.8*cm, 1.8*cm, 2*cm, 2.8*cm, 1.8*cm]
     pk_table = Table(packing_rows, colWidths=pk_col_widths, repeatRows=1)
     pk_table.setStyle(TableStyle([
         ('BACKGROUND', (0, 0), (-1, 0), AZUL),
@@ -2706,6 +2706,16 @@ def render_portal_pedido():
             tot_final = sum(i['total'] for i in st.session_state.portal_carrito)
             _tot_pal_fin = sum(i.get('pallets',0) for i in st.session_state.portal_carrito)
             _tot_caj_fin = sum(i.get('cajas',0) for i in st.session_state.portal_carrito)
+            # Calculo de peso total del pedido
+            _tot_peso_fin = 0.0
+            _data_tp = load_data()
+            _grupos_tp = _data_tp.get('config',{}).get('grupos',{})
+            _prods_tp = {p.get('codigo',''): p for p in (_data_tp.get('products') or [])}
+            for _it_tp in st.session_state.portal_carrito:
+                _p_tp = _prods_tp.get(_it_tp.get('codigo',''), {})
+                _g_tp = _p_tp.get('grupo','')
+                _kg_tp = float(_grupos_tp.get(_g_tp,{}).get('kg_caja', _p_tp.get('kg_caja', 0)) or 0)
+                _tot_peso_fin += int(_it_tp.get('cajas',0)) * _kg_tp
             # PATCH UX-CIF U8: calcular ahorro total vs precio base (1 pal) - solo CIF
             _ux_total_save = 0.0
             if tipo_precio == 'CIF':
@@ -2725,12 +2735,21 @@ def render_portal_pedido():
             _fin_alt = f'<br><span style="font-size:0.88em;color:#555">≈ {_fin_sym}{_fin_dest_total:,.2f} {_fin_mon}</span>' if _fin_dest_total else ''
             # Build mobile-friendly responsive cards summary
             _prod_cards_html = ''
+            _data_for_peso = load_data()
+            _grupos_for_peso = _data_for_peso.get('config',{}).get('grupos',{})
+            _prods_for_peso = {p.get('codigo',''): p for p in (_data_for_peso.get('products') or [])}
             for _pfi in st.session_state.portal_carrito:
                 if _pfi.get('cajas', 0) > 0:
+                    # Calcular peso estimado del item
+                    _pfi_prod = _prods_for_peso.get(_pfi.get('codigo',''), {})
+                    _pfi_grp = _pfi_prod.get('grupo','')
+                    _pfi_kg_caja = float(_grupos_for_peso.get(_pfi_grp,{}).get('kg_caja', _pfi_prod.get('kg_caja', 0)) or 0)
+                    _pfi_peso = int(_pfi.get('cajas',0)) * _pfi_kg_caja
+                    _pfi_peso_lbl = f' · <b>{_pfi_peso:,.0f} kg</b>' if _pfi_peso > 0 else ''
                     _prod_cards_html += (
                         f'<div class="eh-cnf-card">'
                         f'<div class="eh-cnf-prod"><b>{_pfi.get("producto","")}</b><span class="eh-cnf-cod">{_pfi.get("codigo","")}</span></div>'
-                        f'<div class="eh-cnf-row"><span>{int(_pfi.get("pallets",0))} pal · {int(_pfi.get("cajas",0))} cj</span><span>${_pfi.get("precio_usd",0):.2f}/cj</span><span class="eh-cnf-tot">${_pfi.get("total",0):,.2f}</span></div>'
+                        f'<div class="eh-cnf-row"><span>{_pfi.get("pallets",0):.2f} pal · {int(_pfi.get("cajas",0)):,} cj{_pfi_peso_lbl}</span><span>${_pfi.get("precio_usd",0):.2f}/cj</span><span class="eh-cnf-tot">${_pfi.get("total",0):,.2f}</span></div>'
                         f'</div>'
                     )
             _conf_html = (
@@ -2760,7 +2779,7 @@ def render_portal_pedido():
                 f'{_prod_cards_html}'
                 '<div class="eh-cnf-total-row">'
                 f'<div><div class="eh-cnf-tl">🛒 TOTAL DEL PEDIDO</div><div class="eh-cnf-tv">${tot_final:,.2f} USD</div>{_fin_alt}</div>'
-                f'<div style="text-align:right"><div class="eh-cnf-tx">📦 {_tot_pal_fin:.1f} pallets</div><div class="eh-cnf-tx">📋 {_tot_caj_fin:,} cajas</div></div>'
+                f'<div style="text-align:right"><div class="eh-cnf-tx">📦 {_tot_pal_fin:.2f} pallets</div><div class="eh-cnf-tx">📋 {_tot_caj_fin:,} cajas</div>' + (f'<div class="eh-cnf-tx">⚖️ {_tot_peso_fin:,.0f} kg</div>' if _tot_peso_fin > 0 else '') + '</div>'
                 '</div>'
                 '</div>'
             )
