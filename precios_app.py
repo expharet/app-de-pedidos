@@ -1528,7 +1528,7 @@ def render_portal_pedido():
 </div>""", unsafe_allow_html=True)
         if not _min_valido:
             st.warning(f'📋 **Pedido mínimo: 3 pallets** — Tienes {_current_pallets:.1f} plt. Añade más para alcanzar el mínimo.')
-        hc = st.columns([4, 2, 3, 2, 2])
+    hc = st.columns([4, 2, 3, 2, 2])
     hc[0].markdown('**Producto**')
     hc[1].markdown('**Precio/cja**' + (' &#128200;' if _current_pallets >= 3 else ''))
     hc[2].markdown('**Cantidad**')
