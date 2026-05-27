@@ -477,8 +477,8 @@ def parse_excel_file(xl_path):
     #      11=Margen$, 12=PrecioFOBFinal, 13=Flete/caja, 14=CIF_USD,
     #      15=CIF_$/kg, 16=USD_1Pal, 17=USD_2Pal, ..., 24=USD_9Pal
     PLT_COL_START = 16  # columna openpyxl donde empieza USD 1 Pal
-    PLT_COL_END = 24    # columna openpyxl donde termina USD 9 Pal (inclusive)
-    N_PALLETS = PLT_COL_END - PLT_COL_START + 1  # = 9
+    PLT_COL_END = 35    # columna openpyxl donde termina USD 20 Pal (inclusive)
+    N_PALLETS = PLT_COL_END - PLT_COL_START + 1  # = 20
 
     row_prices = {}  # codigo -> {precios_plt:[...], precio_compra:..., flete_caja:...}
     for r in range(7, 35):
@@ -629,7 +629,7 @@ def render_catalogo():
         # ── Tabla estilo Excel: filas=pallets, columnas=productos ────
         st.caption(f'Precios CIF hasta **{_dest_sel}** | Flete: **${_dest_flete_v:.2f} USD/caja** | Todos los precios en USD/caja. A mayor volumen total del pedido, menor precio.')
 
-        N_PALLETS = 9  # columnas en el Excel
+        N_PALLETS = 20  # columnas en el Excel (1..20 pallets)
         # Construir filas: cada fila = 1 pallet, cada columna = 1 producto
         _tbl_rows = []
         _col_names = []
@@ -714,8 +714,8 @@ def render_catalogo():
         # Construir DataFrame editable: filas=productos, columnas=pallets 1-9
         _edit_rows = []
         for _p in prods:
-            _precios_plt = _p.get('precios_plt', [None]*9)
-            while len(_precios_plt) < 9: _precios_plt.append(None)
+            _precios_plt = _p.get('precios_plt', [None]*20)
+            while len(_precios_plt) < 20: _precios_plt.append(None)
             _edit_rows.append({
                 'Cod': _p.get('codigo',''),
                 'Producto': _p.get('producto','') or _p.get('descripcion',''),
@@ -730,9 +730,20 @@ def render_catalogo():
                 '7 Plt': _precios_plt[6],
                 '8 Plt': _precios_plt[7],
                 '9 Plt': _precios_plt[8],
+                '10 Plt': _precios_plt[9],
+                '11 Plt': _precios_plt[10],
+                '12 Plt': _precios_plt[11],
+                '13 Plt': _precios_plt[12],
+                '14 Plt': _precios_plt[13],
+                '15 Plt': _precios_plt[14],
+                '16 Plt': _precios_plt[15],
+                '17 Plt': _precios_plt[16],
+                '18 Plt': _precios_plt[17],
+                '19 Plt': _precios_plt[18],
+                '20 Plt': _precios_plt[19]
             })
         _df_edit = pd.DataFrame(_edit_rows)
-        _plt_cols = ['1 Plt','2 Plt','3 Plt','4 Plt','5 Plt','6 Plt','7 Plt','8 Plt','9 Plt']
+        _plt_cols = ['1 Plt','2 Plt','3 Plt','4 Plt','5 Plt','6 Plt','7 Plt','8 Plt','9 Plt','10 Plt','11 Plt','12 Plt','13 Plt','14 Plt','15 Plt','16 Plt','17 Plt','18 Plt','19 Plt','20 Plt']
         _col_cfg_edit = {
             'Cod': st.column_config.TextColumn('C\u00f3digo', disabled=True, width='small'),
             'Producto': st.column_config.TextColumn('Producto', width='medium'),
@@ -1549,8 +1560,8 @@ def build_order_pdf(ped):
 
 def get_precio_por_pallets(codigo, total_pallets, data):
     """Retorna el precio USD/caja para un producto segun el total de pallets del pedido.
-    Usa la tabla directa de precios del Excel (precios_plt: lista de 9 valores para 1..9 pallets).
-    Si total_pallets >= 9, usa el precio de 9 pallets. Precio incluye flete (CIF base Madrid).
+    Usa la tabla directa de precios del Excel (precios_plt: lista de hasta 20 valores para 1..20 pallets).
+    Si total_pallets >= 20, usa el precio de 20 pallets. Precio incluye flete (CIF base Madrid).
     """
     pals = max(1, int(total_pallets))
     for p in data.get('products', []):
