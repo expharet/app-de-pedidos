@@ -205,7 +205,9 @@
         15.132,
         15.1278
       ],
-      "precio_fob_final": 8.9562
+      "precio_fob_final": 8.9562,
+      "min_unidad": "Pallets",
+      "min_cantidad": 1
     },
     {
       "codigo": "F-PN016",
@@ -241,7 +243,9 @@
         14.6796,
         14.6754
       ],
-      "precio_fob_final": 7.3288
+      "precio_fob_final": 7.3288,
+      "min_unidad": "Pallets",
+      "min_cantidad": 1
     },
     {
       "codigo": "F-PPA01",
@@ -277,7 +281,9 @@
         22.5525,
         22.5488
       ],
-      "precio_fob_final": 15.2613
+      "precio_fob_final": 15.2613,
+      "min_unidad": "Pallets",
+      "min_cantidad": 1
     },
     {
       "codigo": "F-PSR02",
@@ -313,7 +319,9 @@
         32.9789,
         32.9733
       ],
-      "precio_fob_final": 20.7495
+      "precio_fob_final": 20.7495,
+      "min_unidad": "Pallets",
+      "min_cantidad": 1
     },
     {
       "codigo": "F-PSR05",
@@ -349,7 +357,9 @@
         27.0038,
         26.9982
       ],
-      "precio_fob_final": 14.7744
+      "precio_fob_final": 14.7744,
+      "min_unidad": "Pallets",
+      "min_cantidad": 1
     },
     {
       "codigo": "F-PSM09",
@@ -385,7 +395,9 @@
         15.0783,
         15.0741
       ],
-      "precio_fob_final": 7.7275
+      "precio_fob_final": 7.7275,
+      "min_unidad": "Pallets",
+      "min_cantidad": 1
     },
     {
       "codigo": "F-TAS04",
@@ -421,7 +433,9 @@
         14.6459,
         14.6417
       ],
-      "precio_fob_final": 7.2952
+      "precio_fob_final": 7.2952,
+      "min_unidad": "Pallets",
+      "min_cantidad": 1
     },
     {
       "codigo": "F-GNB010",
@@ -457,7 +471,9 @@
         26.2454,
         26.2412
       ],
-      "precio_fob_final": 15.3696
+      "precio_fob_final": 15.3696,
+      "min_unidad": "Pallets",
+      "min_cantidad": 1
     },
     {
       "codigo": "F-MPS03",
@@ -493,7 +509,9 @@
         14.4842,
         14.48
       ],
-      "precio_fob_final": 5.9585
+      "precio_fob_final": 5.9585,
+      "min_unidad": "Pallets",
+      "min_cantidad": 1
     },
     {
       "codigo": "F-CCN017",
@@ -529,7 +547,9 @@
         16.9348,
         16.9292
       ],
-      "precio_fob_final": 8.2305
+      "precio_fob_final": 8.2305,
+      "min_unidad": "Pallets",
+      "min_cantidad": 1
     },
     {
       "codigo": "F-BCC013",
@@ -565,7 +585,9 @@
         19.8491,
         19.8435
       ],
-      "precio_fob_final": 11.1448
+      "precio_fob_final": 11.1448,
+      "min_unidad": "Pallets",
+      "min_cantidad": 1
     },
     {
       "codigo": "F-AHSS012",
@@ -601,7 +623,9 @@
         20.332,
         20.3278
       ],
-      "precio_fob_final": 9.4563
+      "precio_fob_final": 9.4563,
+      "min_unidad": "Pallets",
+      "min_cantidad": 1
     },
     {
       "codigo": "F-BBB06",
@@ -637,7 +661,9 @@
         22.3654,
         22.3612
       ],
-      "precio_fob_final": 12.6646
+      "precio_fob_final": 12.6646,
+      "min_unidad": "Pallets",
+      "min_cantidad": 1
     },
     {
       "codigo": "F-ZPT020",
@@ -673,7 +699,9 @@
         25.9657,
         25.9615
       ],
-      "precio_fob_final": 15.0899
+      "precio_fob_final": 15.0899,
+      "min_unidad": "Pallets",
+      "min_cantidad": 1
     },
     {
       "codigo": "F-TX020",
@@ -709,7 +737,9 @@
         15.0116,
         15.0074
       ],
-      "precio_fob_final": 7.6609
+      "precio_fob_final": 7.6609,
+      "min_unidad": "Pallets",
+      "min_cantidad": 1
     },
     {
       "codigo": "F-UVP08",
@@ -745,7 +775,9 @@
         14.0603,
         14.0561
       ],
-      "precio_fob_final": 9.647
+      "precio_fob_final": 9.647,
+      "min_unidad": "Pallets",
+      "min_cantidad": 1
     },
     {
       "codigo": "F-UVP07",
@@ -781,7 +813,9 @@
         13.2291,
         13.2249
       ],
-      "precio_fob_final": 8.2284
+      "precio_fob_final": 8.2284,
+      "min_unidad": "Pallets",
+      "min_cantidad": 1
     },
     {
       "codigo": "F-SLK011",
@@ -817,7 +851,9 @@
         21.4922,
         21.488
       ],
-      "precio_fob_final": 14.1414
+      "precio_fob_final": 14.1414,
+      "min_unidad": "Pallets",
+      "min_cantidad": 1
     },
     {
       "codigo": "F-CAZ021",
@@ -853,7 +889,9 @@
         23.3753,
         23.3753
       ],
-      "precio_fob_final": 12.4503
+      "precio_fob_final": 12.4503,
+      "min_unidad": "Pallets",
+      "min_cantidad": 1
     }
   ],
   "minimos": {
