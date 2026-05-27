@@ -1551,6 +1551,14 @@ def render_portal_pedido():
         else:
             if st.session_state.get('portal_last_email') != email_input:
                 st.session_state['portal_last_email'] = email_input
+                # Pre-rellenar nombre/empresa desde pedidos anteriores
+                _prev_ords = [p for p in load_pedidos() if p.get('client_email','').lower() == email_input.lower()]
+                if _prev_ords:
+                    _last_ord = sorted(_prev_ords, key=lambda x: x.get('fecha',''))[-1]
+                    if not st.session_state.get('portal_nombre'):
+                        st.session_state['portal_nombre'] = _last_ord.get('client_name','')
+                    if not st.session_state.get('portal_empresa'):
+                        st.session_state['portal_empresa'] = _last_ord.get('client_empresa','')
             st.info('📝 Correo no registrado — completa tus datos para continuar.')
             show_register = True
 
@@ -1561,11 +1569,11 @@ def render_portal_pedido():
 
         with tab_datos:
             c1, c2 = st.columns(2)
-            nombre = c1.text_input('👤 Nombre completo *', key='portal_nombre')
-            empresa = c2.text_input('🏢 Empresa', key='portal_empresa')
+            nombre = c1.text_input('👤 Nombre completo *', key='portal_nombre', value=st.session_state.get('portal_nombre',''))
+            empresa = c2.text_input('🏢 Empresa', key='portal_empresa', value=st.session_state.get('portal_empresa',''))
             c3, c4 = st.columns(2)
-            telefono = c3.text_input('📱 Teléfono / WhatsApp', placeholder='+34 600 000 000', key='portal_telefono')
-            pais = c4.text_input('🌍 País', key='portal_pais')
+            telefono = c3.text_input('📱 Teléfono / WhatsApp', placeholder='+34 600 000 000', key='portal_telefono', value=st.session_state.get('portal_telefono',''))
+            pais = c4.text_input('🌍 País', key='portal_pais', value=st.session_state.get('portal_pais',''))
             if show_register:
                 st.caption('🔒 Al guardar el pedido, tu cuenta quedará registrada automáticamente.')
 
