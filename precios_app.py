@@ -1961,7 +1961,7 @@ def render_portal_pedido():
                             else:
                                 st.warning('Este pedido no tiene productos registrados.')
                         if can_cancel:
-                            if _rp_c2.button(f'\ud83d\uddd1 Cancelar', key=f'cancel_{op_id}', type='secondary', use_container_width=True):
+                            if _rp_c2.button(f'🗑️ Cancelar', key=f'cancel_{op_id}', type='secondary', use_container_width=True):
                                 st.session_state[f'confirm_cancel_{op_id}'] = True
                         if st.session_state.get(f'confirm_cancel_{op_id}'):
                             st.warning(f'⚠️ ¿Confirmas la cancelación del pedido **{op_id}**? Se notificará a nuestro equipo.')
