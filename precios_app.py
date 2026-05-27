@@ -657,17 +657,17 @@ def render_catalogo():
                 if _precios_plt:
                     _idx = min(_n_plt - 1, len(_precios_plt) - 1)
                     _precio_base = _precios_plt[_idx]  # precio CIF incluye flete ref (Madrid)
-                    if _precio_base:
-                        if _cat_tipo == 'FOB':
-                            # FOB: restar flete de referencia
-                            _precio_final = round(float(_precio_base) - flete_ref, 4)
-                        else:
-                            # CIF: ajustar por flete del destino seleccionado
-                            _precio_final = round(float(_precio_base) - flete_ref + _dest_flete_v, 4)
+                    if _cat_tipo == 'FOB':
+                        # FOB: usar precio_fob_final directo (col 12 Excel), igual en todas las filas
+                        _fob_f = float(_p.get('precio_fob_final', 0) or 0)
+                        _precio_final = round(_fob_f, 4) if _fob_f > 0 else None
+                    elif _precio_base:
+                        # CIF: ajustar precio de volumen por flete del destino seleccionado
+                        _precio_final = round(float(_precio_base) - flete_ref + _dest_flete_v, 4)
                     else:
                         _precio_final = None
                 else:
-                    # Sin tabla directa: usar precio_fob_final o calcular
+                    # Sin tabla directa
                     _pc = float(_p.get('precio_compra', 0) or 0)
                     if _cat_tipo == 'FOB':
                         _fob_f = float(_p.get('precio_fob_final', 0) or 0)
@@ -1730,24 +1730,29 @@ def build_order_pdf(ped):
 
 def get_precio_por_pallets(codigo, total_pallets, data, tipo_precio='CIF'):
     """Retorna el precio USD/caja para un producto segun el total de pallets del pedido.
-    Usa la tabla directa de precios del Excel (precios_plt: lista de hasta 23 valores para 1..23 pallets).
-    Si total_pallets >= 23, usa el precio de 23 pallets.
-    CIF: precios_plt incluyen flete ref (Madrid). FOB: se resta el flete_ref para obtener precio FOB.
+    CIF: usa precios_plt (tabla de volumen del Excel, incluye flete ref Madrid), ajustado por destino.
+    FOB: usa precio_fob_final directamente (col 12 Excel = FOB+Merma+Margen, sin flete).
+         El precio FOB es fijo independiente del volumen.
     """
     pals = max(1, int(total_pallets))
     for p in data.get('products', []):
         if p.get('codigo') == codigo:
+            if tipo_precio == 'FOB':
+                # FOB: usar precio FOB Final del Excel (col 12) directamente
+                fob_final = p.get('precio_fob_final', 0) or 0
+                if fob_final and float(fob_final) > 0:
+                    return round(float(fob_final), 4)
+                # Fallback: si no hay precio_fob_final, calcular desde precio_compra + margen
+                pc = float(p.get('precio_compra', 0) or 0)
+                mg = float(p.get('margen_pct', 0.1) or 0.1)
+                return round(pc * (1 + mg), 4) if pc > 0 else 0.0
+            # CIF: usar tabla de volumen por pallets
             precios_plt = p.get('precios_plt', [])
             if precios_plt:
                 idx = min(pals - 1, len(precios_plt) - 1)
                 v = precios_plt[idx]
                 if v and float(v) > 0:
-                    precio_cif = round(float(v), 4)
-                    if tipo_precio == 'FOB':
-                        # Para FOB: restar flete de referencia para obtener precio en origen
-                        flete_ref = float(p.get('flete_ref', 0) or data.get('config', {}).get('flete_ref', 2.35) or 2.35)
-                        return round(max(precio_cif - flete_ref, 0), 4)
-                    return precio_cif
+                    return round(float(v), 4)
     # Fallback a calculo anterior si no hay tabla directa
     for p in data.get('products', []):
         if p.get('codigo') == codigo:
@@ -2702,38 +2707,6 @@ def render_portal_pedido():
 def main():
     init_session()
     auto_load_excel()
-
-    # DEBUG: read Excel columns
-    _dbg_qp = st.query_params
-    if _dbg_qp.get('debug') == 'fob':
-        st.title('DEBUG: Excel FOB columns')
-        import glob, os
-        _xl_paths = glob.glob('/mount/src/**/*.xlsx', recursive=True) + glob.glob('./**/*.xlsx', recursive=True)
-        if _xl_paths:
-            from openpyxl import load_workbook
-            _wb = load_workbook(_xl_paths[0], data_only=True)
-            if 'TABLA PRECIOS' in _wb.sheetnames:
-                _ws = _wb['TABLA PRECIOS']
-                # Print header row 6
-                _hdr = {c2: _ws.cell(6, c2).value for c2 in range(1, 20)}
-                st.write('**Fila 6 (cabeceras cols 1-19):**', _hdr)
-                # Print all rows 7-30 with cols 1-16
-                _rows = []
-                for _r in range(7, 30):
-                    _cod = _ws.cell(_r, 2).value
-                    if not _cod: continue
-                    _row = {'r': _r, 'cod': str(_cod)}
-                    for _cc in range(1, 17):
-                        _row['c' + str(_cc)] = _ws.cell(_r, _cc).value
-                    _rows.append(_row)
-                st.write('**Datos filas 7-30 cols 1-16:**')
-                import json as _json
-                st.text(_json.dumps(_rows, indent=2))
-            else:
-                st.error('No TABLA PRECIOS sheet')
-        else:
-            st.error('No xlsx found: ' + str(glob.glob('/mount/src/**/*', recursive=True)[:20]))
-        return
 
     # Determine mode: 'portal' (public) or 'admin' (staff)
     # Support ?view=cliente URL param to always show portal
