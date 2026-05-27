@@ -1232,32 +1232,34 @@ def render_gestion_pedidos():
 def render_configuracion():
     st.markdown('## ⚙️ Configuración del Sistema')
     # DEBUG TEMPORAL: leer estructura Excel
-    if st.checkbox('🔍 DEBUG: Ver estructura Excel TABLA PRECIOS', key='dbg_excel'):
+    if st.checkbox('\U0001f50d DEBUG: Volcar precios por pallet', key='dbg_excel'):
         try:
-            from openpyxl import load_workbook as _lw
-            import io as _io
+            from openpyxl import load_workbook as _lw2
             if os.path.exists('Cotizaciones.xlsx'):
-                _wb2 = _lw('Cotizaciones.xlsx', data_only=True)
-                _ws2 = _wb2['TABLA PRECIOS']
-                st.write('**Filas 1-10 (cabeceras):**')
-                for _r in range(1, 11):
-                    _row_vals = [str(_ws2.cell(row=_r, column=_c).value or '') for _c in range(1, 25)]
-                    if any(v.strip() for v in _row_vals):
-                        st.write(f'Fila {_r}: {_row_vals}')
-                st.write('**Filas 28-40 (zona precios):**')
-                for _r in range(28, 42):
-                    _row_vals = [str(_ws2.cell(row=_r, column=_c).value or '') for _c in range(1, 25)]
-                    if any(v.strip() for v in _row_vals):
-                        st.write(f'Fila {_r}: {_row_vals}')
-                st.write('**Col 1-3, filas 30-45:**')
-                for _r in range(30, 46):
-                    _row_vals = {_c: _ws2.cell(row=_r, column=_c).value for _c in range(1, 6)}
-                    if any(_row_vals.values()):
-                        st.write(f'Fila {_r}: {_row_vals}')
+                _wb3 = _lw2('Cotizaciones.xlsx', data_only=True)
+                _ws3 = _wb3['TABLA PRECIOS']
+                # Row 6 = header, rows 7+ = products
+                # Cols 1=codigo, 2=producto, cols 15-23 = USD 1Pal..9Pal
+                _hdr = [_ws3.cell(6,c).value for c in range(1,25)]
+                st.write('**Header row 6:**', _hdr)
+                _dump = {}
+                for _r in range(7, 35):
+                    _cod = str(_ws3.cell(_r,2).value or '')
+                    _nom = str(_ws3.cell(_r,3).value or '')
+                    if not _cod or _cod=='None': continue
+                    _pals = []
+                    for _c in range(15,24):
+                        _v = _ws3.cell(_r,_c).value
+                        _pals.append(round(float(_v),4) if isinstance(_v,(int,float)) else None)
+                    _dump[_cod] = {'nombre':_nom,'precios_1a9plt':_pals}
+                    st.write(f'**{_cod}** | {_nom}: {_pals}')
+                import json as _json2
+                st.code(_json2.dumps(_dump, indent=2))
             else:
-                st.error('No se encuentra Cotizaciones.xlsx en el servidor')
-        except Exception as _de:
-            st.error(f'Debug error: {_de}')
+                st.error('Cotizaciones.xlsx no encontrado en servidor')
+        except Exception as _de2:
+            st.error(f'Error: {_de2}')
+            import traceback as _tb2; st.code(_tb2.format_exc())
     # END DEBUG
     st.markdown('### 👤 Usuarios del Sistema')
     _users_file = 'users_custom.json'
