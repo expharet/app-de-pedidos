@@ -1493,7 +1493,7 @@ def build_order_pdf(ped):
         _pk_name = _pk_item.get('producto', '')
         # Try to get kg_caja from product data
         _pk_kg = 0
-        for _pp in get_data().get('products', []):
+        for _pp in load_data().get('products', []):
             if _pp.get('codigo','') == _pk_item.get('codigo',''):
                 _pk_kg = float(_pp.get('kg_caja', 0) or 0)
                 break
@@ -2319,10 +2319,10 @@ def render_portal_pedido():
                     'tipo_precio': tipo_precio,
                     'destino': destino if tipo_precio == 'CIF' else 'FOB',
                     'moneda': 'USD',
-            'moneda_dest': _moneda_dest,
-            'flete_usd_caja': dest_flete if tipo_precio == 'CIF' else 0.0,
-            'tasa_cambio': round(_rates_portal.get(_moneda_dest, 1.0), 4),
-            'total_moneda_dest': round(round(tot, 2) * _rates_portal.get(_moneda_dest, 1.0), 2),
+                    'moneda_dest': _moneda_dest,
+                    'flete_usd_caja': dest_flete if tipo_precio == 'CIF' else 0.0,
+                    'tasa_cambio': round(_rates_portal.get(_moneda_dest, 1.0), 4),
+                    'total_moneda_dest': round(round(tot, 2) * _rates_portal.get(_moneda_dest, 1.0), 2),
                     'productos': list(st.session_state.portal_carrito),
                     'total_usd': round(tot, 2),
                     'estado': 'Recibido',
