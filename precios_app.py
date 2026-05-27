@@ -1281,7 +1281,10 @@ def render_configuracion():
     for _ue, _uv in _users_data.items():
         if _ue not in USERS:
             _all_users_display.append({'Email': _ue, 'Nombre': _uv.get('nombre',''), 'Rol': _uv.get('rol','ventas'), 'Tipo': '👤 Custom'})
-    st.dataframe(pd.DataFrame(_all_users_display), use_container_width=True, hide_index=True)
+    if _all_users_display:
+        st.dataframe(pd.DataFrame(_all_users_display), use_container_width=True, hide_index=True)
+    else:
+        st.info('\u2139\ufe0f No hay usuarios configurados. Usa el panel de abajo para agregar uno.')
     with st.expander('➕ Agregar / Cambiar Contraseña de Usuario', expanded=False):
         _un1, _un2 = st.columns(2)
         _new_email = _un1.text_input('📧 Email del usuario', key='cfg_new_email', placeholder='usuario@exportharet.com')
@@ -1369,9 +1372,36 @@ def render_configuracion():
         st.success('✅ Título guardado. Recarga para verlo en el header y sidebar.')
 
 # ─── TAB CLIENTES ──────────────────────────────────────────────
+def _migrate_clients_swap(clients):
+    """Corrige clientes legacy con swap nombre<->email."""
+    import re as _re
+    _email_re = _re.compile(r'^[^@\s]+@[^@\s]+\.[^@\s]+$')
+    _changed = False
+    _new = {}
+    for _k, _v in (clients or {}).items():
+        _nom = (_v.get('nombre') or '').strip()
+        _eml = (_v.get('email') or _k or '').strip()
+        if _email_re.match(_nom) and _eml and not _email_re.match(_eml):
+            _v = dict(_v); _v['nombre'] = _eml; _v['email'] = _nom
+            _changed = True
+            _new[_nom] = _v
+        elif _email_re.match(_nom) and (not _eml or _eml == _k):
+            _v = dict(_v); _v['email'] = _nom
+            _v['nombre'] = _v.get('empresa','') or _nom.split('@')[0]
+            _changed = True
+            _new[_nom] = _v
+        else:
+            _new[_k] = _v
+    if _changed:
+        try: save_clients(_new)
+        except Exception: pass
+    return _new
+
 def render_clientes():
     st.markdown('## 👥 Clientes')
-    clients=load_clients(); pedidos=load_pedidos()
+    clients=load_clients()
+    clients=_migrate_clients_swap(clients)
+    pedidos=load_pedidos()
     if not clients: st.info('No hay clientes. Se crean al hacer pedidos.'); return
     _search = st.text_input('🔍 Buscar cliente', key='cli_search', placeholder='Nombre, email, empresa...')
     rows=[]
@@ -2732,7 +2762,7 @@ def render_portal_pedido():
             _fin_rate = get_exchange_rates().get(_fin_mon, 1.0)
             _fin_sym = MONEDA_SIMBOLO.get(_fin_mon, _fin_mon)
             _fin_dest_total = round(tot_final * _fin_rate, 2) if _fin_mon != 'USD' and _fin_rate != 1.0 else None
-            _fin_alt = f'<br><span style="font-size:0.88em;color:#555">≈ {_fin_sym}{_fin_dest_total:,.2f} {_fin_mon}</span>' if _fin_dest_total else ''
+            _fin_alt = f'<br><span style="font-size:0.88em;color:rgba(255,255,255,0.92);font-weight:500">≈ {_fin_sym}{_fin_dest_total:,.2f} {_fin_mon}</span>' if _fin_dest_total else ''
             # Build mobile-friendly responsive cards summary
             _prod_cards_html = ''
             _data_for_peso = load_data()
@@ -2796,6 +2826,10 @@ def render_portal_pedido():
                 st.error(_T['err_cart'])
             elif tipo_precio == 'CIF' and not destino:
                 st.error(_T['err_destino'])
+        elif sum(i.get('pallets',0) for i in st.session_state.portal_carrito) < 3:
+                _curr_pal_v = sum(i.get('pallets',0) for i in st.session_state.portal_carrito)
+                _falt_pal_v = 3 - _curr_pal_v
+                st.error(f'\u26a0\ufe0f Pedido m\u00ednimo: 3 pallets. Tienes {_curr_pal_v:.1f} pallets \u2014 a\u00f1ade {_falt_pal_v:.1f} pallets m\u00e1s para poder confirmar.')
             else:
                 _tod_p=load_pedidos()
                 _yn_p=datetime.now().strftime('%Y')
