@@ -95,6 +95,7 @@ LANG_TEXTS = {
         'quote_msg_lbl': 'Mensaje adicional',
         'quote_msg_ph': 'Condiciones especiales...',
         'send_quote': '📤 Enviar solicitud',
+        'price_update_notice': 'ℹ️ Los precios del catálogo se actualizan cada **martes**. Dudas: order@exportharet.com',
     },
     'en': {
         'step1': '### 1️⃣ Your Details',
@@ -147,6 +148,7 @@ LANG_TEXTS = {
         'quote_msg_lbl': 'Additional message',
         'quote_msg_ph': 'Special conditions...',
         'send_quote': '📤 Send request',
+        'price_update_notice': 'ℹ️ Catalogue prices are updated every **Tuesday**. Questions: order@exportharet.com',
     }
 }
 
@@ -1369,7 +1371,8 @@ def build_order_pdf(ped):
     ]]
     header_table = Table(header_data, colWidths=[10*cm, 7*cm])
     header_table.setStyle(TableStyle([
-        ('BACKGROUND', (0,0), (-1,-1), AZUL),
+        ('BACKGROUND', (0,0), (0,0), colors.white),
+        ('BACKGROUND', (1,0), (1,0), AZUL),
         ('PADDING', (0,0), (-1,-1), 12),
         ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
         ('ALIGN', (1,0), (1,0), 'RIGHT'),
@@ -1439,39 +1442,6 @@ def build_order_pdf(ped):
     story.append(prod_table)
     story.append(Spacer(1, 0.4*cm))
 
-    # --- Resumen Financiero ---
-    _fin_rows = [
-        [Paragraph('<b>RESUMEN FINANCIERO</b>', ParagraphStyle('fintit', fontSize=9, textColor=AZUL, fontName='Helvetica-Bold')), '', ''],
-        [Paragraph('<b>Total USD (divisa comercial):</b>', styles['Normal']),
-         Paragraph(f'<b>${total_usd:,.2f} USD</b>', styles['Normal']),
-         Paragraph('Divisa de referencia comercial', ParagraphStyle('fin_note2', fontSize=8, textColor=colors.HexColor('#888888')))],
-    ]
-    if moneda_dest != 'USD':
-        _fin_rows.append([
-            Paragraph(f'<b>Total {moneda_dest} (referencia):</b>', styles['Normal']),
-            Paragraph(f'<b>{sym_dest}{total_moneda_dest:,.2f} {moneda_dest}</b>', styles['Normal']),
-            Paragraph(f'Cotización: 1 USD = {tasa_cambio:.4f} {moneda_dest}', ParagraphStyle('fin_note3', fontSize=8, textColor=colors.HexColor('#888888')))])
-    if tipo == 'CIF' and flete_usd_caja > 0:
-        _n_cajas = sum(int(p.get('cajas',0)) for p in ped.get('productos',[]))
-        _total_flete = round(flete_usd_caja * _n_cajas, 2)
-        _fin_rows.append([
-            Paragraph('<b>Desglose flete CIF:</b>', styles['Normal']),
-            Paragraph(f'${_total_flete:,.2f} USD ({_n_cajas} cajas x ${flete_usd_caja:.2f})', styles['Normal']),
-            Paragraph('Incluido en precio CIF', ParagraphStyle('fin_note4', fontSize=8, textColor=colors.HexColor('#666666')))])
-    _fin_table = Table(_fin_rows, colWidths=[5.5*cm, 4.5*cm, 7*cm])
-    _fin_table.setStyle(TableStyle([
-        ('BACKGROUND', (0,0), (-1,0), AZUL_LIGHT),
-        ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
-        ('TEXTCOLOR', (0,0), (-1,0), AZUL),
-        ('SPAN', (0,0), (-1,0)),
-        ('FONTSIZE', (0,0), (-1,-1), 9),
-        ('PADDING', (0,0), (-1,-1), 5),
-        ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor('#DDDDDD')),
-        ('ROWBACKGROUNDS', (0,1), (-1,-1), [colors.white, colors.HexColor('#F8F9FA')]),
-        ('LINEBELOW', (0,-1), (-1,-1), 1.5, AZUL),
-    ]))
-    story.append(_fin_table)
-    story.append(Spacer(1, 0.3*cm))
     # --- Notas ---
     if notas:
         story.append(Paragraph(f'<b>Notas:</b> {notas}', ParagraphStyle('notas', fontSize=9, textColor=GRIS, spaceBefore=4)))
@@ -2012,6 +1982,7 @@ def render_portal_pedido():
     st.markdown('---')
     # ── PASO 3: Selección de Productos ───────────────────────────────
     st.markdown(_T['step3'])
+    st.info(_T['price_update_notice'], icon=None)
     # Banner pedido mínimo
     _current_pallets = sum(i.get('pallets',0) for i in st.session_state.portal_carrito)
     # ── Indicador de volumen
