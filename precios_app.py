@@ -1830,10 +1830,15 @@ def main():
     # Support ?view=cliente URL param to always show portal
     if 'app_mode' not in st.session_state:
         _qp = st.query_params
-        if _qp.get('view', '') == 'cliente':
-            st.session_state.app_mode = 'portal'
+        _view = _qp.get('view', '')
+        if _view == 'admin':
+            st.session_state.app_mode = 'admin'
         else:
             st.session_state.app_mode = 'portal'
+    # Allow switching to admin via URL even if session already set
+    elif st.query_params.get('view', '') == 'admin' and st.session_state.app_mode == 'portal':
+        st.session_state.app_mode = 'admin'
+        st.rerun()
 
     # ── MODO PORTAL (PÚBLICO) ─────────────────────────────────────────────────
     if st.session_state.app_mode == 'portal':
