@@ -822,6 +822,20 @@ def render_configuracion():
         st.dataframe(df_e[['id','destinatario','asunto','tipo','fecha','estado']].rename(columns={'id':'ID','destinatario':'Para','asunto':'Asunto','tipo':'Tipo','fecha':'Fecha','estado':'Estado'}),use_container_width=True,hide_index=True)
     else: st.info('Sin emails registrados')
     st.markdown('---')
+    st.markdown('---')
+    st.markdown('### U0001F4E8 Emails de Pedidos')
+    _pend_e = _load('pending_emails.json', [])
+    _unsent_e = [e for e in _pend_e if not e.get('sent')]
+    if _unsent_e:
+        st.error(f'⚠️ {len(_unsent_e)} pedido(s) sin email enviado — configurar SMTP en Streamlit Secrets')
+        for _ue in reversed(_unsent_e[-5:]):
+            st.caption(f'❌ {_ue.get("id","")} | {_ue.get("fecha","")[:16]} | {_ue.get("cliente","")} | ${_ue.get("total",0):,.2f} | {_ue.get("error","")}')
+    elif _pend_e:
+        st.success(f'✅ {len([e for e in _pend_e if e.get("sent")])} email(s) enviados correctamente')
+    else:
+        st.info('U0001F4EC Sin historial de emails aún')
+    st.markdown('---')
+    
     st.markdown('### 📧 Estado SMTP (order@exportharet.com)')
     try:
         _smtp_cfg = st.secrets.get('email', {})
@@ -1189,15 +1203,15 @@ def log_email(destinatario, asunto, tipo_email):
 
 # ─── PORTAL PÚBLICO DE PEDIDOS ───────────────────────────────────────────────
 def send_order_email(ped):
-    """Envia el pedido por email a order@exportharet.com usando SMTP configurado en st.secrets.
+    """Envia el pedido por email a order@exportharet.com.
     Requiere en .streamlit/secrets.toml:
-      [email]
-      smtp_host = '...'
-      smtp_port = 587
-      smtp_user = '...'
-      smtp_pass = '...'
-      from_addr = 'noreply@exportharet.com'
-    Si no está configurado, solo registra en log."""
+    [email]
+    smtp_host = 'smtp.gmail.com'
+    smtp_port = 587
+    smtp_user = 'tu@gmail.com'
+    smtp_pass = 'app_password'
+    from_addr = 'tu@gmail.com'
+    """
     import smtplib
     from email.mime.multipart import MIMEMultipart
     from email.mime.text import MIMEText
@@ -1213,55 +1227,56 @@ def send_order_email(ped):
     total_usd = ped.get('total_usd',0)
     fecha = ped.get('fecha','')[:10]
     notas = ped.get('notas','')
-    # Build HTML body
     rows_html = ''
     for item in ped.get('productos', []):
         rows_html += (f'<tr><td style="padding:6px 10px;border:1px solid #ddd">{item.get("codigo","")}</td>'
-            f'<td style="padding:6px 10px;border:1px solid #ddd">{item.get("producto","")}</td>'
-            f'<td style="padding:6px 10px;border:1px solid #ddd;text-align:center">{item.get("cajas",0)}</td>'
-            f'<td style="padding:6px 10px;border:1px solid #ddd;text-align:center">{item.get("pallets",0)}</td>'
-            f'<td style="padding:6px 10px;border:1px solid #ddd;text-align:right">${item.get("precio_usd",0):.2f}</td>'
-            f'<td style="padding:6px 10px;border:1px solid #ddd;text-align:right;font-weight:bold">${item.get("total",0):,.2f}</td></tr>')
-    dest_str = f'{tipo} → {destino}' if tipo == 'CIF' and destino else tipo
-    html = f'''<html><body style="font-family:Arial,sans-serif;color:#333">
-<div style="background:#003E8C;padding:16px 24px;border-radius:8px">
-  <h2 style="color:white;margin:0">🚀 Export Haret — Nueva Orden Recibida</h2>
-</div>
-<div style="padding:16px 0">
-  <table style="width:100%;border-collapse:collapse;font-size:14px">
-    <tr><td style="padding:6px"><b>Nº Pedido:</b></td><td>{pid}</td>
-        <td style="padding:6px"><b>Fecha:</b></td><td>{fecha}</td></tr>
-    <tr><td style="padding:6px"><b>Cliente:</b></td><td>{nombre}</td>
-        <td style="padding:6px"><b>Empresa:</b></td><td>{empresa or "-"}</td></tr>
-    <tr><td style="padding:6px"><b>Email:</b></td><td>{email_c}</td>
-        <td style="padding:6px"><b>Teléfono:</b></td><td>{telefono or "-"}</td></tr>
-    <tr><td style="padding:6px"><b>País:</b></td><td>{pais or "-"}</td>
-        <td style="padding:6px"><b>Destino:</b></td><td>{dest_str}</td></tr>
-  </table>
-  <h3 style="color:#003E8C;border-bottom:2px solid #003E8C;padding-bottom:6px">Productos</h3>
-  <table style="width:100%;border-collapse:collapse;font-size:13px">
-    <thead><tr style="background:#003E8C;color:white">
-      <th style="padding:8px">Código</th><th style="padding:8px">Producto</th>
-      <th style="padding:8px">Cajas</th><th style="padding:8px">Pallets</th>
-      <th style="padding:8px">Precio/caja</th><th style="padding:8px">Total</th>
-    </tr></thead>
-    <tbody>{rows_html}</tbody>
-  </table>
-  <p style="text-align:right;font-size:16px;font-weight:bold;color:#003E8C">
-    TOTAL: ${total_usd:,.2f} USD</p>
-  {f'<p><b>Notas:</b> {notas}</p>' if notas else ''}
-</div>
-<p style="color:#888;font-size:11px">Export Haret © 2026 | order@exportharet.com</p>
-</body></html>'''
-    subject = f'📦 Nuevo Pedido {pid} — {nombre} ({empresa or email_c}) | ${total_usd:,.2f} USD'
-    # Try SMTP send
+                      f'<td style="padding:6px 10px;border:1px solid #ddd">{item.get("producto","")}</td>'
+                      f'<td style="padding:6px 10px;border:1px solid #ddd;text-align:center">{item.get("cajas",0)}</td>'
+                      f'<td style="padding:6px 10px;border:1px solid #ddd;text-align:center">{item.get("pallets",0)}</td>'
+                      f'<td style="padding:6px 10px;border:1px solid #ddd;text-align:right">${item.get("precio_usd",0):.2f}</td>'
+                      f'<td style="padding:6px 10px;border:1px solid #ddd;text-align:right;font-weight:bold">${item.get("total",0):,.2f}</td></tr>')
+    dest_str = f'{tipo} \u2192 {destino}' if tipo == 'CIF' and destino else tipo
+    _notas_html = f'<p><b>Notas:</b> {notas}</p>' if notas else ''
+    html = (f'<html><body style="font-family:Arial,sans-serif;color:#333">'
+            f'<div style="background:#003E8C;padding:16px 24px;border-radius:8px">'
+            f'<h2 style="color:white;margin:0">\U0001F680 Export Haret \u2014 Nueva Orden Recibida</h2>'
+            f'</div><div style="padding:16px 0">'
+            f'<table style="width:100%;border-collapse:collapse;font-size:14px">'
+            f'<tr><td style="padding:6px"><b>N\u00ba Pedido:</b></td><td>{pid}</td>'
+            f'<td style="padding:6px"><b>Fecha:</b></td><td>{fecha}</td></tr>'
+            f'<tr><td style="padding:6px"><b>Cliente:</b></td><td>{nombre}</td>'
+            f'<td style="padding:6px"><b>Empresa:</b></td><td>{empresa or "-"}</td></tr>'
+            f'<tr><td style="padding:6px"><b>Email:</b></td><td>{email_c}</td>'
+            f'<td style="padding:6px"><b>Tel\u00e9fono:</b></td><td>{telefono or "-"}</td></tr>'
+            f'<tr><td style="padding:6px"><b>Pa\u00eds:</b></td><td>{pais or "-"}</td>'
+            f'<td style="padding:6px"><b>Destino:</b></td><td>{dest_str}</td></tr>'
+            f'</table>'
+            f'<h3 style="color:#003E8C;border-bottom:2px solid #003E8C;padding-bottom:6px">Productos</h3>'
+            f'<table style="width:100%;border-collapse:collapse;font-size:13px">'
+            f'<thead><tr style="background:#003E8C;color:white">'
+            f'<th style="padding:8px">C\u00f3digo</th><th style="padding:8px">Producto</th>'
+            f'<th style="padding:8px">Cajas</th><th style="padding:8px">Pallets</th>'
+            f'<th style="padding:8px">Precio/caja</th><th style="padding:8px">Total</th>'
+            f'</tr></thead><tbody>{rows_html}</tbody></table>'
+            f'<p style="text-align:right;font-size:16px;font-weight:bold;color:#003E8C">'
+            f'TOTAL: ${total_usd:,.2f} USD</p>'
+            f'{_notas_html}'
+            f'</div><p style="color:#888;font-size:11px">Export Haret \u00a9 2026 | order@exportharet.com</p>'
+            f'</body></html>')
+    subject = f'\U0001F4E6 Nuevo Pedido {pid} \u2014 {nombre} ({empresa or email_c}) | ${total_usd:,.2f} USD'
+    sent = False
+    error_msg = ''
     try:
-        cfg = st.secrets.get('email', {})
+        cfg = {}
+        try:
+            cfg = st.secrets.get('email', {})
+        except Exception:
+            cfg = {}
         smtp_host = cfg.get('smtp_host', '')
         smtp_port = int(cfg.get('smtp_port', 587))
         smtp_user = cfg.get('smtp_user', '')
         smtp_pass = cfg.get('smtp_pass', '')
-        from_addr = cfg.get('from_addr', smtp_user)
+        from_addr = cfg.get('from_addr', smtp_user) or smtp_user
         if smtp_host and smtp_user and smtp_pass:
             msg = MIMEMultipart('alternative')
             msg['Subject'] = subject
@@ -1270,14 +1285,28 @@ def send_order_email(ped):
             msg['Reply-To'] = email_c
             msg.attach(MIMEText(html, 'html', 'utf-8'))
             with smtplib.SMTP(smtp_host, smtp_port) as server:
+                server.ehlo()
                 server.starttls()
+                server.ehlo()
                 server.login(smtp_user, smtp_pass)
                 server.sendmail(from_addr, [DEST], msg.as_string())
             log_email(DEST, subject, 'smtp_enviado')
+            sent = True
         else:
+            error_msg = 'SMTP no configurado en Streamlit Secrets'
             log_email(DEST, subject, 'smtp_sin_config')
     except Exception as e:
-        log_email(DEST, subject, f'smtp_error:{str(e)[:80]}')
+        error_msg = str(e)[:120]
+        log_email(DEST, subject, f'smtp_error:{error_msg}')
+    try:
+        _pf = 'pending_emails.json'
+        _pe = _load(_pf, [])
+        _pe.append({'id': pid, 'fecha': datetime.now().isoformat(), 'destinatario': DEST,
+                    'asunto': subject, 'cliente': nombre, 'email_cliente': email_c,
+                    'total': total_usd, 'sent': sent, 'error': error_msg})
+        _save(_pf, _pe)
+    except Exception:
+        pass
 
 def render_portal_pedido():
     """Página pública para que los clientes hagan pedidos. No requiere login de staff."""
@@ -1444,18 +1473,12 @@ def render_portal_pedido():
     st.markdown('---')
     # ── PASO 3: Selección de Productos ───────────────────────────────
     st.markdown('### 3️⃣ Selecciona tus Productos')
-    # Banner de volumen y mínimo
+    # Banner pedido mínimo
     _current_pallets = sum(i.get('pallets',0) for i in st.session_state.portal_carrito)
     if _current_pallets > 0:
-        _disc = get_descuento_volumen(_current_pallets)
-        if _disc > 0:
-            _tramo = get_tramo_label(_current_pallets)
-            st.success(f'📉 Descuento activo: **{_tramo}** — {_disc*100:.0f}% sobre todos los precios 🎉')
-        else:
-            st.info(f'📦 Pedido actual: **{_current_pallets:.1f} pallets** | Desde 3 pallets activas descuentos de volumen')
+        st.info(f'U0001F4E6 Pedido actual: **{_current_pallets:.1f} pallets**')
     else:
-        st.warning('📋 **Pedido mínimo: 3 pallets** | Descuentos: 3-5 plt −5% | 6-9 plt −10% | 10-19 plt −12% | 20+ plt −15%')
-
+        st.warning('U0001F4CB **Pedido mínimo: 3 pallets**')
     # Cabecera tabla productos
     hc = st.columns([4, 2, 3, 2, 2])
     hc[0].markdown('**Producto**')
@@ -1506,9 +1529,9 @@ def render_portal_pedido():
         _fob_x = get_fob_price(cod,data)
         if _mon_x != 'USD' and tipo_precio == 'CIF' and _rate_x != 1.0:
             _lp_x = round(precio_u * _rate_x, 4)
-            gc[1].markdown(f'<b style="color:#003E8C">{_sym_x}{_lp_x:.4f}</b>', unsafe_allow_html=True)
+            gc[1].markdown(f'<b style="color:#003E8C">{_sym_x}{_lp_x:.2f}</b>', unsafe_allow_html=True)
         else:
-            gc[1].markdown(f'<b style="color:#003E8C">${precio_u:.4f}</b>', unsafe_allow_html=True)
+            gc[1].markdown(f'<b style="color:#003E8C">${precio_u:.2f}</b>', unsafe_allow_html=True)
         # Col 2: Cantidad con +/- nativo
         qty_val = gc[2].number_input(
             'Cantidad', min_value=0, value=_ex_qty, step=1,
@@ -1575,7 +1598,7 @@ def render_portal_pedido():
             cc = st.columns([5, 2, 2, 3])
             cc[0].markdown(
                 f'**{item["producto"]}**  \n<small style="color:#888">'
-                f'{item["codigo"]} | ${item["precio_usd"]:.4f}/cj</small>',
+                f'${item["precio_usd"]:.2f}/cj</small>',
                 unsafe_allow_html=True
             )
             cc[1].markdown(f'{item["pallets"]:.2f}')
@@ -1599,7 +1622,7 @@ def render_portal_pedido():
         _tot_cif = sum(i['total'] for i in st.session_state.portal_carrito)
         _tot_conv = round(_tot_cif * _rate, 2)
         _sym = MONEDA_SIMBOLO.get(_moneda, '')
-        st.caption(f'Precios CIF — Destino: {destino} | Moneda: {_moneda} | Equiv.: {_sym}{_tot_conv:,.2f} {_moneda} (1 USD = {_rate:.4f} {_moneda})')
+        st.caption(f'Precios CIF — Destino: {destino} | Moneda: {_moneda} | Equiv.: {_sym}{_tot_conv:,.2f} {_moneda} (1 USD = {_rate:.2f} {_moneda})')
     elif tipo_precio == 'FOB':
         st.caption('Precios FOB — El flete corre por cuenta del comprador')
     st.markdown('---')
