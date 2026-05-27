@@ -760,7 +760,9 @@ def render_hacer_pedido():
             if c_email not in clients: clients[c_email]={'nombre':c_name,'email':c_email,'fecha_registro':datetime.now().isoformat(),'pedidos_ids':[]}
             clients[c_email]['pedidos_ids']=clients[c_email].get('pedidos_ids',[])+[pid]
             save_clients(clients)
-            el=load_email_log(); el.append({'id':f'EMAIL-{len(el)+1:05d}','destinatario':c_email,'asunto':f'Pedido {pid} recibido','tipo':'confirmacion','fecha':datetime.now().isoformat(),'estado':'simulado'}); save_email_log(el)
+            _r_email = send_order_email(ped)
+            _email_status = 'enviado' if _r_email.get('status') == 'sent' else 'fallido'
+            el=load_email_log(); el.append({'id':f'EMAIL-{len(el)+1:05d}','destinatario':c_email,'asunto':f'Pedido {pid} recibido','tipo':'confirmacion','fecha':datetime.now().isoformat(),'estado':_email_status}); save_email_log(el)
             st.session_state.carrito=[]
             st.success(f'✅ Pedido {pid} creado por ${tot:,.2f}')
             st.cache_data.clear()
