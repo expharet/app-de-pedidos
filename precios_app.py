@@ -2727,7 +2727,8 @@ def main():
                         _row['c' + str(_cc)] = _ws.cell(_r, _cc).value
                     _rows.append(_row)
                 st.write('**Datos filas 7-30 cols 1-16:**')
-                st.json(_rows)
+                import json as _json
+                st.text(_json.dumps(_rows, indent=2))
             else:
                 st.error('No TABLA PRECIOS sheet')
         else:
