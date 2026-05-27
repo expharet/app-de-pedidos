@@ -47,6 +47,7 @@ CLIENTS_FILE = "clientes.json"
 HIST_FILE    = "precio_historial.json"
 EMAIL_FILE   = "email_log.json"
 DATA_FILE    = "precios_data.json"
+APP_CONFIG_FILE = "app_config.json"
 
 USERS = {
     "admin@exportharet.com":  {"pwd": hashlib.md5(b"admin123").hexdigest(),  "rol": "admin",  "nombre": "Administrador"},
@@ -76,6 +77,9 @@ def load_clients(): return _load(CLIENTS_FILE, {})
 def load_pedidos(): return _load(PEDIDOS_FILE, [])
 def load_historial(): return _load(HIST_FILE, [])
 def load_email_log(): return _load(EMAIL_FILE, [])
+def load_app_config():
+    return _load(APP_CONFIG_FILE, {"app_title": "🚀 EXPORT HARET — Panel de Administración"})
+def save_app_config(cfg): _save(APP_CONFIG_FILE, cfg)
 def save_data(d): _save(DATA_FILE,d); st.cache_data.clear()
 def save_clients(c): _save(CLIENTS_FILE,c)
 def save_pedidos(p): _save(PEDIDOS_FILE,p)
@@ -925,6 +929,30 @@ def render_configuracion():
     for fname in [DATA_FILE,CLIENTS_FILE,PEDIDOS_FILE,HIST_FILE,EMAIL_FILE]:
         exists=os.path.exists(fname)
         st.markdown(f"{'\u2705' if exists else '\u274C'} `{fname}`")
+    st.markdown('---')
+    st.markdown('### 🖼️ Logotipo de la Aplicación')
+    _logo_col1, _logo_col2 = st.columns([2, 1])
+    with _logo_col1:
+        _logo_file = st.file_uploader('Subir nuevo logo (PNG o JPG)', type=['png','jpg','jpeg'], key='cfg_logo_upload')
+        if _logo_file is not None:
+            with open('logo.png', 'wb') as _lf: _lf.write(_logo_file.getbuffer())
+            st.success('✅ Logo actualizado. Recarga la página para verlo.')
+    with _logo_col2:
+        import os as _oscfg
+        if _oscfg.path.exists('logo.png'):
+            from PIL import Image as _ImgCfg
+            st.image(_ImgCfg.open('logo.png'), width=140)
+        else:
+            st.info('Sin logo')
+    st.markdown('---')
+    st.markdown('### ✏️ Título de la Aplicación')
+    _cur_cfg = load_app_config()
+    _cur_title = _cur_cfg.get("app_title", "🚀 EXPORT HARET — Panel de Administración")
+    _new_title = st.text_input('Título del panel de administración', value=_cur_title, key='cfg_app_title', help='Aparece en el header y sidebar del panel admin.')
+    if st.button('💾 Guardar Título', key='cfg_save_title'):
+        _cur_cfg["app_title"] = _new_title
+        save_app_config(_cur_cfg)
+        st.success('✅ Título guardado. Recarga para verlo en el header y sidebar.')
 
 # ─── TAB CLIENTES ──────────────────────────────────────────────
 def render_clientes():
@@ -1969,8 +1997,9 @@ def main():
         _logoA = _ImgA.open('logo.png')
         _al1, _al2, _al3 = st.columns([2, 1, 2])
         with _al2: st.image(_logoA, width=160)
-    st.markdown('<div style="background:linear-gradient(90deg,#003E8C,#0066CC);padding:16px 24px;border-radius:8px;margin-bottom:20px;"><h2 style="color:white;margin:0">🚀 EXPORT HARET — Panel de Administración</h2></div>', unsafe_allow_html=True)
-    st.sidebar.markdown(f'# 🚀 Export Haret')
+    _app_title = load_app_config().get("app_title", "🚀 EXPORT HARET — Panel de Administración")
+    st.markdown(f'<div style="background:linear-gradient(90deg,#003E8C,#0066CC);padding:16px 24px;border-radius:8px;margin-bottom:20px;"><h2 style="color:white;margin:0">{_app_title}</h2></div>', unsafe_allow_html=True)
+    st.sidebar.markdown(f'# {_app_title}')
     st.sidebar.markdown(f'**{st.session_state.user_nombre}** | {st.session_state.user_rol}')
     st.sidebar.markdown('---')
     pedidos = load_pedidos()
