@@ -262,7 +262,7 @@ def load_pedidos(): return _load(PEDIDOS_FILE, [])
 def load_historial(): return _load(HIST_FILE, [])
 def load_email_log(): return _load(EMAIL_FILE, [])
 def load_app_config():
-    return _load(APP_CONFIG_FILE, {"app_title": "🚀 EXPORT HARET — Panel de Administración"})
+    return _load(APP_CONFIG_FILE, {"app_title": "📊 Export Haret — Panel de Administración"})
 def save_app_config(cfg): _save(APP_CONFIG_FILE, cfg)
 def save_data(d): _save(DATA_FILE,d); st.cache_data.clear()
 def save_clients(c): _save(CLIENTS_FILE,c)
@@ -1177,15 +1177,24 @@ def render_destinos():
 def render_gestion_pedidos():
     st.markdown('## 📦 Gestión de Pedidos')
     pedidos=load_pedidos()
+    # KPI filter: si vienen de sidebar 'En proceso', precargar estados pendientes
+    _kpi_filter = st.session_state.pop('pedidos_filter_estado', None)
+    if _kpi_filter:
+        st.info(f"\u26a1 Mostrando pedidos filtrados desde el KPI sidebar: **{', '.join(_kpi_filter)}**")
     f1,f2,f3=st.columns(3)
-    fe=f1.selectbox('Estado',['Todos']+ORDEN_ESTADOS,key='gp_e')
+    if _kpi_filter:
+        fe = f1.multiselect('Estado',ORDEN_ESTADOS,default=_kpi_filter,key='gp_e_multi')
+        _use_multi = True
+    else:
+        fe = f1.selectbox('Estado',['Todos']+ORDEN_ESTADOS,key='gp_e')
+        _use_multi = False
     fc=f2.text_input('Cliente/ID',key='gp_c')
     fd=f3.selectbox('Destino',['Todos']+sorted(set(p.get('destino','') for p in pedidos if p.get('destino'))),key='gp_d')
     fd1,fd2=st.columns(2)
     _fecha_desde = fd1.date_input('📅 Desde', value=date.today() - timedelta(days=90), key='gp_desde')
     _fecha_hasta = fd2.date_input('📅 Hasta', value=date.today(), key='gp_hasta')
     filt=[p for p in pedidos if
-        (fe=='Todos' or p.get('estado')==fe) and
+        ((_use_multi and p.get('estado') in fe) or (not _use_multi and (fe=='Todos' or p.get('estado')==fe))) and
         (not fc or fc.lower() in (p.get('client_name','')+p.get('id','')).lower()) and
         (fd=='Todos' or p.get('destino')==fd) and
         (str(_fecha_desde) <= p.get('fecha','')[:10] <= str(_fecha_hasta))
@@ -1364,7 +1373,7 @@ def render_configuracion():
     st.markdown('---')
     st.markdown('### ✏️ Título de la Aplicación')
     _cur_cfg = load_app_config()
-    _cur_title = _cur_cfg.get("app_title", "🚀 EXPORT HARET — Panel de Administración")
+    _cur_title = _cur_cfg.get("app_title", "📊 Export Haret — Panel de Administración")
     _new_title = st.text_input('Título del panel de administración', value=_cur_title, key='cfg_app_title', help='Aparece en el header y sidebar del panel admin.')
     if st.button('💾 Guardar Título', key='cfg_save_title'):
         _cur_cfg["app_title"] = _new_title
@@ -3060,7 +3069,7 @@ def main():
         _logoA = _ImgA.open('logo.png')
         _al1, _al2, _al3 = st.columns([2, 1, 2])
         with _al2: st.image(_logoA, width=160)
-    _app_title = load_app_config().get("app_title", "🚀 EXPORT HARET — Panel de Administración")
+    _app_title = load_app_config().get("app_title", "📊 Export Haret — Panel de Administración")
     st.markdown(f'<div style="background:linear-gradient(90deg,#003E8C,#0066CC);padding:16px 24px;border-radius:8px;margin-bottom:20px;"><h2 style="color:white;margin:0">{_app_title}</h2></div>', unsafe_allow_html=True)
     # Sidebar branding admin: logo si existe
     try:
@@ -3080,7 +3089,11 @@ def main():
     st.sidebar.metric('💵 Facturación', f"${sum(p.get('total_usd',0) for p in pedidos):,.0f}")
     st.sidebar.metric('👥 Clientes', len(clients))
     pending = len([p for p in pedidos if p.get('estado') in ['Recibido','Confirmado','Preparando']])
-    st.sidebar.metric('⏳ En proceso', pending)
+    # KPI clickable - filtra Pedidos por estados pendientes
+    if st.sidebar.button(f'⏳ En proceso: {pending}', use_container_width=True, key='kpi_en_proceso', help='Click para filtrar Pedidos por estados activos'):
+        st.session_state['pedidos_filter_estado'] = ['Recibido','Confirmado','Preparando']
+        st.session_state['admin_active_tab'] = 'pedidos'
+        st.rerun()
     st.sidebar.markdown('---')
     st.sidebar.markdown('---')
     if st.sidebar.button('🌐 Ver Portal Clientes', use_container_width=True, key='admin_go_portal'):
