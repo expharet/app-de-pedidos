@@ -2553,7 +2553,8 @@ def render_debug_excel():
                 v = ws.cell(r, c).value
                 row_data[f'c{c}'] = round(float(v), 4) if v and isinstance(v, (int, float)) else None
             results.append(row_data)
-        st.json(results)
+        import json as _json
+        st.text(_json.dumps(results, indent=2))
     except Exception as e:
         st.error(f'Error: {e}')
 
