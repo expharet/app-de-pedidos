@@ -9,40 +9,85 @@
     "eur_usd": 1.1643,
     "grupos": {
       "A": {
+        "nombre": "Granadilla",
         "cajas_pallet": 160,
-        "nombre": "Granadilla"
+        "kg_caja": 2,
+        "alto_cm": 190,
+        "largo_cm": 120,
+        "ancho_cm": 80,
+        "tipo_caja": "Cartón"
       },
       "B": {
+        "nombre": "Pitahaya Amarilla",
         "cajas_pallet": 180,
-        "nombre": "Pitahaya Amarilla"
+        "kg_caja": 2.5,
+        "alto_cm": 190,
+        "largo_cm": 120,
+        "ancho_cm": 80,
+        "tipo_caja": "Cartón"
       },
       "C": {
+        "nombre": "Lulo · Maracuyá · Taxo · Melon · Tamarillo · Salack",
         "cajas_pallet": 160,
-        "nombre": "Lulo · Maracuyá · Tomate · Taxo · Melon"
+        "kg_caja": 2.5,
+        "alto_cm": 190,
+        "largo_cm": 120,
+        "ancho_cm": 80,
+        "tipo_caja": "Cartón"
       },
       "D": {
+        "nombre": "Cacao · Babaco",
         "cajas_pallet": 120,
-        "nombre": "Cacao · Babaco"
+        "kg_caja": 3,
+        "alto_cm": 190,
+        "largo_cm": 120,
+        "ancho_cm": 80,
+        "tipo_caja": "Cartón"
       },
       "E": {
+        "nombre": "Aguacate · Baby banano · Zapote",
         "cajas_pallet": 160,
-        "nombre": "Aguacate · Baby banano · Zapote"
+        "kg_caja": 3.75,
+        "alto_cm": 190,
+        "largo_cm": 120,
+        "ancho_cm": 80,
+        "tipo_caja": "Cartón"
       },
       "F": {
+        "nombre": "Pitahaya Roja · Pitahaya Blanca · Caña de azúcar",
         "cajas_pallet": 120,
-        "nombre": "Roja P · Blanca P · Caña"
+        "kg_caja": 4.5,
+        "alto_cm": 190,
+        "largo_cm": 120,
+        "ancho_cm": 80,
+        "tipo_caja": "Cartón"
       },
       "G": {
+        "nombre": "Physalis sin cáscara",
         "cajas_pallet": 160,
-        "nombre": "Physalis sin cáscara"
+        "kg_caja": 1.25,
+        "alto_cm": 190,
+        "largo_cm": 120,
+        "ancho_cm": 80,
+        "tipo_caja": "Cartón"
       },
       "H": {
+        "nombre": "Physalis con cáscara",
         "cajas_pallet": 160,
-        "nombre": "Physalis con cáscara"
+        "kg_caja": 1.5,
+        "alto_cm": 190,
+        "largo_cm": 120,
+        "ancho_cm": 80,
+        "tipo_caja": "Cartón"
       },
       "I": {
+        "nombre": "Guanabana / Soursop",
         "cajas_pallet": 60,
-        "nombre": "Guanabana"
+        "kg_caja": 4,
+        "alto_cm": 190,
+        "largo_cm": 120,
+        "ancho_cm": 80,
+        "tipo_caja": "Madera"
       }
     },
     "destinos": {
