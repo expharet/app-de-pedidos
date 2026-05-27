@@ -1475,61 +1475,60 @@ def render_portal_pedido():
     st.markdown('### 3️⃣ Selecciona tus Productos')
     # Banner pedido mínimo
     _current_pallets = sum(i.get('pallets',0) for i in st.session_state.portal_carrito)
-        # ── Widget de precios por volumen
-        _desc_actual = get_descuento_volumen(max(_current_pallets, 1)) if _current_pallets >= 1 else 0.0
-        _tramo_actual = get_tramo_label(max(_current_pallets, 1)) if _current_pallets >= 1 else '1-2 Pallets'
-        _next_tramo = None
-        _pallets_para_siguiente = 0
-        for _t in TRAMOS_VOLUMEN:
-            if _t['descuento'] > _desc_actual:
-                _next_tramo = _t
-                _pallets_para_siguiente = max(0, _t['min'] - _current_pallets)
-                break
-        if _current_pallets == 0:
-            st.markdown("""
-    <div style="background:linear-gradient(135deg,#f0f7ff,#e8f4fd);border:1px solid #b8d9f7;border-radius:10px;padding:14px 18px;margin-bottom:8px">
-    <b style="color:#003E8C;font-size:1em">&#128202; Precios por Volumen</b><br>
-    <small style="color:#555">Cuantos m&#225;s pallets pides, mejor precio por caja:</small><br><br>
-    <table style="width:100%;border-collapse:collapse;font-size:0.82em">
-    <tr style="background:#003E8C;color:white"><th style="padding:5px 8px;text-align:left">Volumen</th><th style="padding:5px 8px;text-align:center">Descuento</th><th style="padding:5px 8px;text-align:left">Beneficio</th></tr>
-    <tr style="background:#fff3cd"><td style="padding:4px 8px"><b>1-2 Pallets</b></td><td style="padding:4px 8px;text-align:center">Precio base</td><td style="padding:4px 8px;color:#856404">Min. pedido: 3 pallets</td></tr>
-    <tr style="background:#d4edda"><td style="padding:4px 8px"><b>3-5 Pallets</b></td><td style="padding:4px 8px;text-align:center;color:#28a745;font-weight:bold">-5%</td><td style="padding:4px 8px;color:#155724">Acceso al portal &#10003;</td></tr>
-    <tr><td style="padding:4px 8px"><b>6-9 Pallets</b></td><td style="padding:4px 8px;text-align:center;color:#0066cc;font-weight:bold">-10%</td><td style="padding:4px 8px;color:#0066cc">Mayor ahorro por caja</td></tr>
-    <tr style="background:#f0f4ff"><td style="padding:4px 8px"><b>10-19 Pallets</b></td><td style="padding:4px 8px;text-align:center;color:#6f42c1;font-weight:bold">-12%</td><td style="padding:4px 8px;color:#6f42c1">Precio mayorista</td></tr>
-    <tr style="background:#e8f4fd"><td style="padding:4px 8px"><b>20+ Pallets</b></td><td style="padding:4px 8px;text-align:center;color:#003E8C;font-weight:bold">-15%</td><td style="padding:4px 8px;color:#003E8C"><b>Mejor precio disponible</b></td></tr>
-    </table></div>""", unsafe_allow_html=True)
-            st.warning('📋 **Pedido mínimo: 3 pallets** — Añade productos para ver precios según volumen')
-        else:
-            _min_valido = _current_pallets >= 3
-            _color_b = '#d4edda' if _desc_actual > 0 else ('#fff3cd' if not _min_valido else '#e8f4fd')
-            _border_b = '#28a745' if _desc_actual > 0 else ('#f0ad4e' if not _min_valido else '#b8d9f7')
-            _desc_str = f'-{int(_desc_actual*100)}% sobre precio base' if _desc_actual > 0 else 'Añade más pallets para descuento'
-            _next_hint = ''
-            if _next_tramo and _pallets_para_siguiente > 0:
-                _next_hint = f' &nbsp;<b style="color:#003E8C">&#128200; Solo {_pallets_para_siguiente:.0f} pallet(s) más para -{int(_next_tramo["descuento"]*100)}%</b>'
-            _barra_items = [
-                (3, 5, '#28a745', '3-5 plt<br>-5%'),
-                (6, 9, '#0066cc', '6-9 plt<br>-10%'),
-                (10, 19, '#6f42c1', '10-19 plt<br>-12%'),
-                (20, 9999, '#003E8C', '20+ plt<br>-15%'),
-            ]
-            _barra_html = ''
-            for _bmin, _bmax, _bcol, _blbl in _barra_items:
-                _b_active = _bmin <= _current_pallets <= _bmax
-                _b_done = _current_pallets > _bmax
-                _b_bg = _bcol if (_b_active or _b_done) else '#e0e0e0'
-                _b_txt = 'white' if (_b_active or _b_done) else '#999'
-                _barra_html += f'<div style="flex:1;background:{_b_bg};padding:5px 3px;text-align:center;font-size:0.68em;color:{_b_txt};border-radius:4px;margin:0 2px"><b>{_blbl}</b></div>'
-            _icon_b = '💹' if _desc_actual > 0 else '📋'
-            st.markdown(f"""
-    <div style="background:{_color_b};border:1px solid {_border_b};border-radius:10px;padding:11px 16px;margin-bottom:8px">
-    <div><b style="font-size:1.02em">{_icon_b} {_current_pallets:.1f} pallets en carrito</b> &mdash; Tramo: <b>{_tramo_actual}</b> &mdash; <span style="color:#003E8C"><b>{_desc_str}</b></span>{_next_hint}</div>
-    <div style="display:flex;margin-top:8px;border-radius:6px;overflow:hidden">{_barra_html}</div>
-    </div>""", unsafe_allow_html=True)
-            if not _min_valido:
-                st.warning(f'📋 **Pedido mínimo: 3 pallets** — Tienes {_current_pallets:.1f} plt. Añade más para alcanzar el mínimo.')
-        # Cabecera tabla productos
-    hc = st.columns([4, 2, 3, 2, 2])
+    # ── Widget de precios por volumen
+    _desc_actual = get_descuento_volumen(max(_current_pallets, 1)) if _current_pallets >= 1 else 0.0
+    _tramo_actual = get_tramo_label(max(_current_pallets, 1)) if _current_pallets >= 1 else '1-2 Pallets'
+    _next_tramo = None
+    _pallets_para_siguiente = 0
+    for _t in TRAMOS_VOLUMEN:
+        if _t['descuento'] > _desc_actual:
+            _next_tramo = _t
+            _pallets_para_siguiente = max(0, _t['min'] - _current_pallets)
+            break
+    if _current_pallets == 0:
+        st.markdown("""
+<div style="background:linear-gradient(135deg,#f0f7ff,#e8f4fd);border:1px solid #b8d9f7;border-radius:10px;padding:14px 18px;margin-bottom:8px">
+<b style="color:#003E8C;font-size:1em">&#128202; Precios por Volumen</b><br>
+<small style="color:#555">Cuantos m&#225;s pallets pides, mejor precio por caja:</small><br><br>
+<table style="width:100%;border-collapse:collapse;font-size:0.82em">
+<tr style="background:#003E8C;color:white"><th style="padding:5px 8px;text-align:left">Volumen</th><th style="padding:5px 8px;text-align:center">Descuento</th><th style="padding:5px 8px;text-align:left">Beneficio</th></tr>
+<tr style="background:#fff3cd"><td style="padding:4px 8px"><b>1-2 Pallets</b></td><td style="padding:4px 8px;text-align:center">Precio base</td><td style="padding:4px 8px;color:#856404">Min. pedido: 3 pallets</td></tr>
+<tr style="background:#d4edda"><td style="padding:4px 8px"><b>3-5 Pallets</b></td><td style="padding:4px 8px;text-align:center;color:#28a745;font-weight:bold">-5%</td><td style="padding:4px 8px;color:#155724">Acceso al portal &#10003;</td></tr>
+<tr><td style="padding:4px 8px"><b>6-9 Pallets</b></td><td style="padding:4px 8px;text-align:center;color:#0066cc;font-weight:bold">-10%</td><td style="padding:4px 8px;color:#0066cc">Mayor ahorro por caja</td></tr>
+<tr style="background:#f0f4ff"><td style="padding:4px 8px"><b>10-19 Pallets</b></td><td style="padding:4px 8px;text-align:center;color:#6f42c1;font-weight:bold">-12%</td><td style="padding:4px 8px;color:#6f42c1">Precio mayorista</td></tr>
+<tr style="background:#e8f4fd"><td style="padding:4px 8px"><b>20+ Pallets</b></td><td style="padding:4px 8px;text-align:center;color:#003E8C;font-weight:bold">-15%</td><td style="padding:4px 8px;color:#003E8C"><b>Mejor precio disponible</b></td></tr>
+</table></div>""", unsafe_allow_html=True)
+        st.warning('📋 **Pedido mínimo: 3 pallets** — Añade productos para ver precios según volumen')
+    else:
+        _min_valido = _current_pallets >= 3
+        _color_b = '#d4edda' if _desc_actual > 0 else ('#fff3cd' if not _min_valido else '#e8f4fd')
+        _border_b = '#28a745' if _desc_actual > 0 else ('#f0ad4e' if not _min_valido else '#b8d9f7')
+        _desc_str = f'-{int(_desc_actual*100)}% sobre precio base' if _desc_actual > 0 else 'Añade más pallets para descuento'
+        _next_hint = ''
+        if _next_tramo and _pallets_para_siguiente > 0:
+            _next_hint = f' &nbsp;<b style="color:#003E8C">&#128200; Solo {_pallets_para_siguiente:.0f} pallet(s) más para -{int(_next_tramo["descuento"]*100)}%</b>'
+        _barra_items = [
+            (3, 5, '#28a745', '3-5 plt<br>-5%'),
+            (6, 9, '#0066cc', '6-9 plt<br>-10%'),
+            (10, 19, '#6f42c1', '10-19 plt<br>-12%'),
+            (20, 9999, '#003E8C', '20+ plt<br>-15%'),
+        ]
+        _barra_html = ''
+        for _bmin, _bmax, _bcol, _blbl in _barra_items:
+            _b_active = _bmin <= _current_pallets <= _bmax
+            _b_done = _current_pallets > _bmax
+            _b_bg = _bcol if (_b_active or _b_done) else '#e0e0e0'
+            _b_txt = 'white' if (_b_active or _b_done) else '#999'
+            _barra_html += f'<div style="flex:1;background:{_b_bg};padding:5px 3px;text-align:center;font-size:0.68em;color:{_b_txt};border-radius:4px;margin:0 2px"><b>{_blbl}</b></div>'
+        _icon_b = '💹' if _desc_actual > 0 else '📋'
+        st.markdown(f"""
+<div style="background:{_color_b};border:1px solid {_border_b};border-radius:10px;padding:11px 16px;margin-bottom:8px">
+<div><b style="font-size:1.02em">{_icon_b} {_current_pallets:.1f} pallets en carrito</b> &mdash; Tramo: <b>{_tramo_actual}</b> &mdash; <span style="color:#003E8C"><b>{_desc_str}</b></span>{_next_hint}</div>
+<div style="display:flex;margin-top:8px;border-radius:6px;overflow:hidden">{_barra_html}</div>
+</div>""", unsafe_allow_html=True)
+        if not _min_valido:
+            st.warning(f'📋 **Pedido mínimo: 3 pallets** — Tienes {_current_pallets:.1f} plt. Añade más para alcanzar el mínimo.')
+        hc = st.columns([4, 2, 3, 2, 2])
     hc[0].markdown('**Producto**')
     hc[1].markdown('**Precio/cja**' + (' &#128200;' if _current_pallets >= 3 else ''))
     hc[2].markdown('**Cantidad**')
