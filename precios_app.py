@@ -1775,45 +1775,11 @@ def get_precio_por_pallets(codigo, total_pallets, data, tipo_precio='CIF'):
 
 
 def get_precio_cif_por_pallets(codigo, total_pallets, destino, data):
-    """Precio CIF para un destino especifico: toma precio base (Madrid/ref) y ajusta flete.
-    Si el producto tiene precios_plt, estos ya incluyen flete de referencia (Madrid 2.35 USD/cj).
-    Para otros destinos se ajusta: precio_base - flete_ref + flete_destino.
+    """Precio CIF para un destino: los precios_plt YA incluyen flete (precio cerrado).
+    El flete de referencia (2.35 USD/Kilo) es solo informacion para el cliente.
+    NO se recalcula nada - el precio base ya es el precio final CIF.
     """
-    precio_base = get_precio_por_pallets(codigo, total_pallets, data)
-    cfg = data.get('config', {})
-    flete_ref = float(cfg.get('flete_ref', 2.35) or 2.35)  # flete referencia (Madrid)
-    dests = cfg.get('destinos', {})
-    dest_val = dests.get(destino, 0)
-    flete_dest = float(dest_val.get('factor', dest_val) if isinstance(dest_val, dict) else dest_val if isinstance(dest_val, (int, float)) else 0)
-    # Si hay precios_plt, ajustar flete (flete es USD/Kilo, multiplicar por kg_caja)
-    for p in data.get('products', []):
-        if p.get('codigo') == codigo:
-            _kg_caja_p = float(p.get('kg_caja', 0) or 0)
-            # Fallback al kg_caja del grupo si el producto no lo tiene definido
-            if _kg_caja_p == 0:
-                _grp_p = p.get('grupo', '')
-                _kg_caja_p = float(cfg.get('grupos', {}).get(_grp_p, {}).get('kg_caja', 2.5) or 2.5)
-            if p.get('precios_plt'):
-                # Precios_plt ya incluyen flete de referencia (Madrid USD/Kilo * kg_caja)
-                return round(precio_base - (flete_ref * _kg_caja_p) + (flete_dest * _kg_caja_p), 4)
-            else:
-                # Sin precios_plt: sumar flete por destino * kg_caja
-                return round(precio_base + (flete_dest * _kg_caja_p), 4)
-    # Producto no encontrado: fallback
-    return round(precio_base + flete_dest, 4)
-
-
-def get_tramo_label(total_pallets):
-    """Etiqueta del tramo de volumen."""
-    for t in TRAMOS_VOLUMEN:
-        if t['min'] <= total_pallets <= t['max']:
-            return t['label']
-    return TRAMOS_VOLUMEN[-1]['label']
-
-
-def get_descuento_volumen(pallets):
-    """Retorna 0 siempre - el descuento ya esta incluido en los precios directos por pallet."""
-    return 0.0
+    return get_precio_por_pallets(codigo, total_pallets, data)
 
 
 def get_precio_con_volumen(codigo, destino, tipo_precio, data, pallets):
