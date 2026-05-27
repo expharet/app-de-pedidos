@@ -3171,10 +3171,13 @@ def main():
         st.sidebar.caption('Portal de Pedidos')
         st.sidebar.markdown('---')
         st.sidebar.markdown('<p style="text-align:center;margin:4px 0 8px"><a href="?view=admin" target="_self" style="color:#aaa;font-size:0.75em;text-decoration:none">🔒 Acceso administración</a></p>', unsafe_allow_html=True)
-        # PEND1: Boton descargar catalogo PDF
+        # PEND1: Boton descargar catalogo oficial (PDF en servidor exportharet.com)
         try:
-            _cat_pdf_bytes, _cat_pdf_mime, _cat_pdf_ext = build_catalog_pdf(load_data())
-            st.sidebar.download_button(label='📄 Descargar Catálogo PDF', data=_cat_pdf_bytes, file_name=f'catalogo_export_haret{_cat_pdf_ext}', mime=_cat_pdf_mime, use_container_width=True, key='dl_catalog_pdf')
+            st.sidebar.link_button(
+                '📥 Descargar Catalogo',
+                'https://exportharet.com/wp-content/uploads/2026/04/Catalog-Export-Haret.pdf',
+                use_container_width=True,
+            )
         except Exception:
             pass
         st.sidebar.markdown('---')
