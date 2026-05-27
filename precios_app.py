@@ -2351,7 +2351,7 @@ def render_portal_pedido():
                 st.session_state['ultimo_pedido'] = ped
                 st.session_state.portal_carrito = []
                 st.success(_T['order_confirmed'].format(pid=pid))
-                st.info(f'📧 Tu pedido ha sido enviado a **order@exportharet.com** para su confirmación. Nuestro equipo te contactará en 24-48h. Sigue el estado en la pestaña **Mis Pedidos** ↑'.com')
+                st.info(f"📧 Tu pedido ha sido enviado a **order@exportharet.com** para su confirmación. Nuestro equipo te contactará en 24-48h. Sigue el estado en la pestaña **Mis Pedidos** ↑")
 
     # ── Acciones post-pedido ─────────────────────────────────────────────────
     if st.session_state.get('ultimo_pedido'):
