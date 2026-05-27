@@ -766,8 +766,8 @@ def render_catalogo():
                 'Cod': _p.get('codigo',''),
                 'Producto': _p.get('producto','') or _p.get('descripcion',''),
                 'Activo': bool(_p.get('activo', True)),
-                'Min Unidad': str(_p.get('min_unidad', 'Pallets')),
-                'Min Cant': int(_p.get('min_cantidad', 1) or 1),
+                'Min Unidad': str(_p.get('min_unidad', 'Pallets') or 'Pallets'),
+                'Min Cant': int(_p.get('min_cantidad', 0) or 0),
                 '1 Plt': _precios_plt[0],
                 '2 Plt': _precios_plt[1],
                 '3 Plt': _precios_plt[2],
@@ -828,8 +828,8 @@ def render_catalogo():
                     'producto': str(_r.get('Producto','')),
                     'descripcion': str(_r.get('Producto','')),
                     'activo': bool(_r.get('Activo', True)),
-                    'min_unidad': str(_r.get('Min Unidad', 'Pallets') or 'Pallets'),
-                    'min_cantidad': int(_r.get('Min Cant', 1) or 1),
+                    'min_unidad': (lambda _mu: _mu if _mu in ('Pallets','Cajas') else 'Pallets')(str(_r.get('Min Unidad','Pallets')) if _r.get('Min Unidad') is not None and str(_r.get('Min Unidad')) not in ('nan','None','') else 'Pallets'),
+                    'min_cantidad': (lambda _mc: int(_mc) if _mc is not None and str(_mc) not in ('nan','None','') and not (isinstance(_mc, float) and _mc != _mc) else 0)(_r.get('Min Cant')),
                     'precios_plt': [
                         (float(_r[c]) if _r[c] is not None and str(_r[c]) not in ('','nan','None') else None)
                         for c in _plt_cols
