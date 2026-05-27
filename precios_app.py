@@ -1229,6 +1229,28 @@ def render_gestion_pedidos():
             if ped.get('productos'):
                 st.dataframe(pd.DataFrame(ped['productos'])[['codigo','producto','cajas','pallets','precio_usd','total']].rename(columns={'codigo':'Código','producto':'Producto','cajas':'Cajas','pallets':'Pallets','precio_usd':'Precio USD','total':'Total USD'}),use_container_width=True,hide_index=True)
             if ped.get('notas'): st.markdown(f"**Notas:** {ped['notas']}")
+            # PEND4: Cambio rapido de estado en linea
+            _est_actual = ped.get('estado','Recibido')
+            _se1, _se2 = st.columns([3,1])
+            with _se1:
+                _nuevo_est = st.selectbox(f'🚚 Estado actual del pedido', ORDEN_ESTADOS, index=ORDEN_ESTADOS.index(_est_actual) if _est_actual in ORDEN_ESTADOS else 0, key=f"se_est_{ped.get('id','')}")
+            with _se2:
+                st.markdown('<br>', unsafe_allow_html=True)
+                if st.button('Guardar estado', key=f"se_btn_{ped.get('id','')}", use_container_width=True, type='secondary'):
+                    if _nuevo_est != _est_actual:
+                        _all_pe = load_pedidos()
+                        for _ipe, _ppe in enumerate(_all_pe):
+                            if _ppe.get('id') == ped.get('id'):
+                                _all_pe[_ipe]['estado'] = _nuevo_est
+                                _hist = _all_pe[_ipe].get('historial_estados', [])
+                                _hist.append({'estado': _nuevo_est, 'fecha': datetime.now().isoformat(), 'usuario': st.session_state.get('user_email','admin')})
+                                _all_pe[_ipe]['historial_estados'] = _hist
+                                break
+                        save_pedidos(_all_pe); st.cache_data.clear()
+                        st.toast(f'Estado actualizado: {_est_actual} -> {_nuevo_est}', icon='✅')
+                        st.rerun()
+                    else:
+                        st.toast('El estado no cambio', icon='ℹ')
             if REPORTLAB_OK:
                 with st.expander('✒️ Editar pedido',expanded=False):
                     ec1,ec2=st.columns(2)
@@ -1805,6 +1827,58 @@ def build_order_pdf(ped):
     return buf.getvalue(), 'application/pdf', '.pdf'
 
 
+def build_catalog_pdf(data):
+    """Genera un PDF del catálogo de productos con precios de referencia CIF Madrid."""
+    buf = io.BytesIO()
+    if not REPORTLAB_OK:
+        html = '<h1>Catálogo Export Haret</h1><table border=1><tr><th>Producto</th><th>Código</th></tr>'
+        for p in data.get('products', []):
+            if not p.get('activo', True): continue
+            html += f"<tr><td>{p.get('producto','')}</td><td>{p.get('codigo','')}</td></tr>"
+        html += '</table>'
+        return html.encode('utf-8'), 'text/html', '.html'
+    doc = SimpleDocTemplate(buf, pagesize=A4, rightMargin=1.5*cm, leftMargin=1.5*cm, topMargin=2*cm, bottomMargin=2*cm)
+    styles = getSampleStyleSheet()
+    story = []
+    AZUL = colors.HexColor('#003E8C')
+    GRIS = colors.HexColor('#666666')
+    header_style = ParagraphStyle('h', fontSize=20, textColor=AZUL, fontName='Helvetica-Bold', spaceAfter=4, alignment=TA_LEFT)
+    sub_style = ParagraphStyle('s', fontSize=10, textColor=GRIS, fontName='Helvetica', spaceAfter=12, alignment=TA_LEFT)
+    story.append(Paragraph('Catálogo de Productos', header_style))
+    story.append(Paragraph(f'Export Haret — Frutas Exóticas Premium de Ecuador  |  Generado: {datetime.now().strftime("%d/%m/%Y")}', sub_style))
+    story.append(Spacer(1, 0.4*cm))
+    # Tabla productos
+    prods = [p for p in data.get('products', []) if p.get('activo', True)]
+    if not prods:
+        story.append(Paragraph('Sin productos activos.', styles['Normal']))
+    else:
+        rows = [['Código','Producto','Grupo','Cajas/Pal','Kg/Caja']]
+        grupos = data.get('config',{}).get('grupos',{})
+        for p in prods:
+            g = p.get('grupo','')
+            cxp = (grupos.get(g,{}) if isinstance(grupos.get(g,{}), dict) else {}).get('cajas_pallet', p.get('cajas_pallet', 160))
+            kgc = (grupos.get(g,{}) if isinstance(grupos.get(g,{}), dict) else {}).get('kg_caja', p.get('kg_caja', 2.0))
+            rows.append([p.get('codigo',''), p.get('producto',''), g, str(int(cxp) if cxp else ''), f'{float(kgc):.2f}' if kgc else ''])
+        tbl = Table(rows, colWidths=[2.5*cm, 6*cm, 3*cm, 2.5*cm, 2.5*cm])
+        tbl.setStyle(TableStyle([
+            ('BACKGROUND',(0,0),(-1,0), AZUL),
+            ('TEXTCOLOR',(0,0),(-1,0), colors.white),
+            ('FONTNAME',(0,0),(-1,0), 'Helvetica-Bold'),
+            ('FONTSIZE',(0,0),(-1,-1), 9),
+            ('GRID',(0,0),(-1,-1), 0.4, colors.HexColor('#cccccc')),
+            ('ROWBACKGROUNDS',(0,1),(-1,-1), [colors.white, colors.HexColor('#f5f7fa')]),
+            ('VALIGN',(0,0),(-1,-1), 'MIDDLE'),
+            ('LEFTPADDING',(0,0),(-1,-1), 6),
+            ('RIGHTPADDING',(0,0),(-1,-1), 6),
+        ]))
+        story.append(tbl)
+    story.append(Spacer(1, 0.6*cm))
+    story.append(Paragraph('<b>Contacto:</b> order@exportharet.com  |  +34 641 076 116', sub_style))
+    story.append(Paragraph('Precios disponibles bajo solicitud. Sujeto a disponibilidad y condiciones de mercado.', ParagraphStyle('foot', fontSize=8, textColor=GRIS, alignment=TA_LEFT)))
+    doc.build(story)
+    buf.seek(0)
+    return buf.getvalue(), 'application/pdf', '.pdf'
+
 def get_precio_por_pallets(codigo, total_pallets, data, tipo_precio='CIF'):
     """Retorna el precio USD/caja para un producto segun el total de pallets del pedido.
     CIF: usa precios_plt (tabla de volumen del Excel, incluye flete ref Madrid), ajustado por destino.
@@ -2335,6 +2409,27 @@ def render_portal_pedido():
     /* Mobile: hide sticky header, products will stack */
     @media (max-width: 768px) {
         .eh-cat-header { display: none; }
+        /* PEND5: cards verticales reales en movil */
+        div[data-testid="stHorizontalBlock"]:has(div[data-testid="stNumberInput"]) {
+            display: flex !important;
+            flex-direction: column !important;
+            gap: 8px !important;
+            padding: 14px !important;
+            border: 1px solid #d6e1f0 !important;
+            border-radius: 12px !important;
+            margin-bottom: 10px !important;
+            background: #fff !important;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.04) !important;
+        }
+        div[data-testid="stHorizontalBlock"]:has(div[data-testid="stNumberInput"]) > div {
+            width: 100% !important;
+            min-width: 100% !important;
+            flex: 1 1 100% !important;
+        }
+        div[data-testid="stNumberInput"] button {
+            min-width: 52px !important;
+            min-height: 52px !important;
+        }
         /* Make product rows stack vertically on mobile */
         div[data-testid="stHorizontalBlock"]:has(div[data-testid="stNumberInput"]) {
             flex-wrap: wrap !important;
@@ -2345,6 +2440,13 @@ def render_portal_pedido():
             margin-bottom: 8px;
             background: #fff;
         }
+    }
+    /* PEND3: Sticky Guardar Precios admin */
+    div[data-testid="stButton"] button[kind="primary"]:has-text("Guardar Precios") {
+        position: sticky;
+        bottom: 8px;
+        z-index: 50;
+        box-shadow: 0 4px 12px rgba(0,62,140,0.25);
     }
     /* Cleaner product row styling */
     .eh-cat-row-marker { display:none; }
@@ -2836,6 +2938,25 @@ def render_portal_pedido():
             )
             st.markdown(''.join(line.lstrip() for line in _conf_html.split('\n')), unsafe_allow_html=True)
 
+        # PEND2: Calculadora moneda destino
+        with st.expander(f'🧮 Calculadora de costo en otra moneda (referencial)', expanded=False):
+            _calc_rates = get_exchange_rates_meta()['rates']
+            _calc_opts = ['USD','EUR','GBP','CAD','BRL','MXN','COP','PEN','CLP','ARS']
+            _calc_opts = [m for m in _calc_opts if m == 'USD' or m in _calc_rates]
+            _calc_mon = st.selectbox(f'🌍 Convertir a:', _calc_opts, index=0, key='calc_mon_sel')
+            _calc_rate = float(_calc_rates.get(_calc_mon, 1.0)) if _calc_mon != 'USD' else 1.0
+            _calc_sym = MONEDA_SIMBOLO.get(_calc_mon, _calc_mon)
+            _calc_total = tot_final * _calc_rate
+            _calc_pal = (tot_final / _tot_pal_fin) if _tot_pal_fin > 0 else 0
+            _calc_pal_dest = _calc_pal * _calc_rate
+            st.markdown(f"""<div style='background:#f0f7ff;border:1px solid #cfe1ff;border-radius:10px;padding:14px;margin-top:8px'>
+            <div style='display:flex;justify-content:space-between;font-size:1.08rem'><span>Total en USD:</span><b>$ {tot_final:,.2f}</b></div>
+            <div style='display:flex;justify-content:space-between;font-size:1.08rem;margin-top:4px'><span>Total en {_calc_mon}:</span><b>{_calc_sym} {_calc_total:,.2f}</b></div>
+            <div style='display:flex;justify-content:space-between;font-size:0.92em;color:#555;margin-top:6px'><span>Tasa aplicada:</span><span>1 USD = {_calc_rate:.4f} {_calc_mon}</span></div>
+            <div style='display:flex;justify-content:space-between;font-size:0.92em;color:#555;margin-top:2px'><span>Costo aprox. por pallet:</span><span>{_calc_sym} {_calc_pal_dest:,.2f}</span></div>
+            <small style='color:#888;display:block;margin-top:8px'>ℹ Valor referencial. La transacción se realiza en USD.</small>
+            </div>""", unsafe_allow_html=True)
+
         btn_guardar = st.button(_T['confirm_btn'], type='primary', use_container_width=True, key='portal_guardar')
 
         if btn_guardar:
@@ -3050,6 +3171,12 @@ def main():
         st.sidebar.caption('Portal de Pedidos')
         st.sidebar.markdown('---')
         st.sidebar.markdown('<p style="text-align:center;margin:4px 0 8px"><a href="?view=admin" target="_self" style="color:#aaa;font-size:0.75em;text-decoration:none">🔒 Acceso administración</a></p>', unsafe_allow_html=True)
+        # PEND1: Boton descargar catalogo PDF
+        try:
+            _cat_pdf_bytes, _cat_pdf_mime, _cat_pdf_ext = build_catalog_pdf(load_data())
+            st.sidebar.download_button(label='📄 Descargar Catálogo PDF', data=_cat_pdf_bytes, file_name=f'catalogo_export_haret{_cat_pdf_ext}', mime=_cat_pdf_mime, use_container_width=True, key='dl_catalog_pdf')
+        except Exception:
+            pass
         st.sidebar.markdown('---')
         st.sidebar.caption('Export Haret © 2026 | order@exportharet.com')
         render_portal_pedido()
