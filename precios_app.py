@@ -2826,7 +2826,7 @@ def render_portal_pedido():
                 st.error(_T['err_cart'])
             elif tipo_precio == 'CIF' and not destino:
                 st.error(_T['err_destino'])
-        elif sum(i.get('pallets',0) for i in st.session_state.portal_carrito) < 3:
+            elif sum(i.get('pallets',0) for i in st.session_state.portal_carrito) < 3:
                 _curr_pal_v = sum(i.get('pallets',0) for i in st.session_state.portal_carrito)
                 _falt_pal_v = 3 - _curr_pal_v
                 st.error(f'\u26a0\ufe0f Pedido m\u00ednimo: 3 pallets. Tienes {_curr_pal_v:.1f} pallets \u2014 a\u00f1ade {_falt_pal_v:.1f} pallets m\u00e1s para poder confirmar.')
