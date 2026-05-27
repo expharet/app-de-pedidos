@@ -548,95 +548,158 @@ def auto_load_excel():
 
 def render_catalogo():
     """Tab unificado: Tabla de precios tipo Excel + Destinos + Importar."""
-    st.markdown("## 📊 Catálogo, Precios & Destinos")
     data = load_data()
     prods = data.get('products', [])
-    cfg   = data.get('config', {})
+    cfg = data.get('config', {})
     dests = cfg.get('destinos', {})
     dests_moneda = cfg.get('destinos_moneda', {})
 
-    sub1, sub2, sub3 = st.tabs(['📈 Tabla de Precios', '🌍 Destinos & Monedas', '📂 Importar Excel'])
+    sub1, sub2, sub3 = st.tabs(['\u2794 Tabla de Precios', '\U0001f30d Destinos & Monedas', '\U0001f4c2 Importar Excel'])
 
     # SUB-TAB 1: TABLA DE PRECIOS
     with sub1:
-        st.markdown("### 📋 Tabla Maestra de Precios")
-        prods_activos = [p for p in prods if p.get('activo', True)]
-        dest_list     = list(dests.keys())
+        # Mejora #5: Filtro activo/inactivo
+        _filter_col1, _filter_col2 = st.columns([3, 1])
+        with _filter_col2:
+            _show_inactive = st.toggle(
+                'Mostrar inactivos',
+                value=False,
+                key='cat_show_inactive',
+                help='Activa para ver tambi\u00e9n los productos desactivados'
+            )
+        with _filter_col1:
+            st.markdown('### \U0001f4cb Tabla Maestra de Precios')
+
+        if _show_inactive:
+            prods_activos = prods
+        else:
+            prods_activos = [p for p in prods if p.get('activo', True)]
+
+        dest_list = list(dests.keys())
         if not prods_activos:
-            st.info("No hay productos activos.")
+            st.info('No hay productos activos. Activa el toggle o importa un cat\u00e1logo.')
             return
         if not dest_list:
-            st.info("No hay destinos configurados. Agrega destinos primero.")
+            st.info('No hay destinos configurados. A\u00f1\u00e1delos en la pesta\u00f1a Destinos.')
             return
 
         col_dest, col_pal, col_cur = st.columns([2, 2, 1.5])
         with col_dest:
             destino_sel = st.selectbox(
-                "📍 Destino",
+                '\U0001f4cd Destino',
                 dest_list,
-                key="cat_destino_sel",
-                help="Selecciona el destino para ver los precios CIF"
+                key='cat_destino_sel',
+                help='Selecciona el destino para ver los precios CIF incluido flete'
             )
         with col_pal:
             pallets_sel = st.slider(
-                "🚜 Pallets (vista CIF)",
+                '\U0001f69c Pallets',
                 min_value=1, max_value=20, value=3,
-                key="cat_pallets_sel",
-                help="Mueve el slider para ver como cambian los precios CIF segun el volumen"
+                key='cat_pallets_sel',
+                help='Mueve el slider para ver c\u00f3mo cambian los precios seg\u00fan el volumen'
             )
         with col_cur:
             moneda_dest = dests_moneda.get(destino_sel, 'USD')
             rates = get_exchange_rates()
-            st.metric("💱 Moneda Destino", moneda_dest)
+            st.metric('\U0001f4b1 Moneda Destino', moneda_dest)
 
-        desc_pct  = get_descuento_volumen(pallets_sel)
+        # Mejora #3: Tramos de volumen con indicadores visuales
+        desc_pct = get_descuento_volumen(pallets_sel)
         tramo_lbl = get_tramo_label(pallets_sel)
+        _tramo_html = '<div style="display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 12px 0">'
+        for _tr in TRAMOS_VOLUMEN:
+            _tr_active = _tr['min'] <= pallets_sel <= _tr['max']
+            _tr_bg = '#003E8C' if _tr_active else '#f0f4fa'
+            _tr_color = 'white' if _tr_active else '#555'
+            _tr_border = '2px solid #003E8C' if _tr_active else '1px solid #ccd9ee'
+            _tr_icon = '\u2705 ' if _tr_active else ''
+            _tramo_html += (
+                '<div style="background:' + _tr_bg + ';color:' + _tr_color + ';border:' + _tr_border + ';'
+                'border-radius:6px;padding:4px 10px;font-size:0.82em;font-weight:' + ('700' if _tr_active else '400') + '">'
+                + _tr_icon + _tr['label'] + '</div>'
+            )
+        _tramo_html += '</div>'
+        st.markdown(_tramo_html, unsafe_allow_html=True)
         if desc_pct > 0:
-            st.success(f"🏷\ufe0f Tramo activo: **{tramo_lbl}** \u2014 Descuento: **{desc_pct*100:.0f}%** sobre precio CIF")
+            st.success(f'\U0001f3f7\ufe0f Descuento activo: **{desc_pct*100:.0f}%** sobre precio base (Tramo: {tramo_lbl})')
         else:
-            st.info(f"🏷\ufe0f Tramo: **{tramo_lbl}** \u2014 Sin descuento por volumen (minimo 3 pallets)")
+            st.info('\U0001f4cb Sin descuento por volumen. Desde **3 pallets** se aplican descuentos autom\u00e1ticos.')
 
         flete_caja = dests.get(destino_sel, 0)
         if isinstance(flete_caja, dict):
             flete_caja = flete_caja.get('factor', 0)
 
-        overhead  = float(cfg.get('costo_caja', 0) or 0)
+        overhead = float(cfg.get('costo_caja', 0) or 0)
         merma_pct = float(cfg.get('merma_pct', 0) or 0)
-        grupos    = cfg.get('grupos', {})
+        grupos = cfg.get('grupos', {})
+
+        # Mejora #1 + #2: Selector de columnas con tooltips
+        _cols_defaults = {
+            'Producto': True, 'Gr': False, 'Cj/Plt': True,
+            'P.Compra': False, 'Margen': False,
+            'FOB $/cj': True, 'FOB $/plt': False,
+            'CIF $/cj': True, 'CIF $/plt': True,
+        }
+        if moneda_dest != 'USD':
+            sym_key = MONEDA_SIMBOLO.get(moneda_dest, moneda_dest)
+            _cols_defaults['CIF ' + sym_key + '/cj'] = True
+            _cols_defaults['CIF ' + sym_key + '/plt'] = False
+        _col_helps = {
+            'Producto': 'Nombre del producto',
+            'Gr': 'Grupo del producto (A-K) — determina cajas por pallet',
+            'Cj/Plt': 'Cajas por pallet seg\u00fan configuraci\u00f3n del grupo',
+            'P.Compra': 'Precio de compra en USD/caja (base de c\u00e1lculo)',
+            'Margen': 'Porcentaje de margen comercial',
+            'FOB $/cj': 'Free On Board — precio sin flete en USD por caja',
+            'FOB $/plt': 'FOB en USD por pallet completo',
+            'CIF $/cj': 'Cost Insurance Freight — precio con flete incluido en USD/caja',
+            'CIF $/plt': 'CIF en USD por pallet completo',
+        }
+        with st.expander('\u2699\ufe0f Columnas visibles (clic para personalizar)', expanded=False):
+            st.caption('Selecciona qu\u00e9 columnas mostrar. Pasa el rat\u00f3n por el nombre para ver la descripci\u00f3n.')
+            _cols_vis = {}
+            _cv_cols_ui = st.columns(3)
+            for _ci2, (_cn2, _def2) in enumerate(_cols_defaults.items()):
+                with _cv_cols_ui[_ci2 % 3]:
+                    _cols_vis[_cn2] = st.checkbox(
+                        _cn2,
+                        value=_def2,
+                        key='col_vis_' + str(_ci2),
+                        help=_col_helps.get(_cn2, '')
+                    )
 
         # Build main price table
         rows = []
         for p in prods_activos:
-            cod           = p.get('codigo', '')
-            nombre        = p.get('producto', '') or p.get('descripcion', '')
-            grupo         = p.get('grupo', '')
-            g_info        = grupos.get(grupo, {}) if isinstance(grupos.get(grupo, {}), dict) else {}
-            cxp           = int(g_info.get('cajas_pallet', p.get('cajas_pallet', 160)) or 160)
+            cod = p.get('codigo', '')
+            nombre_p = p.get('producto', '') or p.get('descripcion', '')
+            grupo = p.get('grupo', '')
+            g_info = grupos.get(grupo, {}) if isinstance(grupos.get(grupo, {}), dict) else {}
+            cxp = int(g_info.get('cajas_pallet', p.get('cajas_pallet', 160)) or 160)
             precio_compra = float(p.get('precio_compra', 0) or 0)
-            margen_pct    = float(p.get('margen_pct', 0.1) or 0.1)
-            costo_total   = precio_compra + overhead * (1 + merma_pct)
-            fob_caja      = round(costo_total * (1 + margen_pct), 4)
-            cif_base      = fob_caja + flete_caja
-            cif_vol       = round(cif_base * (1 - desc_pct), 4)
-            fob_pallet    = round(fob_caja * cxp, 2)
-            cif_pallet    = round(cif_vol * cxp, 2)
-            row = {
-                'Cod':           cod,
-                'Producto':      nombre,
-                'Gr':            grupo,
-                'Cj/Plt':        cxp,
-                'P.Compra $/cj': round(precio_compra, 4),
-                'Margen':        f"{margen_pct*100:.0f}%",
-                'FOB $/cj':      round(fob_caja, 4),
-                'FOB $/plt':     fob_pallet,
-                f'CIF {pallets_sel}P $/cj':  cif_vol,
-                f'CIF {pallets_sel}P $/plt': cif_pallet,
-            }
+            margen_pct = float(p.get('margen_pct', 0.1) or 0.1)
+            costo_total = precio_compra + overhead * (1 + merma_pct)
+            fob_caja = round(costo_total * (1 + margen_pct), 4)
+            cif_base = fob_caja + flete_caja
+            cif_vol = round(cif_base * (1 - desc_pct), 4)
+            fob_pallet = round(fob_caja * cxp, 2)
+            cif_pallet = round(cif_vol * cxp, 2)
+            _activo_badge = '' if p.get('activo', True) else ' \u274c'
+            row = {'Cod': cod}
+            if _cols_vis.get('Producto', True): row['Producto'] = nombre_p + _activo_badge
+            if _cols_vis.get('Gr', False): row['Gr'] = grupo
+            if _cols_vis.get('Cj/Plt', True): row['Cj/Plt'] = cxp
+            if _cols_vis.get('P.Compra', False): row['P.Compra $/cj'] = round(precio_compra, 4)
+            if _cols_vis.get('Margen', False): row['Margen'] = f'{margen_pct*100:.0f}%'
+            if _cols_vis.get('FOB $/cj', True): row['FOB $/cj'] = round(fob_caja, 4)
+            if _cols_vis.get('FOB $/plt', False): row['FOB $/plt'] = fob_pallet
+            if _cols_vis.get('CIF $/cj', True): row[f'CIF {pallets_sel}P $/cj'] = cif_vol
+            if _cols_vis.get('CIF $/plt', True): row[f'CIF {pallets_sel}P $/plt'] = cif_pallet
             if moneda_dest != 'USD':
                 rate = rates.get(moneda_dest, 1.0)
-                sym  = MONEDA_SIMBOLO.get(moneda_dest, moneda_dest)
-                row[f'CIF {pallets_sel}P {sym}/cj']  = round(cif_vol * rate, 4)
-                row[f'CIF {pallets_sel}P {sym}/plt'] = round(cif_pallet * rate, 2)
+                sym2 = MONEDA_SIMBOLO.get(moneda_dest, moneda_dest)
+                if _cols_vis.get('CIF ' + sym2 + '/cj', True): row[f'CIF {pallets_sel}P {sym2}/cj'] = round(cif_vol * rate, 4)
+                if _cols_vis.get('CIF ' + sym2 + '/plt', False): row[f'CIF {pallets_sel}P {sym2}/plt'] = round(cif_pallet * rate, 2)
             rows.append(row)
 
         df = pd.DataFrame(rows).set_index('Cod')
@@ -659,25 +722,144 @@ def render_catalogo():
         styled_df = df.style.apply(_color_col, axis=0)
         st.dataframe(styled_df, use_container_width=True, height=min(80 + 35*len(rows), 620))
 
-        # Full CIF table 1-20 pallets
-        with st.expander("📅 Ver tabla CIF completa \u2014 pallets 1 a 20", expanded=False):
-            st.markdown(f"**Destino: {destino_sel}** | CIF en USD/caja para cada volumen de pallets")
+        # Mejora #6: Descargar cat\u00e1logo Excel y PDF
+        st.markdown('---')
+        _dl_c1, _dl_c2 = st.columns(2)
+        try:
+            from openpyxl import Workbook as _WB
+            from openpyxl.styles import Font as _Font, PatternFill as _Fill
+            _wb_cat = _WB()
+            _ws_cat = _wb_cat.active
+            _ws_cat.title = 'Precios'
+            _hdr_row = ['C\u00f3digo', 'Producto', 'Grupo', 'Activo', 'Cj/Plt',
+                        'P.Compra $/cj', 'Margen %', 'FOB $/cj', 'FOB $/plt',
+                        f'CIF {pallets_sel}P $/cj', f'CIF {pallets_sel}P $/plt',
+                        f'Destino: {destino_sel}', 'Moneda Destino']
+            _ws_cat.append(_hdr_row)
+            for _cell in _ws_cat[1]:
+                _cell.font = _Font(bold=True, color='FFFFFF')
+                _cell.fill = _Fill(start_color='003E8C', end_color='003E8C', fill_type='solid')
+            for p in prods_activos:
+                _gc = p.get('codigo', '')
+                _gg = p.get('grupo', '')
+                _gi2 = grupos.get(_gg, {}) if isinstance(grupos.get(_gg, {}), dict) else {}
+                _cx2 = int(_gi2.get('cajas_pallet', p.get('cajas_pallet', 160)) or 160)
+                _pc2 = float(p.get('precio_compra', 0) or 0)
+                _mg2 = float(p.get('margen_pct', 0.1) or 0.1)
+                _ct2 = _pc2 + overhead * (1 + merma_pct)
+                _fb2 = round(_ct2 * (1 + _mg2), 4)
+                _cf2 = round((_fb2 + flete_caja) * (1 - desc_pct), 4)
+                _ws_cat.append([
+                    _gc,
+                    p.get('producto', '') or p.get('descripcion', ''),
+                    _gg,
+                    'S\u00ed' if p.get('activo', True) else 'No',
+                    _cx2,
+                    round(_pc2, 4),
+                    f'{_mg2*100:.1f}%',
+                    _fb2,
+                    round(_fb2 * _cx2, 2),
+                    _cf2,
+                    round(_cf2 * _cx2, 2),
+                    destino_sel,
+                    dests_moneda.get(destino_sel, 'USD'),
+                ])
+            _out_cat = io.BytesIO()
+            _wb_cat.save(_out_cat)
+            _out_cat.seek(0)
+            _dl_c1.download_button(
+                label='\U0001f4e5 Descargar Cat\u00e1logo Excel',
+                data=_out_cat.getvalue(),
+                file_name=f'catalogo_{destino_sel.replace("/", "_")}_{pallets_sel}p.xlsx',
+                mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                use_container_width=True,
+                key='dl_cat_excel'
+            )
+        except ImportError:
+            _dl_c1.info('Instalar openpyxl para exportar a Excel')
+
+        if REPORTLAB_OK:
+            try:
+                from reportlab.platypus import SimpleDocTemplate as _SDT2, Table as _T2pdf, TableStyle as _TS2pdf, Paragraph as _Para2, Spacer as _Sp2
+                from reportlab.lib.styles import getSampleStyleSheet as _gSSS2
+                from reportlab.lib import colors as _clrs2
+                from reportlab.lib.pagesizes import A4 as _A4pdf
+                from reportlab.lib.units import cm as _cmpdf
+                _buf_cat = io.BytesIO()
+                _doc_cat = _SDT2(_buf_cat, pagesize=_A4pdf,
+                                 rightMargin=1.5*_cmpdf, leftMargin=1.5*_cmpdf,
+                                 topMargin=2*_cmpdf, bottomMargin=2*_cmpdf)
+                _styles_cat2 = _gSSS2()
+                _AZUL_c = _clrs2.HexColor('#003E8C')
+                _story_cat = []
+                _hdr_p2 = _Para2(
+                    f'<b>CAT\u00c1LOGO DE PRECIOS \u2014 Export Haret</b><br/>'
+                    f'<font size="9">Destino: {destino_sel} | {pallets_sel} Pallets | {tramo_lbl} | {datetime.now().strftime("%d/%m/%Y")}</font>',
+                    _styles_cat2['Normal']
+                )
+                _story_cat.append(_hdr_p2)
+                _story_cat.append(_Sp2(1, 0.4*_cmpdf))
+                _tbl_data_pdf = [['C\u00f3d', 'Producto', 'Cj/Plt', 'FOB $/cj', f'CIF {pallets_sel}P $/cj', f'CIF {pallets_sel}P $/plt']]
+                for p in prods_activos:
+                    _cp = p.get('codigo', '')
+                    _pp = p.get('producto', '') or p.get('descripcion', '')
+                    _gp = p.get('grupo', '')
+                    _gip = grupos.get(_gp, {}) if isinstance(grupos.get(_gp, {}), dict) else {}
+                    _cxp2 = int(_gip.get('cajas_pallet', p.get('cajas_pallet', 160)) or 160)
+                    _pcp = float(p.get('precio_compra', 0) or 0)
+                    _mgp = float(p.get('margen_pct', 0.1) or 0.1)
+                    _ctp = _pcp + overhead * (1 + merma_pct)
+                    _fbp = round(_ctp * (1 + _mgp), 4)
+                    _cfp = round((_fbp + flete_caja) * (1 - desc_pct), 4)
+                    _tbl_data_pdf.append([_cp, _pp, str(_cxp2), f'${_fbp:.2f}', f'${_cfp:.2f}', f'${round(_cfp*_cxp2,2):,.2f}'])
+                _cw_pdf = [2*_cmpdf, 6*_cmpdf, 1.8*_cmpdf, 2.2*_cmpdf, 2.5*_cmpdf, 2.5*_cmpdf]
+                _tbl_pdf2 = _T2pdf(_tbl_data_pdf, colWidths=_cw_pdf, repeatRows=1)
+                _tbl_pdf2.setStyle(_TS2pdf([
+                    ('BACKGROUND', (0, 0), (-1, 0), _AZUL_c),
+                    ('TEXTCOLOR', (0, 0), (-1, 0), _clrs2.white),
+                    ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                    ('FONTSIZE', (0, 0), (-1, -1), 8),
+                    ('ALIGN', (2, 0), (-1, -1), 'CENTER'),
+                    ('ALIGN', (3, 0), (-1, -1), 'RIGHT'),
+                    ('ROWBACKGROUNDS', (0, 1), (-1, -1), [_clrs2.white, _clrs2.HexColor('#F0F4FF')]),
+                    ('GRID', (0, 0), (-1, -1), 0.3, _clrs2.HexColor('#CCCCCC')),
+                    ('PADDING', (0, 0), (-1, -1), 5),
+                ]))
+                _story_cat.append(_tbl_pdf2)
+                _doc_cat.build(_story_cat)
+                _buf_cat.seek(0)
+                _dl_c2.download_button(
+                    label='\U0001f4c4 Descargar Cat\u00e1logo PDF',
+                    data=_buf_cat.getvalue(),
+                    file_name=f'catalogo_{destino_sel.replace("/", "_")}_{pallets_sel}p.pdf',
+                    mime='application/pdf',
+                    use_container_width=True,
+                    key='dl_cat_pdf'
+                )
+            except Exception as _ep:
+                _dl_c2.caption(f'PDF no disponible: {_ep}')
+        else:
+            _dl_c2.info('ReportLab no instalado \u2014 PDF no disponible')
+
+        # Tabla CIF completa 1-20 pallets
+        with st.expander('\U0001f4c5 Ver tabla CIF completa \u2014 pallets 1 a 20', expanded=False):
+            st.markdown(f'**Destino: {destino_sel}** | CIF en USD/caja para cada volumen de pallets')
             pal_rows = []
             for npal in range(1, 21):
-                d_p  = get_descuento_volumen(npal)
+                d_p = get_descuento_volumen(npal)
                 tl_p = get_tramo_label(npal)
-                pr   = {'Pallets': npal, 'Tramo': tl_p, 'Dto.': f"{d_p*100:.0f}%"}
+                pr = {'Pallets': npal, 'Tramo': tl_p, 'Dto.': f'{d_p*100:.0f}%'}
                 for p2 in prods_activos:
-                    cod_p  = p2.get('codigo', '')
-                    grp_p  = p2.get('grupo', '')
-                    g_i    = grupos.get(grp_p, {}) if isinstance(grupos.get(grp_p, {}), dict) else {}
-                    cxp2   = int(g_i.get('cajas_pallet', p2.get('cajas_pallet', 160)) or 160)
-                    pc2    = float(p2.get('precio_compra', 0) or 0)
-                    mg2    = float(p2.get('margen_pct', 0.1) or 0.1)
-                    ct2    = pc2 + overhead * (1 + merma_pct)
-                    fob2   = ct2 * (1 + mg2)
-                    cif2   = round((fob2 + flete_caja) * (1 - d_p), 4)
-                    pr[f'{cod_p} $/cj']  = cif2
+                    cod_p = p2.get('codigo', '')
+                    grp_p = p2.get('grupo', '')
+                    g_i = grupos.get(grp_p, {}) if isinstance(grupos.get(grp_p, {}), dict) else {}
+                    cxp2 = int(g_i.get('cajas_pallet', p2.get('cajas_pallet', 160)) or 160)
+                    pc2 = float(p2.get('precio_compra', 0) or 0)
+                    mg2 = float(p2.get('margen_pct', 0.1) or 0.1)
+                    ct2 = pc2 + overhead * (1 + merma_pct)
+                    fob2 = ct2 * (1 + mg2)
+                    cif2 = round((fob2 + flete_caja) * (1 - d_p), 4)
+                    pr[f'{cod_p} $/cj'] = cif2
                     pr[f'{cod_p} $/plt'] = round(cif2 * cxp2, 2)
                 pal_rows.append(pr)
             df2 = pd.DataFrame(pal_rows).set_index('Pallets')
@@ -686,121 +868,131 @@ def render_catalogo():
                 return [clr]*len(row)
             st.dataframe(df2.style.apply(_hl_row, axis=1), use_container_width=True, height=420)
 
-        # Edit costs & margins
-        st.markdown("---")
-        st.markdown("### \u2699\ufe0f Editar Costos y Margenes")
-        st.caption("Modifica precio de compra y margen de cada producto. FOB/CIF se recalculan automaticamente.")
+        # Mejora #15: Edici\u00f3n directa de celdas (data_editor) con tooltips mejorados
+        st.markdown('---')
+        st.markdown('### \u2699\ufe0f Editar Costos y M\u00e1rgenes')
+        st.caption('Edita directamente en la tabla: precio de compra, margen y estado activo. Los precios FOB/CIF se recalculan instant\u00e1neamente.')
         edit_rows = []
         for p in prods:
             edit_rows.append({
-                'Cod':            p.get('codigo',''),
-                'Producto':       p.get('producto','') or p.get('descripcion',''),
-                'Activo':         bool(p.get('activo', True)),
-                'P.Compra $/cj':  float(p.get('precio_compra', 0) or 0),
-                'Margen %':       round(float(p.get('margen_pct', 0.1) or 0.1)*100, 1),
-                'Grupo':          p.get('grupo', ''),
+                'Cod': p.get('codigo',''),
+                'Producto': p.get('producto','') or p.get('descripcion',''),
+                'Activo': bool(p.get('activo', True)),
+                'P.Compra $/cj': float(p.get('precio_compra', 0) or 0),
+                'Margen %': round(float(p.get('margen_pct', 0.1) or 0.1)*100, 1),
+                'Grupo': p.get('grupo', ''),
             })
         df_edit = pd.DataFrame(edit_rows)
         edited = st.data_editor(
             df_edit,
             column_config={
-                'Cod':           st.column_config.TextColumn('Codigo', disabled=True, width='small'),
-                'Producto':      st.column_config.TextColumn('Producto', width='medium'),
-                'Activo':        st.column_config.CheckboxColumn('Activo', width='small'),
-                'P.Compra $/cj': st.column_config.NumberColumn('P.Compra $/cj', format="$%.4f", step=0.01),
-                'Margen %':      st.column_config.NumberColumn('Margen %', format="%.1f%%", step=0.5, min_value=0, max_value=100),
-                'Grupo':         st.column_config.SelectboxColumn('Grupo', options=['A','B','C','D','E','F','G','H','I','J','K']),
+                'Cod': st.column_config.TextColumn('C\u00f3digo', disabled=True, width='small',
+                    help='Identificador \u00fanico del producto (no editable)'),
+                'Producto': st.column_config.TextColumn('Producto', width='medium',
+                    help='Nombre del producto'),
+                'Activo': st.column_config.CheckboxColumn('Activo', width='small',
+                    help='Desactiva para ocultar del cat\u00e1logo del cliente'),
+                'P.Compra $/cj': st.column_config.NumberColumn('P.Compra $/cj', format='$%.4f', step=0.01,
+                    help='Precio de compra en USD/caja \u2014 base para calcular FOB y CIF'),
+                'Margen %': st.column_config.NumberColumn('Margen %', format='%.1f%%', step=0.5, min_value=0, max_value=100,
+                    help='Porcentaje de margen sobre precio de compra'),
+                'Grupo': st.column_config.SelectboxColumn('Grupo', options=['A','B','C','D','E','F','G','H','I','J','K'],
+                    help='Grupo \u2014 determina cajas por pallet'),
             },
             use_container_width=True,
             num_rows='dynamic',
             key='edit_productos_tabla',
             hide_index=True,
         )
-        if st.button("💾 Guardar Cambios de Precios", type='primary', use_container_width=True, key='btn_guardar_precios'):
-            new_prods    = []
-            old_by_cod   = {p.get('codigo'): p for p in prods}
+        if st.button('\U0001f4be Guardar Cambios de Precios', type='primary', use_container_width=True, key='btn_guardar_precios'):
+            new_prods = []
+            old_by_cod = {p.get('codigo'): p for p in prods}
             for _, row in edited.iterrows():
                 cod_row = str(row.get('Cod',''))
                 if cod_row in old_by_cod:
                     upd = dict(old_by_cod[cod_row])
-                    upd['producto']      = str(row['Producto'])
-                    upd['descripcion']   = str(row['Producto'])
-                    upd['activo']        = bool(row['Activo'])
+                    upd['producto'] = str(row['Producto'])
+                    upd['descripcion'] = str(row['Producto'])
+                    upd['activo'] = bool(row['Activo'])
                     upd['precio_compra'] = float(row['P.Compra $/cj'])
-                    upd['margen_pct']    = round(float(row['Margen %']) / 100, 4)
-                    upd['grupo']         = str(row['Grupo'])
+                    upd['margen_pct'] = round(float(row['Margen %']) / 100, 4)
+                    upd['grupo'] = str(row['Grupo'])
                     new_prods.append(upd)
                 elif cod_row:
                     new_prods.append({
-                        'codigo':        cod_row,
-                        'producto':      str(row.get('Producto','')),
-                        'descripcion':   str(row.get('Producto','')),
+                        'codigo': cod_row,
+                        'producto': str(row.get('Producto','')),
+                        'descripcion': str(row.get('Producto','')),
                         'precio_compra': float(row.get('P.Compra $/cj', 0)),
-                        'margen_pct':    round(float(row.get('Margen %', 10)) / 100, 4),
-                        'grupo':         str(row.get('Grupo','A')),
-                        'activo':        bool(row.get('Activo', True)),
-                        'cajas_pallet':  160,
+                        'margen_pct': round(float(row.get('Margen %', 10)) / 100, 4),
+                        'grupo': str(row.get('Grupo','A')),
+                        'activo': bool(row.get('Activo', True)),
+                        'cajas_pallet': 160,
                         'tramos_precio': [],
                     })
             data['products'] = new_prods
             save_data(data)
-            st.toast("Precios y margenes guardados", icon='\u2705')
+            st.toast('Precios y m\u00e1rgenes guardados', icon='\u2705')
             st.rerun()
 
-    # SUB-TAB 2: DESTINOS & MONEDAS
+    # SUB-TAB 2: DESTINOS & MONEDAS (Mejora #9 ya tiene data_editor con num_rows=dynamic, mejorado con tooltips)
     with sub2:
-        st.markdown("### 🌍 Gestionar Destinos & Fletes")
-        st.caption("Flete en USD/caja. La moneda define la divisa mostrada al cliente.")
+        st.markdown('### \U0001f30d Gestionar Destinos & Fletes')
+        st.caption('Flete en USD/caja. La moneda define la divisa mostrada al cliente. Puedes a\u00f1adir nuevos destinos con el bot\u00f3n + al final de la tabla, editar cualquier campo directamente o eliminar filas.')
         dest_rows = []
         for dest_name, val in dests.items():
-            flete_v  = val.get('factor', val) if isinstance(val, dict) else val
+            flete_v = val.get('factor', val) if isinstance(val, dict) else val
             moneda_v = dests_moneda.get(dest_name, 'USD')
             dest_rows.append({'Destino': dest_name, 'Flete $/cj': float(flete_v), 'Moneda': moneda_v})
         df_dest = pd.DataFrame(dest_rows)
         edited_dest = st.data_editor(
             df_dest,
             column_config={
-                'Destino':    st.column_config.TextColumn('Destino', width='large'),
-                'Flete $/cj': st.column_config.NumberColumn('Flete $/cj', format="$%.4f", step=0.01),
-                'Moneda':     st.column_config.SelectboxColumn('Moneda', options=MONEDAS),
+                'Destino': st.column_config.TextColumn('Destino', width='large',
+                    help='Nombre del destino (ej: Madrid/Espa\u00f1a). Edita directamente o a\u00f1ade nuevas filas.'),
+                'Flete $/cj': st.column_config.NumberColumn('Flete $/cj', format='$%.4f', step=0.01,
+                    help='Costo de flete en USD por caja incluido en precio CIF'),
+                'Moneda': st.column_config.SelectboxColumn('Moneda', options=MONEDAS,
+                    help='Divisa de referencia para este destino (informativa para el cliente)'),
             },
             use_container_width=True,
             num_rows='dynamic',
             key='edit_destinos_tabla',
             hide_index=True,
         )
-        if st.button("💾 Guardar Destinos", type='primary', use_container_width=True, key='btn_guardar_destinos'):
-            new_dests  = {}
+        if st.button('\U0001f4be Guardar Destinos', type='primary', use_container_width=True, key='btn_guardar_destinos'):
+            new_dests = {}
             new_moneda = {}
             for _, row in edited_dest.iterrows():
                 if row.get('Destino'):
-                    new_dests[str(row['Destino'])]  = float(row['Flete $/cj'])
+                    new_dests[str(row['Destino'])] = float(row['Flete $/cj'])
                     new_moneda[str(row['Destino'])] = str(row['Moneda'])
-            data['config']['destinos']        = new_dests
+            data['config']['destinos'] = new_dests
             data['config']['destinos_moneda'] = new_moneda
             save_data(data)
-            st.toast("Destinos guardados", icon='\u2705')
+            st.toast('Destinos guardados', icon='\u2705')
             st.rerun()
 
-        st.markdown("---")
-        st.markdown("### 💹 Tipos de Cambio en Tiempo Real")
+        st.markdown('---')
+        st.markdown('### \U0001f4b9 Tipos de Cambio en Tiempo Real')
         rates2 = get_exchange_rates()
-        lbl2   = data.get('config', {}).get('_rate_label', '')
+        lbl2 = data.get('config', {}).get('_rate_label', '')
         r_cols = st.columns(min(len(rates2), 9))
         for i2, (cur2, rate2) in enumerate(list(rates2.items())[:9]):
             with r_cols[i2]:
                 sym2 = MONEDA_SIMBOLO.get(cur2, cur2)
-                st.metric(f"USD/{cur2}", f"{sym2}{rate2:.4f}", help=lbl2)
+                st.metric(f'USD/{cur2}', f'{sym2}{rate2:.4f}', help=lbl2)
 
     # SUB-TAB 3: IMPORTAR EXCEL
     with sub3:
-        st.markdown("### 📂 Importar desde Excel")
-        uploaded = st.file_uploader("Sube el archivo Excel de precios", type=["xlsx","xls"], key="excel_uploader_cat")
+        st.markdown('### \U0001f4c2 Importar desde Excel')
+        st.info('\U0001f4a1 El archivo Excel debe tener la hoja **TABLA PRECIOS** con columnas en posiciones est\u00e1ndar (col. 4-20, filas 32-83). Contacta a order@exportharet.com si necesitas la plantilla.')
+        uploaded = st.file_uploader('Sube el archivo Excel de precios', type=['xlsx','xls'], key='excel_uploader_cat')
         if uploaded:
             try:
                 parsed = parse_excel_file(uploaded)
                 if parsed:
-                    st.success(f"Se encontraron {len(parsed)} productos en el Excel.")
+                    st.success(f'Se encontraron {len(parsed)} productos en el Excel.')
                     prev = {p.get('codigo'): p for p in prods}
                     new_count = 0
                     upd_count = 0
@@ -814,12 +1006,12 @@ def render_catalogo():
                             new_count += 1
                     data['products'] = list(prev.values()) + [p for p in prods if p.get('codigo') not in prev]
                     save_data(data)
-                    st.success(f"Importado: {upd_count} actualizados, {new_count} nuevos.")
+                    st.success(f'Importado: {upd_count} actualizados, {new_count} nuevos.')
                     st.rerun()
                 else:
-                    st.warning("No se encontraron productos validos en el archivo.")
+                    st.warning('No se encontraron productos v\u00e1lidos en el archivo.')
             except Exception as e:
-                st.error(f"Error al importar: {e}")
+                st.error(f'Error al importar: {e}')
 
 def render_hacer_pedido():
     st.markdown('## 🛒 Crear Nuevo Pedido')
