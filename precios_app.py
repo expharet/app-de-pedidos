@@ -1279,7 +1279,7 @@ def build_order_html(ped):
     e_row=f'<tr><td colspan="2" style="padding:6px;font-weight:bold;background:#f8f9fa">Entrega estimada:</td><td colspan="7" style="padding:6px">{f_entrega}</td></tr>' if f_entrega else ''
     return f'''<div style="font-family:Arial,sans-serif;max-width:750px;margin:0 auto;padding:20px">
       <div style="background:linear-gradient(135deg,#003E8C,#0066CC);color:white;padding:24px;border-radius:10px;margin-bottom:20px">
-        <h1 style="margin:0;font-size:1.6em">\🚀 Export Haret</h1>
+        <h1 style="margin:0;font-size:1.6em">🚀 Export Haret</h1>
         <p style="margin:4px 0 0;opacity:.85">Confirmaci\xf3n de Pedido | Frutas Ex\xf3ticas Premium</p>
       </div>
       <table style="width:100%;border-collapse:collapse;margin-bottom:16px">
@@ -1663,7 +1663,7 @@ def send_order_email(ped):
     _notas_html = f'<p><b>Notas:</b> {notas}</p>' if notas else ''
     html = (f'<html><body style="font-family:Arial,sans-serif;color:#333">'
             f'<div style="background:#003E8C;padding:16px 24px;border-radius:8px">'
-            f'<h2 style="color:white;margin:0">\🚀 Export Haret \u2014 Nueva Orden Recibida</h2>'
+            f'<h2 style="color:white;margin:0">🚀 Export Haret \u2014 Nueva Orden Recibida</h2>'
             f'</div><div style="padding:16px 0">'
             f'<table style="width:100%;border-collapse:collapse;font-size:14px">'
             f'<tr><td style="padding:6px"><b>N\u00ba Pedido:</b></td><td>{pid}</td>'
@@ -2314,10 +2314,14 @@ def render_portal_pedido():
                 _pc_p=[p for p in _tod_p if p.get('id','').startswith(f'PED-{_yn_p}')]
                 pid=f'PED-{_yn_p}-{len(_pc_p)+1:04d}'
                 tot = sum(i['total'] for i in st.session_state.portal_carrito)
-                # Ensure rates/currency vars are available (fallback if not defined in cart block)
-                if '_rates_portal' not in dir():
+                # Ensure rates/currency vars are available (fallback if cart block didn't run)
+                try:
+                    _ = _rates_portal
+                except NameError:
                     _rates_portal = get_exchange_rates_meta()['rates']
-                if '_moneda_dest' not in dir():
+                try:
+                    _ = _moneda_dest
+                except NameError:
                     _dv_fb = data.get('config',{}).get('destinos',{}).get(destino,{})
                     _moneda_dest = _dv_fb.get('moneda','USD') if isinstance(_dv_fb,dict) else 'USD'
                 ped = {
