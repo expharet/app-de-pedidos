@@ -1985,6 +1985,7 @@ def main():
         with col_back:
             if st.button('← Portal Clientes', key='go_portal'):
                 st.session_state.app_mode = 'portal'
+                st.query_params.clear()
                 st.rerun()
         with col_form:
             login_page()
@@ -2014,6 +2015,7 @@ def main():
     if st.sidebar.button('🌐 Ver Portal Clientes', use_container_width=True, key='admin_go_portal'):
         st.session_state.app_mode = 'portal'
         st.session_state.logged_in = False
+        st.query_params.clear()
         st.rerun()
     if st.sidebar.button('🚪 Cerrar Sesión', use_container_width=True):
         st.session_state.logged_in = False
