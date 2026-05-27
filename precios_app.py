@@ -2703,6 +2703,37 @@ def main():
     init_session()
     auto_load_excel()
 
+    # DEBUG: read Excel columns
+    _dbg_qp = st.query_params
+    if _dbg_qp.get('debug') == 'fob':
+        st.title('DEBUG: Excel FOB columns')
+        import glob, os
+        _xl_paths = glob.glob('/mount/src/**/*.xlsx', recursive=True) + glob.glob('./**/*.xlsx', recursive=True)
+        if _xl_paths:
+            from openpyxl import load_workbook
+            _wb = load_workbook(_xl_paths[0], data_only=True)
+            if 'TABLA PRECIOS' in _wb.sheetnames:
+                _ws = _wb['TABLA PRECIOS']
+                # Print header row 6
+                _hdr = {c2: _ws.cell(6, c2).value for c2 in range(1, 20)}
+                st.write('**Fila 6 (cabeceras cols 1-19):**', _hdr)
+                # Print all rows 7-30 with cols 1-16
+                _rows = []
+                for _r in range(7, 30):
+                    _cod = _ws.cell(_r, 2).value
+                    if not _cod: continue
+                    _row = {'r': _r, 'cod': str(_cod)}
+                    for _cc in range(1, 17):
+                        _row['c' + str(_cc)] = _ws.cell(_r, _cc).value
+                    _rows.append(_row)
+                st.write('**Datos filas 7-30 cols 1-16:**')
+                st.json(_rows)
+            else:
+                st.error('No TABLA PRECIOS sheet')
+        else:
+            st.error('No xlsx found: ' + str(glob.glob('/mount/src/**/*', recursive=True)[:20]))
+        return
+
     # Determine mode: 'portal' (public) or 'admin' (staff)
     # Support ?view=cliente URL param to always show portal
     if 'app_mode' not in st.session_state:
