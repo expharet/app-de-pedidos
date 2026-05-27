@@ -2571,45 +2571,45 @@ def render_portal_pedido():
             _fin_dest_total = round(tot_final * _fin_rate, 2) if _fin_mon != 'USD' and _fin_rate != 1.0 else None
             _fin_alt = f'<br><span style="font-size:0.88em;color:#555">≈ {_fin_sym}{_fin_dest_total:,.2f} {_fin_mon}</span>' if _fin_dest_total else ''
             # Build mobile-friendly responsive cards summary
-                        _prod_cards_html = ''
-                        for _pfi in st.session_state.portal_carrito:
-                            if _pfi.get('cajas', 0) > 0:
-                                _prod_cards_html += (
-                                    f'<div class="eh-cnf-card">'
-                                    f'<div class="eh-cnf-prod"><b>{_pfi.get("producto","")}</b><span class="eh-cnf-cod">{_pfi.get("codigo","")}</span></div>'
-                                    f'<div class="eh-cnf-row"><span>{int(_pfi.get("pallets",0))} pal · {int(_pfi.get("cajas",0))} cj</span><span>${_pfi.get("precio_usd",0):.2f}/cj</span><span class="eh-cnf-tot">${_pfi.get("total",0):,.2f}</span></div>'
-                                    f'</div>'
-                                )
-                        _conf_html = (
-                            '<style>'
-                            '.eh-cnf-wrap { background:#f0f7ff; border:2px solid #003E8C; border-radius:12px; padding:14px 16px; margin:10px 0; }'
-                            '.eh-cnf-wrap h4 { margin:0 0 10px 0; color:#003E8C; font-size:1.1rem; }'
-                            '.eh-cnf-meta { font-size:0.92rem; line-height:1.5; color:#1a2540; margin-bottom:10px; }'
-                            '.eh-cnf-meta b { color:#003E8C; }'
-                            '.eh-cnf-card { background:#fff; border:1px solid #d4dff2; border-radius:8px; padding:8px 12px; margin-bottom:6px; }'
-                            '.eh-cnf-prod { display:flex; justify-content:space-between; align-items:baseline; font-size:0.98rem; }'
-                            '.eh-cnf-cod { font-size:0.78rem; color:#6c7a93; font-weight:normal; }'
-                            '.eh-cnf-row { display:flex; justify-content:space-between; align-items:center; gap:8px; font-size:0.88rem; color:#3a4a6b; padding-top:4px; flex-wrap:wrap; }'
-                            '.eh-cnf-tot { color:#003E8C; font-weight:700; font-size:0.98rem; margin-left:auto; }'
-                            '.eh-cnf-total-row { display:flex; justify-content:space-between; align-items:center; background:linear-gradient(135deg,#003E8C 0%,#1a4f9e 100%); color:#fff; border-radius:10px; padding:12px 16px; margin-top:8px; flex-wrap:wrap; gap:8px; }'
-                            '.eh-cnf-total-row .eh-cnf-tl { font-size:0.82rem; opacity:0.88; }'
-                            '.eh-cnf-total-row .eh-cnf-tv { font-size:1.35rem; font-weight:700; line-height:1.1; }'
-                            '.eh-cnf-total-row .eh-cnf-tx { font-size:0.92rem; opacity:0.92; }'
-                            '@media (min-width:640px) { .eh-cnf-prod { font-size:1.02rem; } }'
-                            '</style>'
-                            '<div class="eh-cnf-wrap">'
-                            f'<h4>📝 Resumen del Pedido</h4>'
-                            f'<div class="eh-cnf-meta"><b>Cliente:</b> {nombre} ({email_input})<br>'
-                            f'<b>Empresa:</b> {empresa or "N/A"} &nbsp;|&nbsp; <b>País:</b> {pais or "N/A"}<br>'
-                            f'<b>Modalidad:</b> {tipo_str} &nbsp;|&nbsp; <b>T. pago:</b> {p_term or "Por confirmar"}</div>'
-                            f'{_prod_cards_html}'
-                            '<div class="eh-cnf-total-row">'
-                            f'<div><div class="eh-cnf-tl">🛒 TOTAL DEL PEDIDO</div><div class="eh-cnf-tv">${tot_final:,.2f} USD</div>{_fin_alt}</div>'
-                            f'<div style="text-align:right"><div class="eh-cnf-tx">📦 {_tot_pal_fin:.1f} pallets</div><div class="eh-cnf-tx">📋 {_tot_caj_fin:,} cajas</div></div>'
-                            '</div>'
-                            '</div>'
-                        )
-                        st.markdown(''.join(line.lstrip() for line in _conf_html.split('\n')), unsafe_allow_html=True)
+            _prod_cards_html = ''
+            for _pfi in st.session_state.portal_carrito:
+                if _pfi.get('cajas', 0) > 0:
+                    _prod_cards_html += (
+                        f'<div class="eh-cnf-card">'
+                        f'<div class="eh-cnf-prod"><b>{_pfi.get("producto","")}</b><span class="eh-cnf-cod">{_pfi.get("codigo","")}</span></div>'
+                        f'<div class="eh-cnf-row"><span>{int(_pfi.get("pallets",0))} pal · {int(_pfi.get("cajas",0))} cj</span><span>${_pfi.get("precio_usd",0):.2f}/cj</span><span class="eh-cnf-tot">${_pfi.get("total",0):,.2f}</span></div>'
+                        f'</div>'
+                    )
+            _conf_html = (
+                '<style>'
+                '.eh-cnf-wrap { background:#f0f7ff; border:2px solid #003E8C; border-radius:12px; padding:14px 16px; margin:10px 0; }'
+                '.eh-cnf-wrap h4 { margin:0 0 10px 0; color:#003E8C; font-size:1.1rem; }'
+                '.eh-cnf-meta { font-size:0.92rem; line-height:1.5; color:#1a2540; margin-bottom:10px; }'
+                '.eh-cnf-meta b { color:#003E8C; }'
+                '.eh-cnf-card { background:#fff; border:1px solid #d4dff2; border-radius:8px; padding:8px 12px; margin-bottom:6px; }'
+                '.eh-cnf-prod { display:flex; justify-content:space-between; align-items:baseline; font-size:0.98rem; }'
+                '.eh-cnf-cod { font-size:0.78rem; color:#6c7a93; font-weight:normal; }'
+                '.eh-cnf-row { display:flex; justify-content:space-between; align-items:center; gap:8px; font-size:0.88rem; color:#3a4a6b; padding-top:4px; flex-wrap:wrap; }'
+                '.eh-cnf-tot { color:#003E8C; font-weight:700; font-size:0.98rem; margin-left:auto; }'
+                '.eh-cnf-total-row { display:flex; justify-content:space-between; align-items:center; background:linear-gradient(135deg,#003E8C 0%,#1a4f9e 100%); color:#fff; border-radius:10px; padding:12px 16px; margin-top:8px; flex-wrap:wrap; gap:8px; }'
+                '.eh-cnf-total-row .eh-cnf-tl { font-size:0.82rem; opacity:0.88; }'
+                '.eh-cnf-total-row .eh-cnf-tv { font-size:1.35rem; font-weight:700; line-height:1.1; }'
+                '.eh-cnf-total-row .eh-cnf-tx { font-size:0.92rem; opacity:0.92; }'
+                '@media (min-width:640px) { .eh-cnf-prod { font-size:1.02rem; } }'
+                '</style>'
+                '<div class="eh-cnf-wrap">'
+                f'<h4>📝 Resumen del Pedido</h4>'
+                f'<div class="eh-cnf-meta"><b>Cliente:</b> {nombre} ({email_input})<br>'
+                f'<b>Empresa:</b> {empresa or "N/A"} &nbsp;|&nbsp; <b>País:</b> {pais or "N/A"}<br>'
+                f'<b>Modalidad:</b> {tipo_str} &nbsp;|&nbsp; <b>T. pago:</b> {p_term or "Por confirmar"}</div>'
+                f'{_prod_cards_html}'
+                '<div class="eh-cnf-total-row">'
+                f'<div><div class="eh-cnf-tl">🛒 TOTAL DEL PEDIDO</div><div class="eh-cnf-tv">${tot_final:,.2f} USD</div>{_fin_alt}</div>'
+                f'<div style="text-align:right"><div class="eh-cnf-tx">📦 {_tot_pal_fin:.1f} pallets</div><div class="eh-cnf-tx">📋 {_tot_caj_fin:,} cajas</div></div>'
+                '</div>'
+                '</div>'
+            )
+            st.markdown(''.join(line.lstrip() for line in _conf_html.split('\n')), unsafe_allow_html=True)
 
         btn_guardar = st.button(_T['confirm_btn'], type='primary', use_container_width=True, key='portal_guardar')
 
