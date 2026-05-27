@@ -1610,6 +1610,42 @@ def get_precio_con_volumen(codigo, destino, tipo_precio, data, pallets):
         return get_precio_por_pallets(codigo, pallets, data)
 
 
+@st.cache_data(ttl=3600)
+def get_exchange_rates():
+    """Obtiene cotizaciones en tiempo real desde exchangerate-api.com (free tier)."""
+    try:
+        import urllib.request
+        url = "https://open.er-api.com/v6/latest/USD"
+        with urllib.request.urlopen(url, timeout=5) as r:
+            rates_data = __import__("json").loads(r.read())
+        if rates_data.get("result") == "success":
+            return rates_data.get("rates", {})
+    except Exception:
+        pass
+    return {"USD":1,"EUR":0.92,"GBP":0.79,"CHF":0.89,"AED":3.67,"CAD":1.36,"MXN":17.5,"BRL":4.97,"COP":3950}
+
+@st.cache_data(ttl=3600)
+def get_exchange_rates_meta():
+    """Cotizaciones con metadatos: timestamp, fuente, live flag."""
+    try:
+        import urllib.request
+        url = "https://open.er-api.com/v6/latest/USD"
+        with urllib.request.urlopen(url, timeout=5) as r:
+            rd = __import__("json").loads(r.read())
+        if rd.get("result") == "success":
+            ts_str = rd.get("time_last_update_utc", "")
+            try:
+                from datetime import datetime as _dt
+                ts_dt = _dt.strptime(ts_str, "%a, %d %b %Y %H:%M:%S +0000")
+                ts_fmt = ts_dt.strftime("%d/%m/%Y %H:%M UTC")
+            except Exception:
+                ts_fmt = ts_str[:16] if ts_str else datetime.utcnow().strftime("%d/%m/%Y %H:%M UTC")
+            return {"rates": rd.get("rates", {}), "ts": ts_fmt, "source": "open.er-api.com", "live": True}
+    except Exception:
+        pass
+    ts_fmt = datetime.utcnow().strftime("%d/%m/%Y %H:%M UTC") + " (aprox.)"
+    return {"rates": {"USD":1,"EUR":0.92,"GBP":0.79,"CHF":0.89,"AED":3.67,"CAD":1.36,"MXN":17.5,"BRL":4.97,"COP":3950}, "ts": ts_fmt, "source": "referencia", "live": False}
+
 def convertir_precio(precio_usd, moneda):
     """Convierte precio USD a la moneda destino."""
     if moneda == "USD":
