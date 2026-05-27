@@ -1870,9 +1870,9 @@ def render_portal_pedido():
             c3, c4 = st.columns(2)
             telefono = c3.text_input(_T['telefono_label'], placeholder=_T['telefono_ph'], key='portal_telefono', value=st.session_state.get('portal_telefono',''))
             _paises_opts = ['Afghanistan','Albania','Algeria','Andorra','Angola','Argentina','Armenia','Australia','Austria','Azerbaijan','Bahrain','Bangladesh','Belarus','Belgium','Belize','Benin','Bolivia','Bosnia and Herzegovina','Botswana','Brazil','Bulgaria','Burkina Faso','Cambodia','Cameroon','Canada','Chile','China','Colombia','Congo','Costa Rica','Croatia','Cuba','Czech Republic','Denmark','Dominican Republic','Ecuador','Egypt','El Salvador','Estonia','Ethiopia','Finland','France','Georgia','Germany','Ghana','Greece','Guatemala','Haiti','Honduras','Hungary','India','Indonesia','Iran','Iraq','Ireland','Israel','Italy','Jamaica','Japan','Jordan','Kazakhstan','Kenya','Kuwait','Latvia','Lebanon','Libya','Lithuania','Luxembourg','Madagascar','Malaysia','Mali','Malta','Mexico','Moldova','Mongolia','Morocco','Mozambique','Myanmar','Netherlands','New Zealand','Nicaragua','Nigeria','Norway','Oman','Pakistan','Panama','Paraguay','Peru','Philippines','Poland','Portugal','Qatar','Romania','Russia','Rwanda','Saudi Arabia','Senegal','Serbia','Singapore','Slovakia','Slovenia','Somalia','South Africa','South Korea','Spain','Sri Lanka','Sudan','Sweden','Switzerland','Syria','Taiwan','Tanzania','Thailand','Tunisia','Turkey','Uganda','Ukraine','United Arab Emirates','United Kingdom','United States','Uruguay','Uzbekistan','Venezuela','Vietnam','Yemen','Zambia','Zimbabwe']
-_pais_cur = st.session_state.get('portal_pais','Spain')
-_pais_idx = _paises_opts.index(_pais_cur) if _pais_cur in _paises_opts else _paises_opts.index('Spain')
-pais = c4.selectbox(_T['pais_label'], options=_paises_opts, index=_pais_idx, key='portal_pais')
+            _pais_cur = st.session_state.get('portal_pais','Spain')
+            _pais_idx = _paises_opts.index(_pais_cur) if _pais_cur in _paises_opts else _paises_opts.index('Spain')
+            pais = c4.selectbox(_T['pais_label'], options=_paises_opts, index=_pais_idx, key='portal_pais')
             if show_register:
                 st.caption(_T['auto_register'])
 
