@@ -678,7 +678,7 @@ def render_catalogo():
             return styles
 
         _df_styled = df_plt.style.apply(_style_plt, axis=None).format('${:.2f}', na_rep='—')
-        st.dataframe(_df_styled, use_container_width=True, height=min(50 + 38*(N_PALLETS+1), 500))
+        st.dataframe(_df_styled, use_container_width=True, height=min(50 + 38*(N_PALLETS+1), 900))
 
         st.caption('\U0001f7e2 Verde = precio m\u00e1s bajo (m\u00e1s volumen). La app usa autom\u00e1ticamente el precio correspondiente al total de pallets del pedido.')
 
