@@ -823,7 +823,7 @@ def render_configuracion():
     else: st.info('Sin emails registrados')
     st.markdown('---')
     st.markdown('---')
-    st.markdown('### U0001F4E8 Emails de Pedidos')
+    st.markdown('### 📨 Emails de Pedidos')
     _pend_e = _load('pending_emails.json', [])
     _unsent_e = [e for e in _pend_e if not e.get('sent')]
     if _unsent_e:
@@ -833,7 +833,7 @@ def render_configuracion():
     elif _pend_e:
         st.success(f'✅ {len([e for e in _pend_e if e.get("sent")])} email(s) enviados correctamente')
     else:
-        st.info('U0001F4EC Sin historial de emails aún')
+        st.info('📬 Sin historial de emails aún')
     st.markdown('---')
     
     st.markdown('### 📧 Estado SMTP (order@exportharet.com)')
@@ -1476,9 +1476,9 @@ def render_portal_pedido():
     # Banner pedido mínimo
     _current_pallets = sum(i.get('pallets',0) for i in st.session_state.portal_carrito)
     if _current_pallets > 0:
-        st.info(f'U0001F4E6 Pedido actual: **{_current_pallets:.1f} pallets**')
+        st.info(f'📦 Pedido actual: **{_current_pallets:.1f} pallets**')
     else:
-        st.warning('U0001F4CB **Pedido mínimo: 3 pallets**')
+        st.warning('📋 **Pedido mínimo: 3 pallets**')
     # Cabecera tabla productos
     hc = st.columns([4, 2, 3, 2, 2])
     hc[0].markdown('**Producto**')
