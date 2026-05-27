@@ -277,10 +277,16 @@ def init_session():
         if k not in st.session_state: st.session_state[k] = v
 
 def login_page():
-    st.markdown('<div style="text-align:center;padding:40px 0 20px"><h1>🚀 Export Haret</h1><h3 style="color:#666">Sistema de Gestión de Pedidos</h3></div>', unsafe_allow_html=True)
-    c1,c2,c3 = st.columns([1,1.2,1])
-    with c2:
-        st.markdown('### 🔐 Iniciar Sesión')
+    # Branding: logo si existe, sino texto sin emoji
+    import os as _osL
+    _l1, _l2, _l3 = st.columns([1, 2, 1])
+    with _l2:
+        if _osL.path.exists('logo.png'):
+            st.image('logo.png', use_container_width=True)
+        else:
+            st.markdown('<div style="text-align:center;padding:30px 0 10px"><h1 style="margin:0">Export Haret</h1></div>', unsafe_allow_html=True)
+        st.markdown('<div style="text-align:center;color:#6b7280;margin-bottom:24px">Sistema de Gestión de Pedidos</div>', unsafe_allow_html=True)
+        st.markdown('#### 🔐 Iniciar Sesión')
         email = st.text_input('Email', placeholder='usuario@exportharet.com')
         pwd = st.text_input('Contraseña', type='password')
         if st.button('Entrar →', use_container_width=True, type='primary'):
@@ -293,8 +299,8 @@ def login_page():
                 st.rerun()
             else: st.error('❌ Email o contraseña incorrectos')
         st.markdown('---')
-    st.caption('🔒 Acceso restringido al personal autorizado.')
-    # credentials hidden for security
+        st.caption('🔒 Acceso restringido al personal autorizado.')
+        # credentials hidden for security
 
 # ─── BUSINESS LOGIC ──────────────────────────────────────────────────────
 def segmentar(email, clients):
@@ -2997,7 +3003,16 @@ def main():
         with _al2: st.image(_logoA, width=160)
     _app_title = load_app_config().get("app_title", "🚀 EXPORT HARET — Panel de Administración")
     st.markdown(f'<div style="background:linear-gradient(90deg,#003E8C,#0066CC);padding:16px 24px;border-radius:8px;margin-bottom:20px;"><h2 style="color:white;margin:0">{_app_title}</h2></div>', unsafe_allow_html=True)
-    st.sidebar.markdown(f'# {_app_title}')
+    # Sidebar branding admin: logo si existe
+    try:
+        import os as _osSB
+        if _osSB.path.exists('logo.png'):
+            st.sidebar.image('logo.png', use_container_width=True)
+        else:
+            st.sidebar.markdown('### Export Haret')
+        st.sidebar.caption('Panel de Administración')
+    except Exception:
+        st.sidebar.markdown(f'# {_app_title}')
     st.sidebar.markdown(f'**{st.session_state.user_nombre}** | {st.session_state.user_rol}')
     st.sidebar.markdown('---')
     pedidos = load_pedidos()
