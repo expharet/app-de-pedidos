@@ -2267,6 +2267,43 @@ def render_portal_pedido():
     # ── PASO 3: Selección de Productos ───────────────────────────────
     st.markdown(_T['step3'])
     st.info(_T['price_update_notice'], icon=None)
+    # PATCH STEP3: CSS for responsive cards, sticky header, bigger qty buttons, highlight
+    st.markdown('''<style>
+    /* Bigger +/- buttons on number_input (P8) */
+    div[data-testid="stNumberInput"] button {
+        min-width: 38px !important;
+        min-height: 38px !important;
+        font-size: 1.1rem !important;
+    }
+    /* Sticky catalog header (P11) */
+    .eh-cat-header {
+        position: sticky; top: 56px; z-index: 30;
+        background: #fff; padding: 8px 0;
+        border-bottom: 2px solid #003E8C;
+        font-weight: 700;
+        display: grid; grid-template-columns: 4fr 2fr 3fr 2fr 2fr;
+        gap: 8px; align-items: center;
+    }
+    .eh-cat-header > div { color: #003E8C; font-size: 0.92rem; }
+    /* Mobile: hide sticky header, products will stack */
+    @media (max-width: 768px) {
+        .eh-cat-header { display: none; }
+        /* Make product rows stack vertically on mobile */
+        div[data-testid="stHorizontalBlock"]:has(div[data-testid="stNumberInput"]) {
+            flex-wrap: wrap !important;
+            gap: 6px !important;
+            padding: 10px 12px !important;
+            border: 1px solid #e5e7eb;
+            border-radius: 10px;
+            margin-bottom: 8px;
+            background: #fff;
+        }
+    }
+    /* Cleaner product row styling */
+    .eh-cat-row-marker { display:none; }
+    /* Compact cart banner button alignment */
+    .eh-cart-banner-actions { display:flex; gap:8px; align-items:center; justify-content:flex-end; }
+    </style>''', unsafe_allow_html=True)
     # Banner pedido mínimo
     _current_pallets = sum(i.get('pallets',0) for i in st.session_state.portal_carrito)
     # ── Indicador de volumen
@@ -2327,12 +2364,23 @@ def render_portal_pedido():
             f'</div>'
         )
         st.markdown(_cart_html, unsafe_allow_html=True)
-    hc = st.columns([4, 2, 3, 2, 2])
-    hc[0].markdown('**Producto**')
-    hc[1].markdown('**Precio/cja**')
-    hc[2].markdown('**Cantidad**')
-    hc[3].markdown('**Unidad**')
-    hc[4].markdown('**Cajas**')
+        # PATCH P12: Vaciar carrito accesible junto al banner del carrito vivo
+        _vc_cols = st.columns([5, 2])
+        with _vc_cols[1]:
+            if st.button(_T.get('clear_cart','🗑️ Vaciar carrito'), key='portal_vaciar_top', use_container_width=True, type='secondary'):
+                st.session_state.portal_carrito = []
+                st.rerun()
+    # PATCH P11: Sticky header
+    st.markdown(
+        '<div class="eh-cat-header">'
+        '<div>Producto</div>'
+        '<div>Precio/cja</div>'
+        '<div>Cantidad</div>'
+        '<div>Unidad</div>'
+        '<div>Cajas</div>'
+        '</div>',
+        unsafe_allow_html=True
+    )
     st.markdown('<hr style="margin:4px 0 6px;border-color:#e0e0e0">', unsafe_allow_html=True)
 
     # Reconstruir carrito basado en los valores actuales de los inputs
@@ -2367,9 +2415,11 @@ def render_portal_pedido():
         _kg_lbl = f'{_kg_x:.1f} kg/caja'.replace('.',',') if _kg_x else ''
         _min_cant_p = int(p.get('min_cantidad', 0) or 0)
         _min_unit_p = str(p.get('min_unidad', 'Pallets') or 'Pallets')
-        _min_lbl = f'  \n<small style="color:#e07b00">⚠️ Mín: {_min_cant_p} {_min_unit_p}</small>' if _min_cant_p > 0 else ''
+        _min_lbl = f'  \n<small style="color:#999;font-size:0.78em">Desde {_min_cant_p} {_min_unit_p.lower()}</small>' if _min_cant_p > 0 else ''
+        # PATCH P7: Highlight visual cuando producto agregado
+        _added_mark = ' <span style="color:#16a34a;font-weight:700;background:#dcfce7;border-radius:8px;padding:2px 7px;font-size:0.78em;margin-left:6px">✓ Agregado</span>' if _ex_qty > 0 else ''
         gc[0].markdown(
-            f'**{nombre_prod}**' + (f'  \n<small style="color:#888">{_kg_lbl}</small>' if _kg_lbl else '') + _min_lbl,
+            f'**{nombre_prod}**{_added_mark}' + (f'  \n<small style="color:#888">{_kg_lbl}</small>' if _kg_lbl else '') + _min_lbl,
             unsafe_allow_html=True
         )
         # Col 1: Precio por caja
@@ -2402,12 +2452,12 @@ def render_portal_pedido():
                 _n_cajas = int(qty_val * cxp)
                 _n_pallets = float(qty_val)
                 _cajas_label = f'**{_n_cajas:,}** cj'
-                _cajas_sub = f'<small style="color:#888">{int(qty_val)}p × {cxp}cj/p</small>'
+                _cajas_sub = f'<small style="color:#666">{int(qty_val)} pal \u00d7 {cxp} cj/pal</small>'
             else:
                 _n_cajas = int(qty_val)
                 _n_pallets = round(_n_cajas / cxp, 2)
                 _cajas_label = f'**{_n_cajas:,}** cj'
-                _cajas_sub = f'<small style="color:#888">≈ {_n_pallets:.1f} pal</small>'
+                _cajas_sub = f'<small style="color:#666">≈ {_n_pallets:.2f} pal ({cxp} cj/pal)</small>'
             gc[4].markdown(f'{_cajas_label}\n{_cajas_sub}', unsafe_allow_html=True)
             # Validar cantidad mínima
             if _min_cant_p > 0:
