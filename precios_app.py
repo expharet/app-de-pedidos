@@ -2520,7 +2520,51 @@ def render_portal_pedido():
     st.markdown('<div style="text-align:center;color:#888"><small>Export Haret © 2026 | order@exportharet.com | Frutas Exóticas Premium</small></div>', unsafe_allow_html=True)
 
 # ─── MAIN ────────────────────────────────────────────────────────────────────
+
+def render_debug_excel():
+    """Debug: lee Cotizaciones.xlsx y muestra precios por pallets."""
+    import os, json
+    st.markdown('## 🔍 DEBUG: Precios Excel por Pallets')
+    xl_path = 'Cotizaciones.xlsx'
+    if not os.path.exists(xl_path):
+        st.error('Cotizaciones.xlsx no encontrado')
+        return
+    try:
+        from openpyxl import load_workbook as _lw
+        wb = _lw(xl_path, data_only=True)
+        ws = None
+        for sname in wb.sheetnames:
+            if 'TABLA' in sname.upper() or 'PRECIO' in sname.upper():
+                ws = wb[sname]
+                break
+        if ws is None:
+            ws = wb.active
+        st.write('Sheet:', ws.title)
+        # Find header row - row 6
+        headers = [ws.cell(6, c).value for c in range(1, 50)]
+        st.write('Headers (cols 1-49):', headers)
+        # Dump all product rows
+        results = []
+        for r in range(7, 40):
+            cod = ws.cell(r, 2).value
+            if not cod or not isinstance(cod, str): continue
+            row_data = {'cod': str(cod).strip(), 'nom': str(ws.cell(r, 3).value or '').strip()}
+            for c in range(16, 45):
+                v = ws.cell(r, c).value
+                row_data[f'c{c}'] = round(float(v), 4) if v and isinstance(v, (int, float)) else None
+            results.append(row_data)
+        st.json(results)
+    except Exception as e:
+        st.error(f'Error: {e}')
+
+
 def main():
+
+    # DEBUG MODE
+    qp = st.query_params
+    if qp.get('debug') == 'excel':
+        render_debug_excel()
+        return
     init_session()
     auto_load_excel()
 
