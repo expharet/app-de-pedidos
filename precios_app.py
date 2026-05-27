@@ -739,7 +739,8 @@ def render_catalogo():
                 'Cod': _p.get('codigo',''),
                 'Producto': _p.get('producto','') or _p.get('descripcion',''),
                 'Activo': bool(_p.get('activo', True)),
-                'Cj/Plt': int(_p.get('cajas_pallet', 160) or 160),
+                'Min Unidad': str(_p.get('min_unidad', 'Pallets')),
+                'Min Cant': int(_p.get('min_cantidad', 1) or 1),
                 '1 Plt': _precios_plt[0],
                 '2 Plt': _precios_plt[1],
                 '3 Plt': _precios_plt[2],
@@ -771,8 +772,10 @@ def render_catalogo():
             'Producto': st.column_config.TextColumn('Producto', width='medium'),
             'Activo': st.column_config.CheckboxColumn('Activo', width='small',
                 help='Desactiva para ocultar del portal del cliente'),
-            'Cj/Plt': st.column_config.NumberColumn('Cj/Plt', min_value=1, step=1,
-                help='Cajas por pallet para este producto'),
+            'Min Unidad': st.column_config.SelectboxColumn('Min Unidad', options=['Pallets', 'Cajas'], width='small',
+                help='Unidad del pedido mínimo: Pallets o Cajas'),
+            'Min Cant': st.column_config.NumberColumn('Mínimo', min_value=0, step=1, width='small',
+                help='Cantidad mínima de pedido por producto (0 = sin mínimo)'),
         }
         for _pc_name in _plt_cols:
             _col_cfg_edit[_pc_name] = st.column_config.NumberColumn(
@@ -798,7 +801,8 @@ def render_catalogo():
                     'producto': str(_r.get('Producto','')),
                     'descripcion': str(_r.get('Producto','')),
                     'activo': bool(_r.get('Activo', True)),
-                    'cajas_pallet': int(_r.get('Cj/Plt', 160) or 160),
+                    'min_unidad': str(_r.get('Min Unidad', 'Pallets') or 'Pallets'),
+                    'min_cantidad': int(_r.get('Min Cant', 1) or 1),
                     'precios_plt': [
                         (float(_r[c]) if _r[c] is not None and str(_r[c]) not in ('','nan','None') else None)
                         for c in _plt_cols
@@ -2340,8 +2344,11 @@ def render_portal_pedido():
         gc = st.columns([4, 2, 3, 2, 2])
         # Col 0: Nombre + specs del producto
         _kg_lbl = f'{_kg_x:.1f} kg/caja'.replace('.',',') if _kg_x else ''
+        _min_cant_p = int(p.get('min_cantidad', 0) or 0)
+        _min_unit_p = str(p.get('min_unidad', 'Pallets') or 'Pallets')
+        _min_lbl = f'  \n<small style="color:#e07b00">⚠️ Mín: {_min_cant_p} {_min_unit_p}</small>' if _min_cant_p > 0 else ''
         gc[0].markdown(
-            f'**{nombre_prod}**' + (f'  \n<small style="color:#888">{_kg_lbl}</small>' if _kg_lbl else ''),
+            f'**{nombre_prod}**' + (f'  \n<small style="color:#888">{_kg_lbl}</small>' if _kg_lbl else '') + _min_lbl,
             unsafe_allow_html=True
         )
         # Col 1: Precio por caja
@@ -2381,6 +2388,14 @@ def render_portal_pedido():
                 _cajas_label = f'**{_n_cajas:,}** cj'
                 _cajas_sub = f'<small style="color:#888">≈ {_n_pallets:.1f} pal</small>'
             gc[4].markdown(f'{_cajas_label}\n{_cajas_sub}', unsafe_allow_html=True)
+            # Validar cantidad mínima
+            if _min_cant_p > 0:
+                _qty_in_unit = qty_val if unit_sel == _min_unit_p else (
+                    round(qty_val * cxp) if unit_sel == 'Pallets' else round(qty_val / cxp, 2)
+                )
+                if _qty_in_unit < _min_cant_p:
+                    _min_warn = f'⚠️ Mínimo: **{_min_cant_p} {_min_unit_p}** para {nombre_prod}'
+                    st.warning(_min_warn, icon=None)
             # Agregar al nuevo carrito
             _new_carrito.append({
                 'codigo': cod, 'producto': nombre_prod,
