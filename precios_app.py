@@ -73,7 +73,7 @@ LANG_TEXTS = {
         'price_type_help': 'FOB = Precio en origen (sin flete). CIF = Precio incluye flete al destino.',
         'dest_label': '🌍 Destino',
         'no_dest': '⚠️ No hay destinos configurados',
-        'flete_caption': '🛫 Flete incluido: **${flete:.2f} USD/caja** | {orig} → {dest}',
+        'flete_caption': '🛫 Flete incluido: **${flete:.2f} USD/Kilo** | {orig} → {dest}',
         'cif_info': '📍 **Incoterm CIF** — Precio incluye costo + flete hasta **{dest}**. Embarcamos desde **{orig}**.',
         'fob_info': '📦 **FOB (Free On Board)** — El precio **no incluye flete**. Tú coordinas el transporte desde Ecuador.',
         'fob_origin': '📌 Origen de embarque: **Quito o Guayaquil, Ecuador**',
@@ -126,7 +126,7 @@ LANG_TEXTS = {
         'price_type_help': 'FOB = Ex-works price (no freight). CIF = Price includes freight to destination.',
         'dest_label': '🌍 Destination',
         'no_dest': '⚠️ No destinations configured',
-        'flete_caption': '🛫 Freight included: **${flete:.2f} USD/box** | {orig} → {dest}',
+        'flete_caption': '🛫 Freight included: **${flete:.2f} USD/Kilo** | {orig} → {dest}',
         'cif_info': '📍 **Incoterm CIF** — Price includes cost + freight to **{dest}**. We ship from **{orig}**.',
         'fob_info': '📦 **FOB (Free On Board)** — Price **does not include freight**. You arrange transport from Ecuador.',
         'fob_origin': '📌 Port of origin: **Quito or Guayaquil, Ecuador**',
@@ -304,7 +304,7 @@ def get_precio(codigo, destino, data):
                 # New format: {'moneda': 'USD', 'factor': 2.35} — factor = flete USD/caja
                 flete = dest_val.get('factor', 0.0)
             elif isinstance(dest_val, (int, float)):
-                # Original format: flete en USD/caja directamente
+                # Original format: flete en USD/Kilo directamente
                 flete = float(dest_val)
             else:
                 flete = 0.0
@@ -639,13 +639,13 @@ def render_catalogo():
             _sym_cat = MONEDA_SIMBOLO.get(_moneda_dest, _moneda_dest)
             _dest_flete = dests.get(_dest_sel, 0)
             _dest_flete_v = float(_dest_flete.get('factor', _dest_flete) if isinstance(_dest_flete, dict) else _dest_flete if isinstance(_dest_flete, (int, float)) else 0)
-            st.metric('\U0001f4b1 Moneda / Flete', f'{_moneda_dest} | ${_dest_flete_v:.2f}/cj')
+            st.metric('\U0001f4b1 Moneda / Flete', f'{_moneda_dest} | ${_dest_flete_v:.2f}/Kilo')
 
         # ── Tabla estilo Excel: filas=pallets, columnas=productos ────
         if _cat_tipo == 'FOB':
             st.caption('Precios **FOB** (en origen, sin flete) | Todos los precios en USD/caja. A mayor volumen total del pedido, menor precio.')
         else:
-            st.caption(f'Precios **CIF** hasta **{_dest_sel}** | Flete: **${_dest_flete_v:.2f} USD/caja** | Todos los precios en USD/caja. A mayor volumen total del pedido, menor precio.')
+            st.caption(f'Precios **CIF** hasta **{_dest_sel}** | Flete: **${_dest_flete_v:.2f} USD/Kilo** | Todos los precios en USD/caja. A mayor volumen total del pedido, menor precio.')
 
         N_PALLETS = 23  # columnas en el Excel (1..23 pallets)
         # Construir filas: cada fila = 1 pallet, cada columna = 1 producto
@@ -826,7 +826,7 @@ def render_catalogo():
     # ─── SUB-TAB 2: DESTINOS & MONEDAS ───────────────────────────────
     with sub2:
         st.markdown('### \U0001f30d Gestionar Destinos & Fletes')
-        st.caption('Flete en USD/caja. A\u00f1ade, edita o elimina destinos directamente en la tabla.')
+        st.caption('Flete en USD/Kilo. A\u00f1ade, edita o elimina destinos directamente en la tabla.')
         _dest_rows = []
         for _dn, _dv in dests.items():
             _fv = _dv.get('factor', _dv) if isinstance(_dv, dict) else _dv
@@ -1602,7 +1602,7 @@ def build_order_pdf(ped):
         [Paragraph(f'<b>Empresa:</b> {empresa or "-"}', styles['Normal']), Paragraph(f'<b>Fecha:</b> {fecha}', styles['Normal'])],
         [Paragraph(f'<b>Email:</b> {email_c}', styles['Normal']), Paragraph(f'<b>Estado:</b> {estado}', styles['Normal'])],
         [Paragraph(f'<b>Teléfono:</b> {telefono or "-"}', styles['Normal']), Paragraph(f'<b>País:</b> {pais or "-"}', styles['Normal'])],
-        [Paragraph(f'<b>Incoterm:</b> {tipo}' + (f' | Flete: ${flete_usd_caja:.2f} USD/caja' if tipo=="CIF" and flete_usd_caja>0 else ''), styles['Normal']),
+        [Paragraph(f'<b>Incoterm:</b> {tipo}' + (f' | Flete: ${flete_usd_caja:.2f} USD/Kilo' if tipo=="CIF" and flete_usd_caja>0 else ''), styles['Normal']),
          Paragraph(f'<b>Destino:</b> {destino if tipo=="CIF" and destino else "FOB (en origen)"}<br/><font color="#888888" size="8">Embarcamos desde Quito/Guayaquil, Ecuador</font>', styles['Normal'])],
     ]
     info_table = Table(info_data, colWidths=[9*cm, 8*cm])
@@ -1785,11 +1785,21 @@ def get_precio_cif_por_pallets(codigo, total_pallets, destino, data):
     dests = cfg.get('destinos', {})
     dest_val = dests.get(destino, 0)
     flete_dest = float(dest_val.get('factor', dest_val) if isinstance(dest_val, dict) else dest_val if isinstance(dest_val, (int, float)) else 0)
-    # Si hay precios_plt, ajustar flete
+    # Si hay precios_plt, ajustar flete (flete es USD/Kilo, multiplicar por kg_caja)
     for p in data.get('products', []):
-        if p.get('codigo') == codigo and p.get('precios_plt'):
-            return round(precio_base - flete_ref + flete_dest, 4)
-    # Sin precios_plt: fallback calculo viejo
+        if p.get('codigo') == codigo:
+            _kg_caja_p = float(p.get('kg_caja', 0) or 0)
+            # Fallback al kg_caja del grupo si el producto no lo tiene definido
+            if _kg_caja_p == 0:
+                _grp_p = p.get('grupo', '')
+                _kg_caja_p = float(cfg.get('grupos', {}).get(_grp_p, {}).get('kg_caja', 2.5) or 2.5)
+            if p.get('precios_plt'):
+                # Precios_plt ya incluyen flete de referencia (Madrid USD/Kilo * kg_caja)
+                return round(precio_base - (flete_ref * _kg_caja_p) + (flete_dest * _kg_caja_p), 4)
+            else:
+                # Sin precios_plt: sumar flete por destino * kg_caja
+                return round(precio_base + (flete_dest * _kg_caja_p), 4)
+    # Producto no encontrado: fallback
     return round(precio_base + flete_dest, 4)
 
 
@@ -2370,6 +2380,47 @@ def render_portal_pedido():
             if st.button(_T.get('clear_cart','🗑️ Vaciar carrito'), key='portal_vaciar_top', use_container_width=True, type='secondary'):
                 st.session_state.portal_carrito = []
                 st.rerun()
+        # PATCH GROUP-AGG: Resumen por Grupo de Embalaje
+        _grp_cfg = data.get('config',{}).get('grupos',{})
+        _grp_agg = {}  # grupo -> {cajas, cxp, productos: []}
+        _prod_by_code = {p.get('codigo'): p for p in (data.get('products') or [])}
+        for _ci in st.session_state.portal_carrito:
+            _ci_cod = _ci.get('codigo','')
+            _ci_p = _prod_by_code.get(_ci_cod, {})
+            _ci_grp = _ci_p.get('grupo','?')
+            _ci_cxp = int(_grp_cfg.get(_ci_grp,{}).get('cajas_pallet', _ci_p.get('cajas_pallet',160)) or 160)
+            if _ci_grp not in _grp_agg:
+                _grp_agg[_ci_grp] = {'cajas':0, 'cxp':_ci_cxp, 'productos':[], 'nombre': _grp_cfg.get(_ci_grp,{}).get('nombre', _ci_grp)}
+            _grp_agg[_ci_grp]['cajas'] += int(_ci.get('cajas',0))
+            _grp_agg[_ci_grp]['productos'].append(_ci.get('producto', _ci_cod))
+        if _grp_agg:
+            _grp_html = ['<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:12px 16px;margin:8px 0 14px">']
+            _grp_html.append('<div style="font-weight:700;color:#1e293b;margin-bottom:8px;font-size:0.95rem">📦 Resumen por Grupo de Embalaje</div>')
+            _grp_total_pal_real = 0.0
+            for _gk, _gv in sorted(_grp_agg.items()):
+                _g_pal_exact = _gv['cajas'] / _gv['cxp'] if _gv['cxp'] > 0 else 0
+                _g_pal_fisicos = int(_gv['cajas'] / _gv['cxp']) + (1 if _gv['cajas'] % _gv['cxp'] > 0 else 0)
+                _grp_total_pal_real += _g_pal_exact
+                _g_full = _gv['cajas'] // _gv['cxp']
+                _g_rem = _gv['cajas'] - _g_full * _gv['cxp']
+                _g_breakdown = f"{_g_full} pallet(s) completo(s)" + (f" + {_g_rem}/{_gv['cxp']} cj parciales" if _g_rem else "")
+                _grp_html.append(
+                    f'<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px dashed #e2e8f0">'
+                    f'<div><b style="color:#003E8C">Grupo {_gk}</b> <small style="color:#666">— {_gv["nombre"]}</small></div>'
+                    f'<div style="text-align:right;font-size:0.9rem">'
+                    f'<b>{_gv["cajas"]:,} cj</b> / {_gv["cxp"]} cj-pal = <b style="color:#16a34a">{_g_pal_exact:.2f} pal</b>'
+                    f'<br><small style="color:#888">{_g_breakdown}</small>'
+                    f'</div>'
+                    f'</div>'
+                )
+            _grp_html.append(
+                f'<div style="display:flex;justify-content:space-between;align-items:center;padding-top:8px;font-weight:700;color:#003E8C">'
+                f'<div>📊 Total pallets agrupados</div>'
+                f'<div>{_grp_total_pal_real:.2f} pal</div>'
+                f'</div>'
+            )
+            _grp_html.append('</div>')
+            st.markdown(''.join(line.lstrip() for line in '\n'.join(_grp_html).split('\n')), unsafe_allow_html=True)
     # PATCH P11: Sticky header
     st.markdown(
         '<div class="eh-cat-header">'
