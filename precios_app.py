@@ -591,7 +591,7 @@ def render_catalogo():
     dests_moneda = cfg.get('destinos_moneda', {})
     flete_ref = float(cfg.get('flete_ref', 2.35) or 2.35)  # flete referencia Madrid
 
-    sub1, sub2, sub3 = st.tabs(['\U0001f4ca Tabla de Precios', '\U0001f30d Destinos & Monedas', '\U0001f4c2 Importar Excel'])
+    sub1, sub2, sub3, sub4 = st.tabs(['📊 Tabla de Precios', '🌍 Destinos & Monedas', '📂 Importar Excel', '📦 Embalaje'])
 
     # ─── SUB-TAB 1: TABLA MAESTRA DE PRECIOS ─────────────────────────
     with sub1:
@@ -866,6 +866,145 @@ def render_catalogo():
             except Exception as _xe:
                 st.error(f'Error al importar: {_xe}')
                 import traceback as _xtb; st.code(_xtb.format_exc())
+    # ─── SUB-TAB 4: TABLA DE EMBALAJE ─────────────────────────────────────────────
+    with sub4:
+        st.markdown('### 📦 Tabla de Embalaje por Grupos')
+        st.caption('Define los grupos de embalaje (A, B, C...). Cada grupo determina cajas/pallet, kg/caja y tipo de empaque para los productos asignados.')
+
+        _emb_data = load_data()
+        _emb_cfg = _emb_data.get('config', {})
+        _emb_grupos = _emb_cfg.get('grupos', {})
+        _emb_prods = _emb_data.get('products', [])
+
+        # ── Vista resumen de grupos ──────────────────────────────────────────────
+        st.markdown('#### Grupos de Embalaje')
+        _emb_rows = []
+        for _grp_key in sorted(_emb_grupos.keys()):
+            _gi = _emb_grupos[_grp_key]
+            # Find products in this group
+            _prods_in_grp = [p.get('producto','') or p.get('descripcion','') or p.get('codigo','')
+                             for p in _emb_prods if p.get('grupo','') == _grp_key and p.get('activo', True)]
+            _emb_rows.append({
+                'Grupo': _grp_key,
+                'Nombre / Descripción': _gi.get('nombre', ''),
+                'Cj/Plt': int(_gi.get('cajas_pallet', 160) or 160),
+                'Kg/Caja': float(_gi.get('kg_caja', 0) or 0),
+                'Alto (cm)': int(_gi.get('alto_cm', 190) or 190),
+                'Largo (cm)': int(_gi.get('largo_cm', 120) or 120),
+                'Ancho (cm)': int(_gi.get('ancho_cm', 80) or 80),
+                'Tipo caja': _gi.get('tipo_caja', 'Cartón'),
+                'Productos': ', '.join(_prods_in_grp) if _prods_in_grp else '—',
+            })
+
+        _emb_df = pd.DataFrame(_emb_rows) if _emb_rows else pd.DataFrame(
+            columns=['Grupo','Nombre / Descripción','Cj/Plt','Kg/Caja','Alto (cm)','Largo (cm)','Ancho (cm)','Tipo caja','Productos'])
+
+        _emb_col_cfg = {
+            'Grupo': st.column_config.TextColumn('Grupo', width='small', help='Letra identificadora del grupo (A, B, C...)'),
+            'Nombre / Descripción': st.column_config.TextColumn('Nombre / Descripción', width='large', help='Nombre descriptivo del grupo de embalaje'),
+            'Cj/Plt': st.column_config.NumberColumn('Cj/Plt', min_value=1, step=1, help='Número de cajas por pallet para este grupo'),
+            'Kg/Caja': st.column_config.NumberColumn('Kg/Caja', format='%.2f', step=0.05, min_value=0, help='Peso neto de producto por caja (kg)'),
+            'Alto (cm)': st.column_config.NumberColumn('Alto (cm)', min_value=1, step=1, help='Altura total del pallet embalado (cm)'),
+            'Largo (cm)': st.column_config.NumberColumn('Largo (cm)', min_value=1, step=1, help='Largo del pallet estándar (cm)'),
+            'Ancho (cm)': st.column_config.NumberColumn('Ancho (cm)', min_value=1, step=1, help='Ancho del pallet estándar (cm)'),
+            'Tipo caja': st.column_config.SelectboxColumn('Tipo caja', options=['Cartón','Madera','Plástico','Mixto'], help='Material de la caja de embalaje'),
+            'Productos': st.column_config.TextColumn('Productos asignados', disabled=True, width='large', help='Productos del catálogo asignados a este grupo'),
+        }
+
+        _edited_emb = st.data_editor(
+            _emb_df,
+            column_config=_emb_col_cfg,
+            use_container_width=True,
+            num_rows='dynamic',
+            key='edit_embalaje_grupos',
+            hide_index=True,
+            height=min(80 + 40 * (len(_emb_rows) + 2), 600),
+        )
+
+        if st.button('U0001f4be Guardar Tabla de Embalaje', type='primary', use_container_width=True, key='btn_save_embalaje'):
+            _new_grupos = {}
+            for _, _er in _edited_emb.iterrows():
+                _grp_k = str(_er.get('Grupo', '')).strip().upper()
+                if not _grp_k: continue
+                _new_grupos[_grp_k] = {
+                    'nombre': str(_er.get('Nombre / Descripción', '') or ''),
+                    'cajas_pallet': int(_er.get('Cj/Plt', 160) or 160),
+                    'kg_caja': float(_er.get('Kg/Caja', 0) or 0),
+                    'alto_cm': int(_er.get('Alto (cm)', 190) or 190),
+                    'largo_cm': int(_er.get('Largo (cm)', 120) or 120),
+                    'ancho_cm': int(_er.get('Ancho (cm)', 80) or 80),
+                    'tipo_caja': str(_er.get('Tipo caja', 'Cartón') or 'Cartón'),
+                }
+            _emb_data['config']['grupos'] = _new_grupos
+            save_data(_emb_data)
+            st.toast('✅ Tabla de embalaje guardada', icon='✅')
+            st.rerun()
+
+        st.markdown('---')
+
+        # ── Asignación de grupo por producto ──────────────────────────────────────
+        st.markdown('#### Asignación de Grupo a Productos')
+        st.caption('Asigna cada producto a un grupo de embalaje. El grupo determina automáticamente las cajas por pallet.')
+
+        _grp_options = sorted(_emb_grupos.keys())
+        _prod_grp_rows = []
+        for _pp in _emb_prods:
+            _pp_nom = _pp.get('producto','') or _pp.get('descripcion','') or _pp.get('codigo','')
+            _pp_grp = _pp.get('grupo','')
+            _pp_cxp_grp = _emb_grupos.get(_pp_grp, {}).get('cajas_pallet', _pp.get('cajas_pallet', 160)) if _pp_grp else _pp.get('cajas_pallet', 160)
+            _prod_grp_rows.append({
+                'Código': _pp.get('codigo',''),
+                'Producto': _pp_nom,
+                'Grupo': _pp_grp,
+                'Cj/Plt (del grupo)': int(_pp_cxp_grp or 160),
+                'Kg/Caja (del grupo)': float(_emb_grupos.get(_pp_grp, {}).get('kg_caja', _pp.get('kg_caja', 0)) if _pp_grp else (_pp.get('kg_caja', 0) or 0)),
+                'Activo': bool(_pp.get('activo', True)),
+            })
+
+        _prod_grp_df = pd.DataFrame(_prod_grp_rows)
+        _prod_grp_col_cfg = {
+            'Código': st.column_config.TextColumn('Código', disabled=True, width='small'),
+            'Producto': st.column_config.TextColumn('Producto', disabled=True, width='medium'),
+            'Grupo': st.column_config.SelectboxColumn('Grupo', options=_grp_options, width='small',
+                help='Grupo de embalaje al que pertenece este producto'),
+            'Cj/Plt (del grupo)': st.column_config.NumberColumn('Cj/Plt', disabled=True, width='small',
+                help='Cajas/pallet heredado del grupo (sólo lectura)'),
+            'Kg/Caja (del grupo)': st.column_config.NumberColumn('Kg/Caja', disabled=True, format='%.2f', width='small',
+                help='Kg/caja heredado del grupo (sólo lectura)'),
+            'Activo': st.column_config.CheckboxColumn('Activo', width='small'),
+        }
+
+        _edited_prod_grp = st.data_editor(
+            _prod_grp_df,
+            column_config=_prod_grp_col_cfg,
+            use_container_width=True,
+            num_rows='fixed',
+            key='edit_prod_grupo',
+            hide_index=True,
+            height=min(80 + 40 * (len(_prod_grp_rows) + 2), 900),
+        )
+
+        if st.button('U0001f4be Guardar Asignación de Grupos', type='primary', use_container_width=True, key='btn_save_prod_grp'):
+            _old_by_cod2 = {p.get('codigo',''): p for p in _emb_prods}
+            _new_prods2 = []
+            for _, _pr2 in _edited_prod_grp.iterrows():
+                _cod2 = str(_pr2.get('Código', '')).strip()
+                if not _cod2: continue
+                _base2 = dict(_old_by_cod2.get(_cod2, {}))
+                _grp2 = str(_pr2.get('Grupo', '') or '')
+                _base2['grupo'] = _grp2
+                _base2['activo'] = bool(_pr2.get('Activo', True))
+                # Sync cajas_pallet and kg_caja from grupo definition
+                if _grp2 and _grp2 in _emb_grupos:
+                    _base2['cajas_pallet'] = int(_emb_grupos[_grp2].get('cajas_pallet', 160) or 160)
+                    _base2['kg_caja'] = float(_emb_grupos[_grp2].get('kg_caja', _base2.get('kg_caja', 0)) or 0)
+                _new_prods2.append(_base2)
+            _emb_data['products'] = _new_prods2
+            save_data(_emb_data)
+            st.toast('✅ Asignación de grupos guardada', icon='✅')
+            st.rerun()
+
+
 
 
 def render_hacer_pedido():
@@ -1497,7 +1636,7 @@ def build_order_pdf(ped):
     packing_title = Paragraph('<b>TABLA DE EMBALAJE ESTIMADA</b>', ParagraphStyle('ptitle2', fontSize=10, textColor=AZUL, fontName='Helvetica-Bold', spaceBefore=6))
     story.append(packing_title)
     story.append(Spacer(1, 0.2*cm))
-    packing_header = ['Producto', 'Pallets', 'Cajas', 'Kg/Caja', 'Peso Total Est.', 'Cajas/Pallet']
+    packing_header = ['Producto', 'Grupo', 'Pallets', 'Cajas', 'Kg/Caja', 'Peso Total (kg)', 'Cj/Plt']
     packing_rows = [packing_header]
     _total_weight = 0
     _total_pal_pk = 0
@@ -1506,11 +1645,19 @@ def build_order_pdf(ped):
         _pk_cajas = int(_pk_item.get('cajas', 0))
         _pk_pallets = float(_pk_item.get('pallets', 0))
         _pk_name = _pk_item.get('producto', '')
-        # Try to get kg_caja from product data
+        # Get kg_caja and grupo from product/grupo data
         _pk_kg = 0
-        for _pp in load_data().get('products', []):
+        _pk_grp = ''
+        _pk_cxp_grp = 0
+        _pk_tipo_caja = ''
+        _pk_data_all = load_data()
+        for _pp in _pk_data_all.get('products', []):
             if _pp.get('codigo','') == _pk_item.get('codigo',''):
-                _pk_kg = float(_pp.get('kg_caja', 0) or 0)
+                _pk_grp = _pp.get('grupo','')
+                _pk_gi = _pk_data_all.get('config',{}).get('grupos',{}).get(_pk_grp,{})
+                _pk_kg = float(_pk_gi.get('kg_caja', _pp.get('kg_caja', 0) or 0) if _pk_grp and isinstance(_pk_gi, dict) else (_pp.get('kg_caja', 0) or 0))
+                _pk_cxp_grp = int(_pk_gi.get('cajas_pallet', _pp.get('cajas_pallet', 160) or 160) if _pk_grp and isinstance(_pk_gi, dict) else (_pp.get('cajas_pallet', 160) or 160))
+                _pk_tipo_caja = _pk_gi.get('tipo_caja', '') if isinstance(_pk_gi, dict) else ''
                 break
         _pk_weight = round(_pk_cajas * _pk_kg, 1) if _pk_kg else 0
         _pk_cxp = round(_pk_cajas / _pk_pallets, 0) if _pk_pallets > 0 else 0
@@ -1519,11 +1666,12 @@ def build_order_pdf(ped):
         _total_caj_pk += _pk_cajas
         packing_rows.append([
             _pk_name,
+            _pk_grp if _pk_grp else '—',
             f'{_pk_pallets:.1f}',
             str(_pk_cajas),
-            f'{_pk_kg:.1f} kg' if _pk_kg else '—',
+            f'{_pk_kg:.2f} kg' if _pk_kg else '—',
             f'{_pk_weight:,.0f} kg' if _pk_weight else '—',
-            str(int(_pk_cxp)) if _pk_cxp else '—',
+            str(_pk_cxp_grp) if _pk_cxp_grp else '—',
         ])
     packing_rows.append(['', f'{_total_pal_pk:.1f}', str(_total_caj_pk), '', f'{_total_weight:,.0f} kg' if _total_weight else '—', ''])
     pk_col_widths = [5*cm, 2*cm, 2*cm, 2.5*cm, 3*cm, 2.5*cm]
