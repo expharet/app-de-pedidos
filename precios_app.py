@@ -20,9 +20,18 @@ except ImportError:
     REPORTLAB_OK = False
 
 # ─── PAGE CONFIG ─────────────────────────────────────────────────────────────
+# Use logo.png as page icon if available
+import os as _os_pc
+_page_icon = "🛒"
+try:
+    if _os_pc.path.exists("logo.png"):
+        from PIL import Image as _PILpc
+        _page_icon = _PILpc.open("logo.png")
+except Exception:
+    pass
 st.set_page_config(
     page_title="Export Haret - Sistema de Pedidos",
-    page_icon="🚀",
+    page_icon=_page_icon,
     layout="wide",
     initial_sidebar_state="collapsed"
 )
@@ -240,7 +249,7 @@ def load_pedidos(): return _load(PEDIDOS_FILE, [])
 def load_historial(): return _load(HIST_FILE, [])
 def load_email_log(): return _load(EMAIL_FILE, [])
 def load_app_config():
-    return _load(APP_CONFIG_FILE, {"app_title": "🚀 EXPORT HARET — Panel de Administración"})
+    return _load(APP_CONFIG_FILE, {"app_title": "EXPORT HARET — Panel de Administración"})
 def save_app_config(cfg): _save(APP_CONFIG_FILE, cfg)
 def save_data(d): _save(DATA_FILE,d); st.cache_data.clear()
 def save_clients(c): _save(CLIENTS_FILE,c)
@@ -255,7 +264,7 @@ def init_session():
         if k not in st.session_state: st.session_state[k] = v
 
 def login_page():
-    st.markdown('<div style="text-align:center;padding:40px 0 20px"><h1>🚀 Export Haret</h1><h3 style="color:#666">Sistema de Gestión de Pedidos</h3></div>', unsafe_allow_html=True)
+    st.markdown('<div style="text-align:center;padding:40px 0 20px"><h1>Export Haret</h1><h3 style="color:#666">Sistema de Gestión de Pedidos</h3></div>', unsafe_allow_html=True)
     c1,c2,c3 = st.columns([1,1.2,1])
     with c2:
         st.markdown('### 🔐 Iniciar Sesión')
@@ -1037,6 +1046,27 @@ def render_gestion_pedidos():
 # ─── TAB CONFIGURACION ──────────────────────────────────────────────
 def render_configuracion():
     st.markdown('## ⚙️ Configuración del Sistema')
+
+    # ── MARCA / LOGO ────────────────────────────────────────────────────────
+    st.markdown('### 🖼️ Marca y Logotipo')
+    st.info('Sube tu logo en PNG o JPG. Se mostrará en la cabecera del portal de pedidos, en el panel de administración y en los albaranes PDF enviados a tu buzón.')
+    _logo_col1, _logo_col2 = st.columns([2, 1])
+    with _logo_col1:
+        _logo_file = st.file_uploader('📂 Subir logo (PNG o JPG, recomendado fondo blanco o transparente)', type=['png','jpg','jpeg'], key='cfg_logo_upload_top')
+        if _logo_file is not None:
+            with open('logo.png', 'wb') as _lf: _lf.write(_logo_file.getbuffer())
+            st.cache_data.clear()
+            st.success('✅ Logo actualizado. Se mostrará en el portal, admin y PDF.')
+            st.rerun()
+    with _logo_col2:
+        import os as _oscfg2
+        if _oscfg2.path.exists('logo.png'):
+            from PIL import Image as _ImgCfg2
+            st.image(_ImgCfg2.open('logo.png'), caption='Logo actual', use_container_width=True)
+        else:
+            st.warning('Sin logo — sube uno para reemplazar el nombre de texto.')
+    st.markdown('---')
+
     st.markdown('### 👤 Usuarios del Sistema')
     _users_file = 'users_custom.json'
     _users_data = _load(_users_file, {})
@@ -1092,40 +1122,30 @@ def render_configuracion():
     else:
         st.info('📬 Sin historial de emails aún')
     st.markdown('---')
-    st.markdown('### 📧 Estado SMTP (order@exportharet.com)')
+    st.markdown('### 📧 Estado SMTP — Entrega a order@exportharet.com')
     try:
         _smtp_cfg = st.secrets.get('email', {})
         _smtp_host = _smtp_cfg.get('smtp_host', '')
-        if _smtp_host:
-            st.success(f'✅ SMTP activo: {_smtp_cfg.get("smtp_user","?")} → {_smtp_host}:{_smtp_cfg.get("smtp_port",587)} | Emails van a order@exportharet.com')
+        _smtp_user = _smtp_cfg.get('smtp_user', '')
+        _smtp_port = _smtp_cfg.get('smtp_port', 587)
+        if _smtp_host and _smtp_user:
+            st.success(f'✅ SMTP configurado correctamente')
+            st.markdown(f'- **Servidor:** `{_smtp_host}:{_smtp_port}`  \n- **Cuenta envío:** `{_smtp_user}`  \n- **Destinatario pedidos:** `order@exportharet.com`  \n- **Adjunto PDF:** ✅ Albarán incluido en cada pedido')
         else:
-            st.warning('⚠️ SMTP no configurado — agregar en Streamlit Secrets: [email] smtp_host / smtp_user / smtp_pass')
-    except:
-        st.info('ℹ️ Configura SMTP en Streamlit Cloud → App settings → Secrets.')
+            st.error('❌ SMTP no configurado — los pedidos NO llegan al buzón')
+            st.markdown('> Ve a **Streamlit Cloud → App settings → Secrets** y añade la sección `[email]` con `smtp_host`, `smtp_user`, `smtp_pass`, `smtp_port`, `from_addr`')
+    except Exception as _smtp_ex:
+        st.warning(f'⚠️ No se pudo leer configuración SMTP: {str(_smtp_ex)[:80]}')
+        st.info('Configura SMTP en Streamlit Cloud → App settings → Secrets.')
     st.markdown('---')
     st.markdown('### 🗃️ Archivos de Datos')
     for fname in [DATA_FILE,CLIENTS_FILE,PEDIDOS_FILE,HIST_FILE,EMAIL_FILE]:
         exists=os.path.exists(fname)
         st.markdown(f"{'\u2705' if exists else '\u274C'} `{fname}`")
     st.markdown('---')
-    st.markdown('### 🖼️ Logotipo de la Aplicación')
-    _logo_col1, _logo_col2 = st.columns([2, 1])
-    with _logo_col1:
-        _logo_file = st.file_uploader('Subir nuevo logo (PNG o JPG)', type=['png','jpg','jpeg'], key='cfg_logo_upload')
-        if _logo_file is not None:
-            with open('logo.png', 'wb') as _lf: _lf.write(_logo_file.getbuffer())
-            st.success('✅ Logo actualizado. Recarga la página para verlo.')
-    with _logo_col2:
-        import os as _oscfg
-        if _oscfg.path.exists('logo.png'):
-            from PIL import Image as _ImgCfg
-            st.image(_ImgCfg.open('logo.png'), width=140)
-        else:
-            st.info('Sin logo')
-    st.markdown('---')
-    st.markdown('### ✏️ Título de la Aplicación')
+    st.markdown('### ✏️ Título del Panel Admin')
     _cur_cfg = load_app_config()
-    _cur_title = _cur_cfg.get("app_title", "🚀 EXPORT HARET — Panel de Administración")
+    _cur_title = _cur_cfg.get("app_title", "EXPORT HARET — Panel de Administración")
     _new_title = st.text_input('Título del panel de administración', value=_cur_title, key='cfg_app_title', help='Aparece en el header y sidebar del panel admin.')
     if st.button('💾 Guardar Título', key='cfg_save_title'):
         _cur_cfg["app_title"] = _new_title
@@ -1279,7 +1299,7 @@ def build_order_html(ped):
     e_row=f'<tr><td colspan="2" style="padding:6px;font-weight:bold;background:#f8f9fa">Entrega estimada:</td><td colspan="7" style="padding:6px">{f_entrega}</td></tr>' if f_entrega else ''
     return f'''<div style="font-family:Arial,sans-serif;max-width:750px;margin:0 auto;padding:20px">
       <div style="background:linear-gradient(135deg,#003E8C,#0066CC);color:white;padding:24px;border-radius:10px;margin-bottom:20px">
-        <h1 style="margin:0;font-size:1.6em">🚀 Export Haret</h1>
+        <h1 style="margin:0;font-size:1.6em">Export Haret</h1>
         <p style="margin:4px 0 0;opacity:.85">Confirmaci\xf3n de Pedido | Frutas Ex\xf3ticas Premium</p>
       </div>
       <table style="width:100%;border-collapse:collapse;margin-bottom:16px">
@@ -1663,7 +1683,7 @@ def send_order_email(ped):
     _notas_html = f'<p><b>Notas:</b> {notas}</p>' if notas else ''
     html = (f'<html><body style="font-family:Arial,sans-serif;color:#333">'
             f'<div style="background:#003E8C;padding:16px 24px;border-radius:8px">'
-            f'<h2 style="color:white;margin:0">🚀 Export Haret \u2014 Nueva Orden Recibida</h2>'
+            f'<h2 style="color:white;margin:0">Export Haret \u2014 Nueva Orden Recibida</h2>'
             f'</div><div style="padding:16px 0">'
             f'<table style="width:100%;border-collapse:collapse;font-size:14px">'
             f'<tr><td style="padding:6px"><b>N\u00ba Pedido:</b></td><td>{pid}</td>'
@@ -1765,7 +1785,7 @@ def render_portal_pedido():
         with _ph2: st.image(_logo2, width=200)
         st.markdown('<div style="text-align:center;margin-bottom:16px"><p style="color:#666;margin:0">Sistema de Pedidos — Frutas Exóticas Premium | order@exportharet.com</p></div>',unsafe_allow_html=True)
     else:
-        st.markdown('<div style="background:linear-gradient(135deg,#003E8C,#0066CC,#0099FF);padding:20px 30px;border-radius:12px;margin-bottom:24px;text-align:center"><h1 style="color:white;margin:0;font-size:1.8em">🚀 Export Haret</h1><p style="color:rgba(255,255,255,0.85);margin:4px 0 0">Sistema de Pedidos — Frutas Exóticas Premium</p></div>',unsafe_allow_html=True)
+        st.markdown('<div style="background:linear-gradient(135deg,#003E8C,#0066CC,#0099FF);padding:20px 30px;border-radius:12px;margin-bottom:24px;text-align:center"><h1 style="color:white;margin:0;font-size:1.8em">Export Haret</h1><p style="color:rgba(255,255,255,0.85);margin:4px 0 0">Sistema de Pedidos — Frutas Exóticas Premium</p></div>',unsafe_allow_html=True)
     # Init lang EARLY so _T is available for error messages
     if 'portal_lang' not in st.session_state:
         st.session_state['portal_lang'] = 'es'
@@ -2368,38 +2388,228 @@ def render_portal_pedido():
                 # Clear step-4 fields so next order starts clean
                 for _k in ['portal_notas','p_term']: st.session_state.pop(_k, None)
                 st.success(_T['order_confirmed'].format(pid=pid))
-                st.info(f"📧 Tu pedido ha sido enviado a **order@exportharet.com** para su confirmación. Nuestro equipo te contactará en 24-48h. Sigue el estado en la pestaña **Mis Pedidos** ↑")
+                # Professional confirmation banner
+                _nom_conf = nombre or email_input
+                st.markdown(f"""
+<div style='background:linear-gradient(135deg,#003E8C,#0066CC);border-radius:12px;padding:20px 24px;margin:12px 0;color:white'>
+<h3 style='margin:0 0 8px'>🎉 Pedido {pid} recibido con éxito</h3>
+<p style='margin:4px 0;font-size:1em'>Hola <b>{_nom_conf}</b>, hemos recibido tu pedido correctamente.</p>
+<p style='margin:4px 0;font-size:0.95em'>✅ Albarán enviado a nuestro equipo en <b>order@exportharet.com</b></p>
+<p style='margin:4px 0;font-size:0.95em'>📞 Nos pondremos en contacto contigo en un plazo de <b>24–48 horas hábiles</b> para confirmar disponibilidad y coordinar el envío.</p>
+<p style='margin:8px 0 0;font-size:0.85em;opacity:0.85'>Puedes hacer seguimiento de tu pedido en la pestaña <b>Mis Pedidos ↑</b></p>
+</div>""", unsafe_allow_html=True)
 
     # ── Acciones post-pedido ─────────────────────────────────────────────────
     if st.session_state.get('ultimo_pedido'):
         ped_saved = st.session_state['ultimo_pedido']
         pid_saved = ped_saved.get('id','')
         st.markdown('---')
-        st.markdown(f'#### ✅ Pedido **{pid_saved}** guardado')
+        # Professional post-order action panel
+        _nom_post = ped_saved.get('client_name','')
+        _tot_post = ped_saved.get('total_usd',0)
+        st.markdown(f"""
+<div style='border:2px solid #003E8C;border-radius:10px;padding:16px 20px;background:#f0f6ff;margin-bottom:12px'>
+<b style='color:#003E8C;font-size:1.05em'>📋 Pedido {pid_saved}</b> &nbsp;|&nbsp; 
+<span style='color:#1a7a3c;font-weight:bold'>${_tot_post:,.2f} USD</span> &nbsp;|&nbsp;
+<span style='color:#555'>Cliente: {_nom_post}</span>
+</div>""", unsafe_allow_html=True)
         pdf_bytes, pdf_mime, pdf_ext = build_order_pdf(ped_saved)
-        # Acciones en columnas
+        st.markdown('**¿Qué deseas hacer ahora?**')
         ac1, ac2, ac3 = st.columns(3)
         # Descargar PDF albarán
         ac1.download_button(
-            label=_T['download_pdf'],
+            label='⬇️ Descargar Albarán PDF',
             data=pdf_bytes,
             file_name=f'{pid_saved}{pdf_ext}',
             mime=pdf_mime,
             use_container_width=True,
             key='dl_pedido'
         )
-        # WhatsApp
+        # WhatsApp — professional message
         tot_wa = ped_saved.get('total_usd', 0)
-        _prods_str = ', '.join([str(i.get('cajas','')) + ' cajas ' + str(i.get('producto','')) for i in ped_saved.get('productos',[])])
-        _tipo_wa = ped_saved.get('tipo_precio', '')
+        _nom_wa = ped_saved.get('client_name', '')
+        _emp_wa = ped_saved.get('empresa', '')
+        _tipo_wa = ped_saved.get('tipo_precio', 'FOB')
         _dest_wa = ped_saved.get('destino', '')
-        wa_text = f'Pedido {pid_saved} Export Haret | ${tot_wa:,.2f} USD | {_tipo_wa} {_dest_wa} | {_prods_str}'
-        wa_encoded = wa_text.replace(' ', '%20').replace('\n', '%0A')
-        wa_url = f'https://wa.me/34641076116?text={wa_encoded}'
-        ac2.link_button('💬 WhatsApp', wa_url, use_container_width=True)
-        # Email
+        _pais_wa = ped_saved.get('pais', '')
+        _prods_lines = '%0A'.join(['  • ' + str(i.get('cajas','')) + ' cajas ' + str(i.get('producto','')) + '  (
+        mailto_url = f'mailto:order@exportharet.com?subject={subject.replace(" ","%20")}&body={body.replace(" ","%20")}'
+        ac3.link_button('📧 Enviar por Email', mailto_url, use_container_width=True)
+
+        if st.button(_T['new_order_btn'], key='nuevo_portal'):
+            st.session_state['ultimo_pedido'] = None
+            # Clear step-4 form fields
+            for _k in ['portal_notas','p_term']: st.session_state.pop(_k, None)
+            # Clear all product quantity inputs so client picks fresh quantities
+            _keys_to_clear = [k for k in st.session_state.keys() if k.startswith('portal_qty_') or k.startswith('portal_unit_')]
+            for _k in _keys_to_clear: st.session_state.pop(_k, None)
+            st.session_state.portal_carrito = []
+            st.rerun()
+
+    st.markdown('---')
+    st.markdown('---')
+    with st.expander(_T['quote_expander'],expanded=False):
+        st.markdown(_T['quote_intro'])
+        _cc1,_cc2=st.columns(2)
+        _cn=_cc1.text_input(_T['quote_name_lbl'],key='cnom',placeholder=_T['quote_name_ph'])
+        _ce=_cc2.text_input(_T['email_label'],value=st.session_state.get('portal_email_input',''),key='ceml')
+        _cd=_cc1.text_input('Destino',key='cdst',placeholder='ej: Madrid, España')
+        _cplt=_cc2.number_input('Pallets aprox.',min_value=1,max_value=200,value=5,key='cplt')
+        _cpro=st.text_area('Productos de interés',key='cpro',placeholder='ej: 3 pallets Granadilla...',height=70)
+        _cmsg=st.text_area(_T['quote_msg_lbl'],key='cmsg',placeholder=_T['quote_msg_ph'],height=70)
+        if st.button(_T['send_quote'], key='bcot', type='primary', use_container_width=True):
+            if not _ce or not _cpro: st.error('Completa email y productos de interés')
+            else:
+                _cy=datetime.now().strftime('%Y');_cpv=[p for p in load_pedidos() if p.get('id','').startswith(f'COT-{_cy}')]
+                _cid=f'COT-{_cy}-{len(_cpv)+1:04d}'
+                _cp={'id':_cid,'tipo':'cotizacion_especial','client_name':_cn,'client_email':_ce,'destino':_cd,'pallets_aprox':_cplt,'productos_interes':_cpro,'mensaje':_cmsg,'estado':'Pendiente revisión','fecha':datetime.now().isoformat(),'total_usd':0,'productos':[],'historial_estados':[{'estado':'Recibido','fecha':datetime.now().isoformat(),'usuario':'portal'}]}
+                _ct=load_pedidos();_ct.append(_cp);save_pedidos(_ct);send_order_email(_cp)
+                st.success(f'✅ Solicitud **{_cid}** enviada. Te contactaremos pronto.')
+    st.markdown('<div style="text-align:center;color:#888"><small>Export Haret © 2026 | order@exportharet.com | Frutas Exóticas Premium</small></div>', unsafe_allow_html=True)
+
+# ─── MAIN ────────────────────────────────────────────────────────────────────
+def main():
+    init_session()
+    auto_load_excel()
+
+    # Determine mode: 'portal' (public) or 'admin' (staff)
+    # Support ?view=cliente URL param to always show portal
+    if 'app_mode' not in st.session_state:
+        _qp = st.query_params
+        _view = _qp.get('view', '')
+        if _view == 'admin':
+            st.session_state.app_mode = 'admin'
+        else:
+            st.session_state.app_mode = 'portal'
+    # Allow switching to admin via URL even if session already set
+    elif st.query_params.get('view', '') == 'admin' and st.session_state.app_mode == 'portal':
+        st.session_state.app_mode = 'admin'
+        st.rerun()
+
+    # ── MODO PORTAL (PÚBLICO) ─────────────────────────────────────────────────
+    if st.session_state.app_mode == 'portal':
+        # Small admin access link in sidebar
+        import os as _ossl
+        if _ossl.path.exists('logo.png'):
+            from PIL import Image as _ImgSL
+            st.sidebar.image(_ImgSL.open('logo.png'), width=160)
+        else:
+            st.sidebar.markdown('### Export Haret')
+        st.sidebar.caption('Portal de Pedidos')
+        st.sidebar.markdown('---')
+        st.sidebar.markdown('<p style="text-align:center;margin:4px 0 8px"><a href="?view=admin" target="_self" style="color:#aaa;font-size:0.75em;text-decoration:none">🔒 Acceso administración</a></p>', unsafe_allow_html=True)
+        st.sidebar.markdown('---')
+        st.sidebar.caption('Export Haret © 2026 | order@exportharet.com')
+        render_portal_pedido()
+        return
+
+    # ── MODO ADMIN (STAFF LOGIN REQUERIDO) ────────────────────────────────────
+    if not st.session_state.logged_in:
+        # Show back to portal button
+        col_back, col_form = st.columns([1, 3])
+        with col_back:
+            if st.button('← Portal Clientes', key='go_portal'):
+                st.session_state.app_mode = 'portal'
+                st.query_params.clear()
+                st.rerun()
+        with col_form:
+            login_page()
+        return
+
+    # Admin panel
+    import os as _osa
+    if _osa.path.exists('logo.png'):
+        from PIL import Image as _ImgA
+        _logoA = _ImgA.open('logo.png')
+        _al1, _al2, _al3 = st.columns([2, 1, 2])
+        with _al2: st.image(_logoA, width=160)
+    _app_title = load_app_config().get("app_title", "EXPORT HARET — Panel de Administración")
+    st.markdown(f'<div style="background:linear-gradient(90deg,#003E8C,#0066CC);padding:16px 24px;border-radius:8px;margin-bottom:20px;"><h2 style="color:white;margin:0">{_app_title}</h2></div>', unsafe_allow_html=True)
+    import os as _ossadm
+    if _ossadm.path.exists('logo.png'):
+        from PIL import Image as _ImgAdm
+        st.sidebar.image(_ImgAdm.open('logo.png'), width=160)
+    else:
+        st.sidebar.markdown(f'## {_app_title}')
+    st.sidebar.markdown(f'**{st.session_state.user_nombre}** | {st.session_state.user_rol}')
+    st.sidebar.markdown('---')
+    pedidos = load_pedidos()
+    clients = load_clients()
+    st.sidebar.metric('📦 Pedidos', len(pedidos))
+    st.sidebar.metric('💵 Facturación', f"${sum(p.get('total_usd',0) for p in pedidos):,.0f}")
+    st.sidebar.metric('👥 Clientes', len(clients))
+    pending = len([p for p in pedidos if p.get('estado') in ['Recibido','Confirmado','Preparando']])
+    st.sidebar.metric('⏳ En proceso', pending)
+    st.sidebar.markdown('---')
+    st.sidebar.markdown('---')
+    if st.sidebar.button('🌐 Ver Portal Clientes', use_container_width=True, key='admin_go_portal'):
+        st.session_state.app_mode = 'portal'
+        st.session_state.logged_in = False
+        st.query_params.clear()
+        st.rerun()
+    if st.sidebar.button('🚪 Cerrar Sesión', use_container_width=True):
+        st.session_state.logged_in = False
+        st.rerun()
+    st.sidebar.caption('Export Haret © 2026 | order@exportharet.com')
+
+    tab1,tab2,tab3,tab4,tab5,tab6=st.tabs([
+        '📊 Dashboard',
+        '📄 Catálogo & Precios',
+        '🛒 Hacer Pedido',
+        '⚙️ Configuración',
+        '📦 Pedidos',
+        '👥 Clientes',
+    ])
+    with tab1: render_dashboard()
+    with tab2: render_catalogo()
+    with tab3: render_hacer_pedido()
+    with tab4: render_configuracion()
+    with tab5: render_gestion_pedidos()
+    with tab6: render_clientes()
+    st.markdown('---')
+    st.markdown('<div style="text-align:center;color:#888;"><small>Export Haret © 2026 | Sistema Profesional de Gestión de Pedidos</small></div>',unsafe_allow_html=True)
+
+if __name__=='__main__':
+    main()
+ + str(round(i.get('total',0),2)) + ' USD)' for i in ped_saved.get('productos',[])])
+        _dest_line = ('Destino: ' + _dest_wa) if _tipo_wa == 'CIF' and _dest_wa else 'Precio FOB (sin flete)'
+        _emp_line = ('Empresa: ' + _emp_wa + '%0A') if _emp_wa else ''
+        wa_text_lines = (
+            'Estimado equipo de Export Haret,%0A%0A'
+            f'Acabo de realizar el siguiente pedido a través del portal:%0A%0A'
+            f'📋 *Pedido: {pid_saved}*%0A'
+            f'👤 Cliente: {_nom_wa}%0A'
+            + _emp_line +
+            f'🌍 País: {_pais_wa}%0A'
+            f'📦 {_dest_line}%0A%0A'
+            f'*Detalle de productos:*%0A'
+            + _prods_lines +
+            f'%0A%0A💰 *TOTAL: ${tot_wa:,.2f} USD*%0A%0A'
+            f'Quedo a disposición para coordinar los detalles.%0A'
+            f'Saludos.'
+        )
+        wa_url = f'https://wa.me/34641076116?text={wa_text_lines}'
+        ac2.link_button('💬 Confirmar por WhatsApp', wa_url, use_container_width=True)
+        # Email — professional with albarán note
         subject = f'Pedido {pid_saved} — Export Haret'
-        body = f'Mi pedido {pid_saved} por ${tot_wa:,.2f} USD ha sido confirmado.'
+        _nom_mail = ped_saved.get('client_name','')
+        _emp_mail = ped_saved.get('empresa','')
+        _emp_mail_line = ('Empresa: ' + _emp_mail + '%0A') if _emp_mail else ''
+        _prods_mail = '%0A'.join(['- ' + str(i.get('cajas','')) + ' cajas ' + str(i.get('producto','')) for i in ped_saved.get('productos',[])])
+        body = (
+            f'Estimado equipo de Export Haret,%0A%0A'
+            f'Adjunto el albarán del pedido {pid_saved}.%0A%0A'
+            f'Datos del pedido:%0A'
+            f'• Cliente: {_nom_mail}%0A'
+            + _emp_mail_line +
+            f'• Incoterm: {_tipo_wa}' + (f' — {_dest_wa}' if _dest_wa and _tipo_wa=="CIF" else '') + '%0A'
+            f'• Total: ${tot_wa:,.2f} USD%0A%0A'
+            f'Productos:%0A'
+            + _prods_mail +
+            '%0A%0A'
+            f'Quedo a disposición para cualquier consulta.%0A'
+            f'Saludos.'
+        )
         mailto_url = f'mailto:order@exportharet.com?subject={subject.replace(" ","%20")}&body={body.replace(" ","%20")}'
         ac3.link_button('📧 Email', mailto_url, use_container_width=True)
 
@@ -2451,7 +2661,12 @@ def main():
     # ── MODO PORTAL (PÚBLICO) ─────────────────────────────────────────────────
     if st.session_state.app_mode == 'portal':
         # Small admin access link in sidebar
-        st.sidebar.markdown('### 🚀 Export Haret')
+        import os as _ossl
+        if _ossl.path.exists('logo.png'):
+            from PIL import Image as _ImgSL
+            st.sidebar.image(_ImgSL.open('logo.png'), width=160)
+        else:
+            st.sidebar.markdown('### Export Haret')
         st.sidebar.caption('Portal de Pedidos')
         st.sidebar.markdown('---')
         st.sidebar.markdown('<p style="text-align:center;margin:4px 0 8px"><a href="?view=admin" target="_self" style="color:#aaa;font-size:0.75em;text-decoration:none">🔒 Acceso administración</a></p>', unsafe_allow_html=True)
@@ -2480,9 +2695,14 @@ def main():
         _logoA = _ImgA.open('logo.png')
         _al1, _al2, _al3 = st.columns([2, 1, 2])
         with _al2: st.image(_logoA, width=160)
-    _app_title = load_app_config().get("app_title", "🚀 EXPORT HARET — Panel de Administración")
+    _app_title = load_app_config().get("app_title", "EXPORT HARET — Panel de Administración")
     st.markdown(f'<div style="background:linear-gradient(90deg,#003E8C,#0066CC);padding:16px 24px;border-radius:8px;margin-bottom:20px;"><h2 style="color:white;margin:0">{_app_title}</h2></div>', unsafe_allow_html=True)
-    st.sidebar.markdown(f'# {_app_title}')
+    import os as _ossadm
+    if _ossadm.path.exists('logo.png'):
+        from PIL import Image as _ImgAdm
+        st.sidebar.image(_ImgAdm.open('logo.png'), width=160)
+    else:
+        st.sidebar.markdown(f'## {_app_title}')
     st.sidebar.markdown(f'**{st.session_state.user_nombre}** | {st.session_state.user_rol}')
     st.sidebar.markdown('---')
     pedidos = load_pedidos()
@@ -2519,7 +2739,7 @@ def main():
     with tab5: render_gestion_pedidos()
     with tab6: render_clientes()
     st.markdown('---')
-    st.markdown('<div style="text-align:center;color:#888;"><small>🚀 Export Haret © 2026 | Sistema Profesional de Gestión de Pedidos</small></div>',unsafe_allow_html=True)
+    st.markdown('<div style="text-align:center;color:#888;"><small>Export Haret © 2026 | Sistema Profesional de Gestión de Pedidos</small></div>',unsafe_allow_html=True)
 
 if __name__=='__main__':
     main()
