@@ -489,6 +489,7 @@ def parse_excel_file(xl_path):
         cod = str(cod_val).strip()
         nom = str(nom_val or '').strip()
         pc = ws_pr.cell(r, 5).value   # Precio compra
+        fob_final = ws_pr.cell(r, 12).value  # FOB Final (col 12)
         fl = ws_pr.cell(r, 13).value  # Flete/caja
         cif_base = ws_pr.cell(r, 14).value  # CIF USD ref
         kg = ws_pr.cell(r, 4).value   # kg/caja
@@ -501,6 +502,7 @@ def parse_excel_file(xl_path):
             'precios_plt': precios_plt,
             'precio_compra': round(float(pc), 4) if isinstance(pc, (int, float)) else 0.0,
             'flete_ref': round(float(fl), 4) if isinstance(fl, (int, float)) else 0.0,
+            'fob_final': round(float(fob_final), 4) if isinstance(fob_final, (int, float)) else 0.0,
             'cif_base': round(float(cif_base), 4) if isinstance(cif_base, (int, float)) else 0.0,
             'kg_caja': round(float(kg), 3) if isinstance(kg, (int, float)) else 0.0,
         }
@@ -533,6 +535,8 @@ def parse_excel_file(xl_path):
             prod_data['precios_plt'] = rp['precios_plt']
         if rp.get('flete_ref'):
             prod_data['flete_ref'] = rp['flete_ref']
+        if rp.get('fob_final'):
+            prod_data['precio_fob_final'] = rp['fob_final']
         if rp.get('kg_caja'):
             prod_data['kg_caja'] = rp['kg_caja']
         if 'cajas_pallet' not in prod_data:
@@ -609,13 +613,17 @@ def render_catalogo():
             st.info('No hay productos activos. Importa el Excel o activa productos.')
             return
 
-        # Selector de destino para ajuste de flete
-        _dc1, _dc2 = st.columns([2, 2])
+        # Selector de tipo de precio y destino
+        _ct0, _dc1, _dc2 = st.columns([1.2, 2, 2])
+        with _ct0:
+            _cat_tipo = st.radio('\U0001f4b2 Tipo precio', ['CIF', 'FOB'], key='cat_tipo_precio', horizontal=True,
+                help='FOB = precio en origen sin flete. CIF = precio incluye flete al destino.')
         with _dc1:
             _dest_sel = st.selectbox('\U0001f4cd Destino (ajuste flete)',
                 dest_list if dest_list else ['Madrid/Espa\u00f1a'],
                 key='cat_destino_sel',
-                help='Selecciona el destino para ver los precios CIF con el flete correspondiente'
+                help='Selecciona el destino para ver los precios CIF con el flete correspondiente',
+                disabled=(_cat_tipo == 'FOB')
             )
         with _dc2:
             _moneda_dest = dests_moneda.get(_dest_sel, 'USD')
@@ -627,7 +635,10 @@ def render_catalogo():
             st.metric('\U0001f4b1 Moneda / Flete', f'{_moneda_dest} | ${_dest_flete_v:.2f}/cj')
 
         # ── Tabla estilo Excel: filas=pallets, columnas=productos ────
-        st.caption(f'Precios CIF hasta **{_dest_sel}** | Flete: **${_dest_flete_v:.2f} USD/caja** | Todos los precios en USD/caja. A mayor volumen total del pedido, menor precio.')
+        if _cat_tipo == 'FOB':
+            st.caption('Precios **FOB** (en origen, sin flete) | Todos los precios en USD/caja. A mayor volumen total del pedido, menor precio.')
+        else:
+            st.caption(f'Precios **CIF** hasta **{_dest_sel}** | Flete: **${_dest_flete_v:.2f} USD/caja** | Todos los precios en USD/caja. A mayor volumen total del pedido, menor precio.')
 
         N_PALLETS = 23  # columnas en el Excel (1..23 pallets)
         # Construir filas: cada fila = 1 pallet, cada columna = 1 producto
@@ -645,18 +656,26 @@ def render_catalogo():
                 _precios_plt = _p.get('precios_plt', [])
                 if _precios_plt:
                     _idx = min(_n_plt - 1, len(_precios_plt) - 1)
-                    _precio_base = _precios_plt[_idx]  # precio incluye flete ref (Madrid)
+                    _precio_base = _precios_plt[_idx]  # precio CIF incluye flete ref (Madrid)
                     if _precio_base:
-                        # Ajustar por flete destino seleccionado
-                        _precio_cif = round(float(_precio_base) - flete_ref + _dest_flete_v, 4)
+                        if _cat_tipo == 'FOB':
+                            # FOB: restar flete de referencia
+                            _precio_final = round(float(_precio_base) - flete_ref, 4)
+                        else:
+                            # CIF: ajustar por flete del destino seleccionado
+                            _precio_final = round(float(_precio_base) - flete_ref + _dest_flete_v, 4)
                     else:
-                        _precio_cif = None
+                        _precio_final = None
                 else:
-                    # Sin tabla directa: calcular desde precio_compra
+                    # Sin tabla directa: usar precio_fob_final o calcular
                     _pc = float(_p.get('precio_compra', 0) or 0)
-                    _mg = float(_p.get('margen_pct', 0.1) or 0.1)
-                    _precio_cif = round(_pc * (1 + _mg) + _dest_flete_v, 4) if _pc > 0 else None
-                _row[_col_names[_pi]] = _precio_cif
+                    if _cat_tipo == 'FOB':
+                        _fob_f = float(_p.get('precio_fob_final', 0) or 0)
+                        _precio_final = round(_fob_f, 4) if _fob_f > 0 else (round(_pc, 4) if _pc > 0 else None)
+                    else:
+                        _mg = float(_p.get('margen_pct', 0.1) or 0.1)
+                        _precio_final = round(_pc * (1 + _mg) + _dest_flete_v, 4) if _pc > 0 else None
+                _row[_col_names[_pi]] = _precio_final
             _tbl_rows.append(_row)
 
         df_plt = pd.DataFrame(_tbl_rows).set_index('Pallets')
@@ -1432,7 +1451,8 @@ def save_portal_clients(c):
 def get_fob_price(codigo, data):
     for p in data.get('products', []):
         if p.get('codigo') == codigo:
-            return round(float(p.get('precio_cif_usd', 0) or p.get('precio_compra', 0)), 2)
+            fob = p.get('precio_fob_final', 0) or p.get('precio_cif_usd', 0) or p.get('precio_compra', 0)
+            return round(float(fob), 2)
     return 0.0
 
 def get_cif_price(codigo, destino, data):
@@ -1708,10 +1728,11 @@ def build_order_pdf(ped):
     return buf.getvalue(), 'application/pdf', '.pdf'
 
 
-def get_precio_por_pallets(codigo, total_pallets, data):
+def get_precio_por_pallets(codigo, total_pallets, data, tipo_precio='CIF'):
     """Retorna el precio USD/caja para un producto segun el total de pallets del pedido.
     Usa la tabla directa de precios del Excel (precios_plt: lista de hasta 23 valores para 1..23 pallets).
-    Si total_pallets >= 23, usa el precio de 23 pallets. Precio incluye flete (CIF base Madrid).
+    Si total_pallets >= 23, usa el precio de 23 pallets.
+    CIF: precios_plt incluyen flete ref (Madrid). FOB: se resta el flete_ref para obtener precio FOB.
     """
     pals = max(1, int(total_pallets))
     for p in data.get('products', []):
@@ -1721,7 +1742,12 @@ def get_precio_por_pallets(codigo, total_pallets, data):
                 idx = min(pals - 1, len(precios_plt) - 1)
                 v = precios_plt[idx]
                 if v and float(v) > 0:
-                    return round(float(v), 4)
+                    precio_cif = round(float(v), 4)
+                    if tipo_precio == 'FOB':
+                        # Para FOB: restar flete de referencia para obtener precio en origen
+                        flete_ref = float(p.get('flete_ref', 0) or data.get('config', {}).get('flete_ref', 2.35) or 2.35)
+                        return round(max(precio_cif - flete_ref, 0), 4)
+                    return precio_cif
     # Fallback a calculo anterior si no hay tabla directa
     for p in data.get('products', []):
         if p.get('codigo') == codigo:
@@ -1764,11 +1790,14 @@ def get_descuento_volumen(pallets):
 
 
 def get_precio_con_volumen(codigo, destino, tipo_precio, data, pallets):
-    """Compatibilidad: retorna precio usando la nueva tabla directa por pallets."""
+    """Retorna precio usando la tabla directa por pallets.
+    FOB: precio en origen (sin flete). CIF: precio incluye flete al destino.
+    """
     if tipo_precio == 'CIF' and destino:
         return get_precio_cif_por_pallets(codigo, pallets, destino, data)
     else:
-        return get_precio_por_pallets(codigo, pallets, data)
+        # FOB: precio base sin flete (precios_plt - flete_ref)
+        return get_precio_por_pallets(codigo, pallets, data, tipo_precio='FOB')
 
 
 @st.cache_data(ttl=3600)
