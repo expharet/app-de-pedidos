@@ -42,6 +42,35 @@ TRAMOS_VOLUMEN = [
 
 MONEDAS = ["USD", "EUR", "GBP", "CHF", "AED", "CAD", "MXN", "BRL", "COP"]
 MONEDA_SIMBOLO = {"USD": "$", "EUR": "€", "GBP": "£", "CHF": "Fr", "AED": "د.إ", "CAD": "CA$", "MXN": "MX$", "BRL": "R$", "COP": "COP$"}
+# -- IDIOMA / LANGUAGE TRANSLATIONS --
+LANG_TEXTS = {
+    'es': {
+        'email_label': '📧 Tu correo electrónico',
+        'email_ph': 'tu@empresa.com',
+        'not_registered': '📝 Correo no registrado — completa tus datos para continuar.',
+        'welcome_back': 'Bienvenido de vuelta',
+        'nombre_label': '👤 Nombre completo *',
+        'empresa_label': '🏢 Empresa',
+        'telefono_label': '📱 Teléfono / WhatsApp',
+        'pais_label': '🌍 País',
+        'tab_datos': '👤 Mis Datos',
+        'tab_pedidos': '📦 Mis Pedidos',
+        'place_order': '🚀 Confirmar Pedido',
+    },
+    'en': {
+        'email_label': '📧 Your email address',
+        'email_ph': 'you@company.com',
+        'not_registered': '📝 Email not registered — please complete your details to continue.',
+        'welcome_back': 'Welcome back',
+        'nombre_label': '👤 Full name *',
+        'empresa_label': '🏢 Company',
+        'telefono_label': '📱 Phone / WhatsApp',
+        'pais_label': '🌍 Country',
+        'tab_datos': '👤 My Details',
+        'tab_pedidos': '📦 My Orders',
+        'place_order': '🚀 Confirm Order',
+    }
+}
 PEDIDOS_FILE = "pedidos_data.json"
 CLIENTS_FILE = "clientes.json"
 HIST_FILE    = "precio_historial.json"
@@ -1171,6 +1200,11 @@ def build_order_pdf(ped):
     destino = ped.get('destino','')
     total_usd = ped.get('total_usd', 0)
     notas = ped.get('notas','')
+    moneda_dest = ped.get('moneda_dest', 'USD')
+    flete_usd_caja = ped.get('flete_usd_caja', 0.0)
+    tasa_cambio = ped.get('tasa_cambio', 1.0)
+    total_moneda_dest = ped.get('total_moneda_dest', total_usd)
+    sym_dest = MONEDA_SIMBOLO.get(moneda_dest, moneda_dest)
 
     if not REPORTLAB_OK:
         # Fallback: devolver HTML como bytes
@@ -1192,8 +1226,18 @@ def build_order_pdf(ped):
     sub_style = ParagraphStyle('sub', fontSize=10, textColor=colors.HexColor('#CCDDFF'),
         fontName='Helvetica', alignment=TA_LEFT)
 
+    # Logo en cabecera
+    _logo_cell = Paragraph('<font color="white" size="20"><b>Export Haret</b></font><br/><font color="#CCDDFF" size="9">Sistema de Pedidos — Frutas Exóticas Premium</font>', styles['Normal'])
+    try:
+        from reportlab.platypus import Image as RLImage
+        import os as _os
+        if _os.path.exists('logo.png'):
+            _img = RLImage('logo.png', width=4.5*cm, height=1.5*cm)
+            _logo_cell = _img
+    except Exception:
+        pass
     header_data = [[
-        Paragraph('<font color="white"><b>Export Haret</b></font><br/><font color="#CCDDFF" size="9">Sistema de Pedidos — Frutas Exóticas Premium</font>', styles['Normal']),
+        _logo_cell,
         Paragraph(f'<font color="white" size="9"><b>ALBARÁN / ORDEN DE PEDIDO</b><br/>{pid}<br/>{fecha}</font>', styles['Normal'])
     ]]
     header_table = Table(header_data, colWidths=[10*cm, 7*cm])
@@ -1213,7 +1257,8 @@ def build_order_pdf(ped):
         [Paragraph(f'<b>Empresa:</b> {empresa or "-"}', styles['Normal']), Paragraph(f'<b>Fecha:</b> {fecha}', styles['Normal'])],
         [Paragraph(f'<b>Email:</b> {email_c}', styles['Normal']), Paragraph(f'<b>Estado:</b> {estado}', styles['Normal'])],
         [Paragraph(f'<b>Teléfono:</b> {telefono or "-"}', styles['Normal']), Paragraph(f'<b>País:</b> {pais or "-"}', styles['Normal'])],
-        [Paragraph(f'<b>Tipo Precio:</b> {tipo}', styles['Normal']), Paragraph(f'<b>Destino:</b> {destino if tipo=="CIF" else "FOB (origen)"}', styles['Normal'])],
+        [Paragraph(f'<b>Incoterm:</b> {tipo}' + (f' | Flete: ${flete_usd_caja:.2f} USD/caja' if tipo=="CIF" and flete_usd_caja>0 else ''), styles['Normal']),
+         Paragraph(f'<b>Destino:</b> {destino if tipo=="CIF" and destino else "FOB (en origen)"}<br/><font color="#888888" size="8">Embarcamos desde Quito/Guayaquil, Ecuador</font>', styles['Normal'])],
     ]
     info_table = Table(info_data, colWidths=[9*cm, 8*cm])
     info_table.setStyle(TableStyle([
@@ -1267,6 +1312,39 @@ def build_order_pdf(ped):
     story.append(prod_table)
     story.append(Spacer(1, 0.4*cm))
 
+    # --- Resumen Financiero ---
+    _fin_rows = [
+        [Paragraph('<b>RESUMEN FINANCIERO</b>', ParagraphStyle('fintit', fontSize=9, textColor=AZUL, fontName='Helvetica-Bold')), '', ''],
+        [Paragraph('<b>Total USD (divisa comercial):</b>', styles['Normal']),
+         Paragraph(f'<b>${total_usd:,.2f} USD</b>', styles['Normal']),
+         Paragraph('Divisa de referencia comercial', ParagraphStyle('fin_note2', fontSize=8, textColor=colors.HexColor('#888888')))],
+    ]
+    if moneda_dest != 'USD':
+        _fin_rows.append([
+            Paragraph(f'<b>Total {moneda_dest} (referencia):</b>', styles['Normal']),
+            Paragraph(f'<b>{sym_dest}{total_moneda_dest:,.2f} {moneda_dest}</b>', styles['Normal']),
+            Paragraph(f'Cotización: 1 USD = {tasa_cambio:.4f} {moneda_dest}', ParagraphStyle('fin_note3', fontSize=8, textColor=colors.HexColor('#888888')))])
+    if tipo == 'CIF' and flete_usd_caja > 0:
+        _n_cajas = sum(int(p.get('cajas',0)) for p in ped.get('productos',[]))
+        _total_flete = round(flete_usd_caja * _n_cajas, 2)
+        _fin_rows.append([
+            Paragraph('<b>Desglose flete CIF:</b>', styles['Normal']),
+            Paragraph(f'${_total_flete:,.2f} USD ({_n_cajas} cajas x ${flete_usd_caja:.2f})', styles['Normal']),
+            Paragraph('Incluido en precio CIF', ParagraphStyle('fin_note4', fontSize=8, textColor=colors.HexColor('#666666')))])
+    _fin_table = Table(_fin_rows, colWidths=[5.5*cm, 4.5*cm, 7*cm])
+    _fin_table.setStyle(TableStyle([
+        ('BACKGROUND', (0,0), (-1,0), AZUL_LIGHT),
+        ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
+        ('TEXTCOLOR', (0,0), (-1,0), AZUL),
+        ('SPAN', (0,0), (-1,0)),
+        ('FONTSIZE', (0,0), (-1,-1), 9),
+        ('PADDING', (0,0), (-1,-1), 5),
+        ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor('#DDDDDD')),
+        ('ROWBACKGROUNDS', (0,1), (-1,-1), [colors.white, colors.HexColor('#F8F9FA')]),
+        ('LINEBELOW', (0,-1), (-1,-1), 1.5, AZUL),
+    ]))
+    story.append(_fin_table)
+    story.append(Spacer(1, 0.3*cm))
     # --- Notas ---
     if notas:
         story.append(Paragraph(f'<b>Notas:</b> {notas}', ParagraphStyle('notas', fontSize=9, textColor=GRIS, spaceBefore=4)))
@@ -1276,7 +1354,8 @@ def build_order_pdf(ped):
     story.append(HRFlowable(width='100%', thickness=1, color=AZUL))
     story.append(Spacer(1, 0.2*cm))
     footer_style = ParagraphStyle('footer', fontSize=8, textColor=GRIS, alignment=TA_CENTER)
-    story.append(Paragraph('Export Haret © 2026 | order@exportharet.com | Frutas Exóticas Premium', footer_style))
+    story.append(Paragraph('Export Haret © 2026 | order@exportharet.com | Frutas Exóticas Premium de Ecuador', footer_style))
+    story.append(Paragraph('Los precios USD son la divisa comercial. Precios en moneda destino son referenciales y sujetos a cotización.', ParagraphStyle('footer2', fontSize=7, textColor=colors.HexColor('#AAAAAA'), alignment=TA_CENTER)))
 
     doc.build(story)
     buf.seek(0)
@@ -1497,6 +1576,17 @@ def render_portal_pedido():
     portal_clients = load_portal_clients()
 
     # Init session state for portal
+    # -- Selector de idioma --
+    if 'portal_lang' not in st.session_state:
+        st.session_state['portal_lang'] = 'es'
+    _lcol1, _lcol2 = st.columns([9, 1])
+    with _lcol2:
+        _lang_sel = st.selectbox('🌐', ['🇪🇸 ES', '🇬🇧 EN'],
+            index=0 if st.session_state.portal_lang == 'es' else 1,
+            key='_portal_lang_sel', label_visibility='collapsed')
+        st.session_state['portal_lang'] = 'es' if 'ES' in _lang_sel else 'en'
+    _T = LANG_TEXTS[st.session_state.portal_lang]
+
     for k, v in [('portal_email',''),('portal_registered',False),('portal_client_data',{}),('portal_carrito',[])]:
         if k not in st.session_state: st.session_state[k] = v
 
@@ -1921,6 +2011,10 @@ def render_portal_pedido():
                     'tipo_precio': tipo_precio,
                     'destino': destino if tipo_precio == 'CIF' else 'FOB',
                     'moneda': 'USD',
+            'moneda_dest': _moneda_dest,
+            'flete_usd_caja': dest_flete if tipo_precio == 'CIF' else 0.0,
+            'tasa_cambio': round(_rates_portal.get(_moneda_dest, 1.0), 4),
+            'total_moneda_dest': round(round(tot, 2) * _rates_portal.get(_moneda_dest, 1.0), 2),
                     'productos': list(st.session_state.portal_carrito),
                     'total_usd': round(tot, 2),
                     'estado': 'Recibido',
