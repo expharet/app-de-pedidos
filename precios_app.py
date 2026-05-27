@@ -45,6 +45,17 @@ TRAMOS_VOLUMEN = [
     {"min": 20, "max": 9999, "descuento": 0.15, "label": "20+ Pallets (-15%)"},
 ]
 
+def get_descuento_volumen(total_pallets):
+    """Retorna el descuento (0.00-0.15) segun total de pallets."""
+    try:
+        _p = max(1, int(total_pallets))
+    except Exception:
+        _p = 1
+    for _t in TRAMOS_VOLUMEN:
+        if _t['min'] <= _p <= _t['max']:
+            return float(_t.get('descuento', 0.0) or 0.0)
+    return 0.0
+
 MONEDAS = ["USD", "EUR", "GBP", "CHF", "AED", "CAD", "MXN", "BRL", "COP"]
 MONEDA_SIMBOLO = {"USD": "$", "EUR": "€", "GBP": "£", "CHF": "Fr", "AED": "د.إ", "CAD": "CA$", "MXN": "MX$", "BRL": "R$", "COP": "COP$"}
 # -- IDIOMA / LANGUAGE TRANSLATIONS --
