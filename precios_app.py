@@ -954,12 +954,12 @@ def render_clientes():
     if sel:
         c=clients[sel]; seg=segmentar(sel,clients); mp=[p for p in pedidos if p.get('client_email')==sel]
         d1,d2=st.columns(2)
-        d1.markdown(f"**Nombre:** {c.get('nombre','')}
-
-**Email:** {sel}
-
-**Segmento:** {seg['badge']}")
-        d2.markdown(f"**Pedidos:** {len(mp)}
+        d1.markdown(f"**Nombre:** {c.get('nombre','')}")
+        d1.markdown(f"**Email:** {sel}")
+        d1.markdown(f"**Segmento:** {seg['badge']}")
+        d2.markdown(f"**Pedidos:** {len(mp)}")
+        d2.markdown(f"**Facturación:** ${sum(p.get('total_usd',0) for p in mp):,.2f}")
+        d2.markdown(f"**Descuento:** {seg['descuento']*100:.0f}%")
 
 **Facturación:** ${sum(p.get('total_usd',0) for p in mp):,.2f}
 
