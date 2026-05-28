@@ -90,7 +90,7 @@ LANG_TEXTS = {
         'flete_caption': '🛫 Flete incluido: **${flete:.2f} USD/Kilo** | {orig} → {dest}',
         'cif_info': '📍 **Incoterm CIF** — Precio incluye costo + flete hasta **{dest}**. Embarcamos desde **{orig}**.',
         'fob_info': '📦 **FOB (Free On Board)** — El precio **no incluye flete**. Tú coordinas el transporte desde Ecuador.',
-        'fob_origin': '📌 Origen de embarque: **Quito o Guayaquil, Ecuador**',
+ 'price_update_notice': 'ℹ️ Los precios del catálogo se actualizan cada **martes**. Dudas: order@exportharet.com', 'btn_validate': '✅ Validar / Acceder', 'btn_change_client': '🔄 Cambiar cliente', 'err_email_format': '❌ Formato de email inválido', 'msg_click_validate': '👆 Haz clic en validar para continuar', 'order_cleared': '🗑️ Carrito vaciado',       'fob_origin': '📌 Origen de embarque: **Quito o Guayaquil, Ecuador**',
         'min_order_empty': '📋 <strong>Pedido mínimo: 3 pallets</strong> — Añade productos para comenzar tu pedido',
         'min_order_short': '📋 <strong>Pedido mínimo: 3 pallets</strong> — Tienes {plt:.1f} plt. Añade más productos.',
         'cart_fob': '📦 Precios FOB — El flete corre por tu cuenta desde Quito/Guayaquil, Ecuador',
@@ -167,7 +167,7 @@ LANG_TEXTS = {
         'quote_msg_lbl': 'Additional message',
         'quote_msg_ph': 'Special conditions...',
         'send_quote': '📤 Send request',
-        'price_update_notice': 'ℹ️ Catalogue prices are updated every **Tuesday**. Questions: order@exportharet.com',
+        'price_update_notice': 'ℹ️ Catalogue prices are updated every **Tuesday**. Questions: order@exportharet.com', 'btn_validate': '✅ Validate / Access', 'btn_change_client': '🔄 Change client', 'err_email_format': '❌ Invalid email format', 'msg_click_validate': '👆 Click validate to continue', 'order_cleared': '🗑️ Cart cleared',
     }
 }
 
