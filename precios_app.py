@@ -2744,10 +2744,10 @@ def render_portal_pedido():
             _dv2 = data.get('config',{}).get('destinos',{}).get(destino,{})
             _moneda_dest = _dv2.get('moneda','USD') if isinstance(_dv2,dict) else 'USD'
         _dest_rate = _rates_portal.get(_moneda_dest, 1)
-        _show_dest = _moneda_dest not in ('USD', 'EUR')
+        _disp_mon = _moneda_dest if _moneda_dest != 'USD' else 'EUR'; _disp_rate = _rates_portal.get(_disp_mon, _eur_rate); _disp_sym = MONEDA_SIMBOLO.get(_disp_mon, _disp_mon); _show_dest = False
         # ── Resumen del pedido (responsive: cards en móvil, tabla en desktop) ──
         # Total destacado arriba para reducir scroll en móvil
-        _tot_eur = round(_tot_c * _eur_rate, 2)
+        _tot_eur = round(_tot_c * _disp_rate, 2)
         _resumen_html = ['<div class="eh-resumen-wrap">']
         # CSS local
         _resumen_html.append('''<style>
@@ -2792,7 +2792,7 @@ def render_portal_pedido():
           <div>
             <div class="eh-tot-lbl">🛒 Total del pedido</div>
             <div class="eh-tot-val">${_tot_c:,.2f} USD</div>
-            <div class="eh-tot-eur">≈ €{_tot_eur:,.2f}{_moneda_extra}</div>
+            <div class="eh-tot-eur">≈ {_disp_sym}{_tot_eur:,.2f} {_disp_mon}{_moneda_extra}</div>
           </div>
           <div style="text-align:right">
             <div class="eh-tot-meta">📦 {_plt_c:.2f} pallets · {_cj_c:,} cajas</div>
@@ -2802,7 +2802,7 @@ def render_portal_pedido():
         ''')
         # Filas por producto (cards responsive)
         for _ci, _item in enumerate(st.session_state.portal_carrito):
-            _item_eur = round(_item['total'] * _eur_rate, 2)
+            _item_eur = round(_item['total'] * _disp_rate, 2)
             # PATCH UX-CIF U1: badge ahorro vs precio base (1 pal) - solo CIF
             _ux_save_html = ''
             if tipo_precio == 'CIF':
@@ -2821,7 +2821,7 @@ def render_portal_pedido():
                 {_ux_save_html}
                 <span class="eh-meta-cell"><b>{_item["pallets"]:.2f}</b> plt</span>
                 <span class="eh-meta-cell"><b>{_item["cajas"]:,}</b> cj</span>
-                <span class="eh-meta-cell eh-eur">€{_item_eur:,.2f}</span>
+                <span class="eh-meta-cell eh-eur">{_disp_sym}{_item_eur:,.2f}</span>
               </div>
             </div>
             ''')
@@ -2839,7 +2839,7 @@ def render_portal_pedido():
         # Nota tipo de precio y tasa EUR
         _live_lbl = '🟢 En vivo' if _rate_live else '⚪ Aprox.'
         st.markdown(
-            f'<div style="margin:6px 0;padding:5px 0"><small style="color:#777">💱 1 USD = <b>€{_eur_rate:.4f} EUR</b> — {_live_lbl} | Fuente: {_rate_src} | Actualizado: {_rate_ts}</small><br><small style="color:#999"><i>Precios en EUR son de referencia. La transacción se realiza en USD.</i></small></div>',
+            f'<div style="margin:6px 0;padding:5px 0"><small style="color:#777">💱 1 USD = <b>{_disp_sym}{_disp_rate:.4f} {_disp_mon}</b> — {_live_lbl} | Fuente: {_rate_src} | Actualizado: {_rate_ts}</small><br><small style="color:#999"><i>Precios en {_disp_mon} son de referencia. La transacción se realiza en USD.</i></small></div>',
             unsafe_allow_html=True
         )
         if tipo_precio == 'FOB':
