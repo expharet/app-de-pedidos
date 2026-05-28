@@ -1440,6 +1440,15 @@ def render_clientes():
     st.markdown('## 👥 Clientes')
     clients=load_clients()
     clients=_migrate_clients_swap(clients)
+    # Merge portal-registered clients so admin can see all
+    try:
+        _pc = load_portal_clients()
+        for _pe, _pv in (_pc or {}).items():
+            if _pe and _pe not in clients:
+                clients[_pe] = {'nombre': _pv.get('nombre',''), 'email': _pe, 'empresa': _pv.get('empresa',''), 'telefono': _pv.get('telefono',''), 'pais': _pv.get('pais',''), 'fecha_registro': _pv.get('fecha_registro',''), 'pedidos_ids': _pv.get('pedidos',[]), 'origen': 'portal_cliente'}
+        save_clients(clients)
+    except Exception:
+        pass
     pedidos=load_pedidos()
     if not clients: st.info('No hay clientes. Se crean al hacer pedidos.'); return
     _search = st.text_input('🔍 Buscar cliente', key='cli_search', placeholder='Nombre, email, empresa...')
@@ -2240,6 +2249,25 @@ def render_portal_pedido():
             pais = c4.selectbox(_T['pais_label'], options=_paises_opts, index=_pais_idx, key='portal_pais')
             if show_register:
                 st.caption(_T['auto_register'])
+            _sv_c1, _sv_c2 = st.columns([1,3])
+            if _sv_c1.button(_T.get('btn_validate','✅ Guardar datos'), key='portal_save_client_btn', type='primary', use_container_width=True):
+                import re as _re_sv
+                _eml_sv = (email_input or '').strip()
+                _nm_sv = (nombre or '').strip()
+                if not _re_sv.match(r'^[^@\s]+@[^@\s]+\.[^@\s]+$', _eml_sv):
+                    st.error(_T.get('err_email_format','Formato de email inválido'))
+                elif not _nm_sv:
+                    st.error('✏️ ' + _T.get('nombre_label','Nombre'))
+                else:
+                    _now_sv = datetime.now().isoformat()
+                    portal_clients[_eml_sv] = {'nombre': _nm_sv, 'empresa': empresa, 'telefono': telefono, 'pais': pais, 'email': _eml_sv, 'fecha_registro': portal_clients.get(_eml_sv, {}).get('fecha_registro', _now_sv), 'pedidos': portal_clients.get(_eml_sv, {}).get('pedidos', [])}
+                    save_portal_clients(portal_clients)
+                    _adm_sv = load_clients()
+                    _adm_sv[_eml_sv] = {'nombre': _nm_sv, 'email': _eml_sv, 'empresa': empresa, 'telefono': telefono, 'pais': pais, 'fecha_registro': _adm_sv.get(_eml_sv, {}).get('fecha_registro', _now_sv), 'pedidos_ids': _adm_sv.get(_eml_sv, {}).get('pedidos_ids', []), 'origen': _adm_sv.get(_eml_sv, {}).get('origen','portal_cliente')}
+                    save_clients(_adm_sv)
+                    st.cache_data.clear()
+                    st.success('✅ ' + _nm_sv)
+                    st.rerun()
 
         with tab_historial:
             if not _client_orders_all:
@@ -3022,7 +3050,7 @@ def render_portal_pedido():
                     'fecha_registro': portal_clients.get(email_input, {}).get('fecha_registro', datetime.now().isoformat()),
                     'pedidos': portal_clients.get(email_input, {}).get('pedidos', []) + [pid],
                 }
-                save_portal_clients(portal_clients)
+                save_portal_clients(portal_clients); _adm = load_clients(); _adm[email_input] = {'nombre': nombre, 'email': email_input, 'empresa': empresa, 'telefono': telefono, 'pais': pais, 'fecha_registro': _adm.get(email_input, {}).get('fecha_registro', datetime.now().isoformat()), 'pedidos_ids': list(set(_adm.get(email_input, {}).get('pedidos_ids', []) + [pid])), 'origen': 'portal_cliente'}; save_clients(_adm)
                 # Log email y envio real a order@exportharet.com
                 log_email(email_input, f'Confirmación pedido {pid}', 'portal_cliente')
                 send_order_email(ped)
