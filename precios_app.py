@@ -90,7 +90,7 @@ LANG_TEXTS = {
         'flete_caption': '🛫 Flete incluido: **${flete:.2f} USD/Kilo** | {orig} → {dest}',
         'cif_info': '📍 **Incoterm CIF** — Precio incluye costo + flete hasta **{dest}**. Embarcamos desde **{orig}**.',
         'fob_info': '📦 **FOB (Free On Board)** — El precio **no incluye flete**. Tú coordinas el transporte desde Ecuador.',
- 'price_update_notice': 'ℹ️ Los precios del catálogo se actualizan cada **martes**. Dudas: order@exportharet.com', 'btn_validate': '✅ Validar / Acceder', 'btn_change_client': '🔄 Cambiar cliente', 'err_email_format': '❌ Formato de email inválido', 'msg_click_validate': '👆 Haz clic en validar para continuar', 'order_cleared': '🗑️ Carrito vaciado',       'fob_origin': '📌 Origen de embarque: **Quito o Guayaquil, Ecuador**',
+ 'price_update_notice': 'ℹ️ Los precios del catálogo se actualizan cada **martes**. Dudas: order@exportharet.com', 'btn_validate': '✅ Validar / Acceder', 'btn_acceder': '🔓 Acceder', 'btn_change_client': '🔄 Cambiar cliente', 'err_email_format': '❌ Formato de email inválido', 'msg_click_validate': '👆 Haz clic en validar para continuar', 'order_cleared': '🗑️ Carrito vaciado',       'fob_origin': '📌 Origen de embarque: **Quito o Guayaquil, Ecuador**',
         'min_order_empty': '📋 <strong>Pedido mínimo: 3 pallets</strong> — Añade productos para comenzar tu pedido',
         'min_order_short': '📋 <strong>Pedido mínimo: 3 pallets</strong> — Tienes {plt:.1f} plt. Añade más productos.',
         'cart_fob': '📦 Precios FOB — El flete corre por tu cuenta desde Quito/Guayaquil, Ecuador',
@@ -167,7 +167,7 @@ LANG_TEXTS = {
         'quote_msg_lbl': 'Additional message',
         'quote_msg_ph': 'Special conditions...',
         'send_quote': '📤 Send request',
-        'price_update_notice': 'ℹ️ Catalogue prices are updated every **Tuesday**. Questions: order@exportharet.com', 'btn_validate': '✅ Validate / Access', 'btn_change_client': '🔄 Change client', 'err_email_format': '❌ Invalid email format', 'msg_click_validate': '👆 Click validate to continue', 'order_cleared': '🗑️ Cart cleared',
+        'price_update_notice': 'ℹ️ Catalogue prices are updated every **Tuesday**. Questions: order@exportharet.com', 'btn_validate': '✅ Validate / Access', 'btn_change_client': '🔄 Change client', 'err_email_format': '❌ Invalid email format', 'msg_click_validate': '👆 Click validate to continue', 'order_cleared': '🗑️ Cart cleared', 'btn_acceder': '🔓 Access',
     }
 }
 
@@ -1647,6 +1647,57 @@ def build_order_html(ped):
 def build_order_pdf(ped):
     """Genera un PDF albaran del pedido con reportlab. Retorna bytes del PDF."""
     buf = io.BytesIO()
+    # ── PDF translations (ES/EN) ─────────────────────────────────────────
+    _pdf_lang = ped.get('lang', 'es')
+    PDF_TEXTS = {
+        'es': {
+            'header_title': 'Export Haret',
+            'header_sub': 'Sistema de Pedidos — Frutas Exóticas Premium',
+            'doc_title': 'ALBARÁN / ORDEN DE PEDIDO',
+            'sec_client': 'DATOS DEL CLIENTE',
+            'sec_order': 'DETALLES DEL PEDIDO',
+            'name': 'Nombre', 'company': 'Empresa', 'email': 'Email', 'phone': 'Teléfono',
+            'incoterm': 'Incoterm', 'order_no': 'Nº Pedido', 'date': 'Fecha', 'status': 'Estado',
+            'country': 'País', 'destination': 'Destino',
+            'freight': 'Flete', 'fob_origin': 'FOB (en origen)',
+            'shipping_from': 'Embarcamos desde Quito/Guayaquil, Ecuador',
+            'product_detail': 'DETALLE DE PRODUCTOS',
+            'th_code': 'Código', 'th_product': 'Producto', 'th_boxes': 'Cajas',
+            'th_pallets': 'Pallets', 'th_price': 'Precio/caja', 'th_total': 'Total USD',
+            'total_label': 'TOTAL:', 'notes_label': 'Notas:',
+            'packing_title': 'TABLA DE EMBALAJE ESTIMADA',
+            'pk_product': 'Producto', 'pk_group': 'Grupo', 'pk_pallets': 'Pallets',
+            'pk_boxes': 'Cajas', 'pk_kgbox': 'Kg/Caja', 'pk_weight': 'Peso Total (kg)',
+            'pk_bxpal': 'Cj/Plt', 'pk_total': 'TOTAL',
+            'pk_note': '* Pesos totales son estimados. El peso real puede variar ±5% según calibre y variedad. No incluye embalaje de pallet.',
+            'footer_main': 'Export Haret © 2026 | order@exportharet.com | Frutas Exóticas Premium de Ecuador',
+            'footer_sub': 'Los precios USD son la divisa comercial. Precios en moneda destino son referenciales y sujetos a cotización.',
+        },
+        'en': {
+            'header_title': 'Export Haret',
+            'header_sub': 'Order System — Premium Exotic Fruits',
+            'doc_title': 'ORDER / DELIVERY NOTE',
+            'sec_client': 'CUSTOMER DETAILS',
+            'sec_order': 'ORDER DETAILS',
+            'name': 'Name', 'company': 'Company', 'email': 'Email', 'phone': 'Phone',
+            'incoterm': 'Incoterm', 'order_no': 'Order No.', 'date': 'Date', 'status': 'Status',
+            'country': 'Country', 'destination': 'Destination',
+            'freight': 'Freight', 'fob_origin': 'FOB (at origin)',
+            'shipping_from': 'Shipping from Quito/Guayaquil, Ecuador',
+            'product_detail': 'PRODUCT DETAIL',
+            'th_code': 'Code', 'th_product': 'Product', 'th_boxes': 'Boxes',
+            'th_pallets': 'Pallets', 'th_price': 'Price/box', 'th_total': 'Total USD',
+            'total_label': 'TOTAL:', 'notes_label': 'Notes:',
+            'packing_title': 'ESTIMATED PACKAGING TABLE',
+            'pk_product': 'Product', 'pk_group': 'Group', 'pk_pallets': 'Pallets',
+            'pk_boxes': 'Boxes', 'pk_kgbox': 'Kg/Box', 'pk_weight': 'Total Weight (kg)',
+            'pk_bxpal': 'Bx/Plt', 'pk_total': 'TOTAL',
+            'pk_note': '* Total weights are estimates. Actual weight may vary ±5% depending on size and variety. Does not include pallet packaging.',
+            'footer_main': 'Export Haret © 2026 | order@exportharet.com | Premium Exotic Fruits from Ecuador',
+            'footer_sub': 'USD prices are the commercial currency. Prices in destination currency are referential and subject to quotation.',
+        }
+    }
+    _PT = PDF_TEXTS.get(_pdf_lang, PDF_TEXTS['es'])
     pid = ped.get('id','')
     fecha = ped.get('fecha','')[:10]
     estado = ped.get('estado','Recibido')
@@ -1686,7 +1737,7 @@ def build_order_pdf(ped):
         fontName='Helvetica', alignment=TA_LEFT)
 
     # Logo en cabecera
-    _logo_cell = Paragraph('<font color="white" size="20"><b>Export Haret</b></font><br/><font color="#CCDDFF" size="9">Sistema de Pedidos — Frutas Exóticas Premium</font>', styles['Normal'])
+    _logo_cell = Paragraph(f'<font color="white" size="20"><b>{_PT["header_title"]}</b></font><br/><font color="#CCDDFF" size="9">{_PT["header_sub"]}</font>', styles['Normal'])
     try:
         from reportlab.platypus import Image as RLImage
         import os as _os
@@ -1697,7 +1748,7 @@ def build_order_pdf(ped):
         pass
     header_data = [[
         _logo_cell,
-        Paragraph(f'<font color="white" size="9"><b>ALBARÁN / ORDEN DE PEDIDO</b><br/>{pid}<br/>{fecha}</font>', styles['Normal'])
+        Paragraph(f'<font color="white" size="9"><b>{_PT["doc_title"]}</b><br/>{pid}<br/>{fecha}</font>', styles['Normal'])
     ]]
     header_table = Table(header_data, colWidths=[10*cm, 7*cm])
     header_table.setStyle(TableStyle([
@@ -1712,13 +1763,13 @@ def build_order_pdf(ped):
 
     # --- Datos cliente + pedido ---
     info_data = [
-        [Paragraph('<b>DATOS DEL CLIENTE</b>', styles['Normal']), Paragraph('<b>DETALLES DEL PEDIDO</b>', styles['Normal'])],
-        [Paragraph(f'<b>Nombre:</b> {nombre}', styles['Normal']), Paragraph(f'<b>Nº Pedido:</b> {pid}', styles['Normal'])],
-        [Paragraph(f'<b>Empresa:</b> {empresa or "-"}', styles['Normal']), Paragraph(f'<b>Fecha:</b> {fecha}', styles['Normal'])],
-        [Paragraph(f'<b>Email:</b> {email_c}', styles['Normal']), Paragraph(f'<b>Estado:</b> {estado}', styles['Normal'])],
-        [Paragraph(f'<b>Teléfono:</b> {telefono or "-"}', styles['Normal']), Paragraph(f'<b>País:</b> {pais or "-"}', styles['Normal'])],
-        [Paragraph(f'<b>Incoterm:</b> {tipo}' + (f' | Flete: ${flete_usd_caja:.2f} USD/Kilo' if tipo=="CIF" and flete_usd_caja>0 else ''), styles['Normal']),
-         Paragraph(f'<b>Destino:</b> {destino if tipo=="CIF" and destino else "FOB (en origen)"}<br/><font color="#888888" size="8">Embarcamos desde Quito/Guayaquil, Ecuador</font>', styles['Normal'])],
+        [Paragraph(f'<b>{_PT["sec_client"]}</b>', styles['Normal']), Paragraph(f'<b>{_PT["sec_order"]}</b>', styles['Normal'])],
+        [Paragraph(f'<b>{_PT["name"]}:</b> {nombre}', styles['Normal']), Paragraph(f'<b>{_PT["order_no"]}:</b> {pid}', styles['Normal'])],
+        [Paragraph(f'<b>{_PT["company"]}:</b> {empresa or "-"}', styles['Normal']), Paragraph(f'<b>{_PT["date"]}:</b> {fecha}', styles['Normal'])],
+        [Paragraph(f'<b>{_PT["email"]}:</b> {email_c}', styles['Normal']), Paragraph(f'<b>{_PT["status"]}:</b> {estado}', styles['Normal'])],
+        [Paragraph(f'<b>{_PT["phone"]}:</b> {telefono or "-"}', styles['Normal']), Paragraph(f'<b>{_PT["country"]}:</b> {pais or "-"}', styles['Normal'])],
+        [Paragraph(f'<b>{_PT["incoterm"]}:</b> {tipo}' + (f' | {_PT["freight"]}: ${flete_usd_caja:.2f} USD/Kilo' if tipo=="CIF" and flete_usd_caja>0 else ''), styles['Normal']),
+         Paragraph(f'<b>{_PT["destination"]}:</b> {destino if tipo=="CIF" and destino else _PT["fob_origin"]}<br/><font color="#888888" size="8">{_PT["shipping_from"]}</font>', styles['Normal'])],
     ]
     info_table = Table(info_data, colWidths=[9*cm, 8*cm])
     info_table.setStyle(TableStyle([
@@ -1735,11 +1786,11 @@ def build_order_pdf(ped):
     story.append(Spacer(1, 0.4*cm))
 
     # --- Tabla de productos ---
-    prod_title = Paragraph('<b>DETALLE DE PRODUCTOS</b>', ParagraphStyle('ptitle', fontSize=10, textColor=AZUL, fontName='Helvetica-Bold', spaceBefore=6))
+    prod_title = Paragraph(f'<b>{_PT["product_detail"]}</b>', ParagraphStyle('ptitle', fontSize=10, textColor=AZUL, fontName='Helvetica-Bold', spaceBefore=6))
     story.append(prod_title)
     story.append(Spacer(1, 0.2*cm))
 
-    prod_header = ['Código', 'Producto', 'Cajas', 'Pallets', 'Precio/caja', 'Total USD']
+    prod_header = [_PT['th_code'], _PT['th_product'], _PT['th_boxes'], _PT['th_pallets'], _PT['th_price'], _PT['th_total']]
     prod_rows = [prod_header]
     for item in ped.get('productos', []):
         prod_rows.append([
@@ -1751,7 +1802,7 @@ def build_order_pdf(ped):
             f'${item.get("total",0):,.2f}',
         ])
     # Total row
-    prod_rows.append(['', '', '', '', Paragraph('<b>TOTAL:</b>', styles['Normal']), Paragraph(f'<b>${total_usd:,.2f} USD</b>', styles['Normal'])])
+    prod_rows.append(['', '', '', '', Paragraph(f'<b>{_PT["total_label"]}</b>', styles['Normal']), Paragraph(f'<b>${total_usd:,.2f} USD</b>', styles['Normal'])])
 
     col_widths = [2.2*cm, 5.8*cm, 1.8*cm, 1.8*cm, 2.4*cm, 3*cm]
     prod_table = Table(prod_rows, colWidths=col_widths, repeatRows=1)
@@ -1774,15 +1825,15 @@ def build_order_pdf(ped):
 
     # --- Notas ---
     if notas:
-        story.append(Paragraph(f'<b>Notas:</b> {notas}', ParagraphStyle('notas', fontSize=9, textColor=GRIS, spaceBefore=4)))
+        story.append(Paragraph(f'<b>{_PT["notes_label"]}</b> {notas}', ParagraphStyle('notas', fontSize=9, textColor=GRIS, spaceBefore=4)))
         story.append(Spacer(1, 0.2*cm))
 
     # PATCH 24: Tabla de embalaje / packaging table
     story.append(Spacer(1, 0.4*cm))
-    packing_title = Paragraph('<b>TABLA DE EMBALAJE ESTIMADA</b>', ParagraphStyle('ptitle2', fontSize=10, textColor=AZUL, fontName='Helvetica-Bold', spaceBefore=6))
+    packing_title = Paragraph(f'<b>{_PT["packing_title"]}</b>', ParagraphStyle('ptitle2', fontSize=10, textColor=AZUL, fontName='Helvetica-Bold', spaceBefore=6))
     story.append(packing_title)
     story.append(Spacer(1, 0.2*cm))
-    packing_header = ['Producto', 'Grupo', 'Pallets', 'Cajas', 'Kg/Caja', 'Peso Total (kg)', 'Cj/Plt']
+    packing_header = [_PT['pk_product'], _PT['pk_group'], _PT['pk_pallets'], _PT['pk_boxes'], _PT['pk_kgbox'], _PT['pk_weight'], _PT['pk_bxpal']]
     packing_rows = [packing_header]
     _total_weight = 0
     _total_pal_pk = 0
@@ -1819,7 +1870,7 @@ def build_order_pdf(ped):
             f'{_pk_weight:,.0f} kg' if _pk_weight else '—',
             str(_pk_cxp_grp) if _pk_cxp_grp else '—',
         ])
-    packing_rows.append(['TOTAL', '', f'{_total_pal_pk:.1f}', str(_total_caj_pk), '', f'{_total_weight:,.0f} kg' if _total_weight else '—', ''])
+    packing_rows.append([_PT['pk_total'], '', f'{_total_pal_pk:.1f}', str(_total_caj_pk), '', f'{_total_weight:,.0f} kg' if _total_weight else '—', ''])
     pk_col_widths = [4.5*cm, 1.5*cm, 1.8*cm, 1.8*cm, 2*cm, 2.8*cm, 1.8*cm]
     pk_table = Table(packing_rows, colWidths=pk_col_widths, repeatRows=1)
     pk_table.setStyle(TableStyle([
@@ -1839,7 +1890,7 @@ def build_order_pdf(ped):
     ]))
     story.append(pk_table)
     story.append(Spacer(1, 0.2*cm))
-    pk_note = Paragraph('<i>* Pesos totales son estimados. El peso real puede variar ±5% según calibre y variedad. No incluye embalaje de pallet.</i>', ParagraphStyle('pknote', fontSize=7, textColor=GRIS))
+    pk_note = Paragraph(f'<i>{_PT["pk_note"]}</i>', ParagraphStyle('pknote', fontSize=7, textColor=GRIS))
     story.append(pk_note)
     story.append(Spacer(1, 0.3*cm))
 
@@ -1847,8 +1898,8 @@ def build_order_pdf(ped):
     story.append(HRFlowable(width='100%', thickness=1, color=AZUL))
     story.append(Spacer(1, 0.2*cm))
     footer_style = ParagraphStyle('footer', fontSize=8, textColor=GRIS, alignment=TA_CENTER)
-    story.append(Paragraph('Export Haret © 2026 | order@exportharet.com | Frutas Exóticas Premium de Ecuador', footer_style))
-    story.append(Paragraph('Los precios USD son la divisa comercial. Precios en moneda destino son referenciales y sujetos a cotización.', ParagraphStyle('footer2', fontSize=7, textColor=colors.HexColor('#AAAAAA'), alignment=TA_CENTER)))
+    story.append(Paragraph(_PT['footer_main'], footer_style))
+    story.append(Paragraph(_PT['footer_sub'], ParagraphStyle('footer2', fontSize=7, textColor=colors.HexColor('#AAAAAA'), alignment=TA_CENTER)))
 
     doc.build(story)
     buf.seek(0)
@@ -2217,7 +2268,18 @@ def render_portal_pedido():
 </div>'''
     st.markdown(_step_html, unsafe_allow_html=True)
     st.markdown(_T['step1'])
-    email_input = st.text_input(_T['email_label'], placeholder=_T['email_ph'], key='portal_email_input', value=st.session_state.portal_email)
+    # Email form with explicit "Acceder" button
+    with st.form('portal_email_form', clear_on_submit=False):
+        _email_form_raw = st.text_input(_T['email_label'], placeholder=_T['email_ph'], key='portal_email_input', value=st.session_state.portal_email)
+        _acceder_clicked = st.form_submit_button(_T.get('btn_acceder', '🔓 Acceder'), type='primary', use_container_width=True)
+    if _acceder_clicked:
+        _eml_trim = (_email_form_raw or '').strip()
+        if _eml_trim and _eml_trim != st.session_state.portal_email:
+            st.session_state.portal_email = _eml_trim
+            st.rerun()
+        elif _eml_trim:
+            st.session_state.portal_email = _eml_trim
+    email_input = st.session_state.portal_email or (_email_form_raw or '').strip()
 
     client_data = {}
     is_registered = False
@@ -3061,6 +3123,7 @@ def render_portal_pedido():
                     'fecha': datetime.now().isoformat(),
                     'notas':notas,'terminos_pago':p_term,'historial_estados': [{'estado': 'Recibido', 'fecha': datetime.now().isoformat(), 'usuario': 'portal'}],
                     'creado_por': 'portal',
+                    'lang': st.session_state.get('portal_lang', 'es'),
                 }
                 # Guardar pedido
                 todos = load_pedidos()
