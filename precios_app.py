@@ -3252,12 +3252,20 @@ def main():
         '📦 Pedidos',
         '👥 Clientes',
     ])
-    with tab1: render_dashboard()
-    with tab2: render_catalogo()
-    with tab3: render_hacer_pedido()
-    with tab4: render_configuracion()
-    with tab5: render_gestion_pedidos()
-    with tab6: render_clientes()
+    import traceback as _tb
+    def _safe_render(_tab, _fn, _name):
+        with _tab:
+            try:
+                _fn()
+            except Exception as _e:
+                st.error(f'Error en {_name}: {_e}')
+                st.code(_tb.format_exc())
+    _safe_render(tab1, render_dashboard, 'Dashboard')
+    _safe_render(tab2, render_catalogo, 'Catalogo')
+    _safe_render(tab3, render_hacer_pedido, 'Hacer Pedido')
+    _safe_render(tab4, render_configuracion, 'Configuracion')
+    _safe_render(tab5, render_gestion_pedidos, 'Pedidos')
+    _safe_render(tab6, render_clientes, 'Clientes')
     st.markdown('---')
     st.markdown('<div style="text-align:center;color:#888;"><small>🚀 Export Haret © 2026 | Sistema Profesional de Gestión de Pedidos</small></div>',unsafe_allow_html=True)
 
