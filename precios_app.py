@@ -3020,10 +3020,16 @@ def render_portal_pedido():
                 _falt_pal_v = 3 - _curr_pal_v
                 st.error(f'\u26a0\ufe0f Pedido m\u00ednimo: 3 pallets. Tienes {_curr_pal_v:.1f} pallets \u2014 a\u00f1ade {_falt_pal_v:.1f} pallets m\u00e1s para poder confirmar.')
             else:
-                _tod_p=load_pedidos()
-                _yn_p=datetime.now().strftime('%Y')
-                _pc_p=[p for p in _tod_p if p.get('id','').startswith(f'PED-{_yn_p}')]
-                pid=f'PED-{_yn_p}-{len(_pc_p)+1:04d}'
+                # C3: PID timestamp+uuid to prevent race condition
+                _tod_p = load_pedidos()
+                _yn_p = datetime.now().strftime('%Y')
+                _ts_p = datetime.now().strftime('%m%d%H%M%S')
+                _uid_p = uuid.uuid4().hex[:4].upper()
+                pid = f'PED-{_yn_p}-{_ts_p}-{_uid_p}'
+                _existing_ids = {p.get('id','') for p in _tod_p}
+                while pid in _existing_ids:
+                    _uid_p = uuid.uuid4().hex[:4].upper()
+                    pid = f'PED-{_yn_p}-{_ts_p}-{_uid_p}'
                 tot = sum(i['total'] for i in st.session_state.portal_carrito)
                 # Ensure rates/currency vars are available (fallback if cart block didn't run)
                 try:
