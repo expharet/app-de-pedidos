@@ -3161,7 +3161,7 @@ def render_portal_pedido():
                 for _k in ['portal_notas','p_term']: st.session_state.pop(_k, None)
                 st.success(_T['order_confirmed'].format(pid=pid))
                 _msg_sent = _T['order_sent_email'].replace('<b>', '**').replace('</b>', '**')
-            st.info(_msg_sent)
+                st.info(_msg_sent)
 
     # ── Acciones post-pedido ─────────────────────────────────────────────────
     if st.session_state.get('ultimo_pedido'):
