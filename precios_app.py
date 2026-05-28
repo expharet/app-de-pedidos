@@ -2972,8 +2972,8 @@ def render_portal_pedido():
         notas = st.text_area(_T.get('notes_label','📝 Notas / instrucciones especiales'), placeholder=_T.get('notes_ph','Ej: Entrega en almacén X, condiciones especiales...'), key='portal_notas')
 
         _toptES=['','Pago anticipado 100%','50% adelanto / 50% contra documentos','30% adelanto / 70% contra BL','Carta de cr\xe9dito (LC)','Pago a 30 d\xedas','Pago a 60 d\xedas','Otro']
-    _toptEN=['','100% advance payment','50% advance / 50% against documents','30% advance / 70% against BL','Letter of credit (LC)','30-day payment','60-day payment','Other']
-    TOPT = _toptEN if st.session_state.get('portal_lang','es')=='en' else _toptES
+        _toptEN=['','100% advance payment','50% advance / 50% against documents','30% advance / 70% against BL','Letter of credit (LC)','30-day payment','60-day payment','Other']
+        TOPT = _toptEN if st.session_state.get('portal_lang','es')=='en' else _toptES
         p_term=st.selectbox(_T.get('payment_terms', '📋 Términos de pago (opcional)'),TOPT,key='p_term')
         # PATCH 19: Full order summary before confirm
         if st.session_state.portal_carrito and email_input and nombre:
