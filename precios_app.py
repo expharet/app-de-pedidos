@@ -247,11 +247,28 @@ def _load(path, default):
     return default
 
 def _save(path, data):
+    # C2: Atomic write to prevent data corruption on interrupted writes
+    import tempfile as _tmpf
     try:
-        with open(path,'w',encoding='utf-8') as f: json.dump(data,f,indent=2,ensure_ascii=False)
-        return True
+        _dirn = os.path.dirname(os.path.abspath(path)) or '.'
+        _fd, _tmp_path = _tmpf.mkstemp(prefix='.eh_', suffix='.tmp', dir=_dirn)
+        try:
+            with os.fdopen(_fd, 'w', encoding='utf-8') as f:
+                json.dump(data, f, indent=2, ensure_ascii=False)
+                f.flush()
+                try: os.fsync(f.fileno())
+                except Exception: pass
+            os.replace(_tmp_path, path)
+            return True
+        except Exception:
+            try: os.unlink(_tmp_path)
+            except Exception: pass
+            raise
     except Exception as e:
-        st.error(f'Error guardando: {e}'); return False
+        logger.error(f'Error guardando {path}: {e}')
+        try: st.error(f'Error guardando: {e}')
+        except Exception: pass
+        return False
 
 @st.cache_data(ttl=60)
 def load_data():
