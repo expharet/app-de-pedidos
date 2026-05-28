@@ -2570,7 +2570,7 @@ def render_portal_pedido():
     /* Cleaner product row styling */
     .eh-cat-row-marker { display:none; }
     /* Compact cart banner button alignment */
-    .eh-cart-banner-actions { display:flex; gap:8px; align-items:center; justify-content:flex-end; }
+    .eh-cart-banner-actions { display:flex; gap:8px; align-items:center; justify-content:flex-end; } @media (max-width: 768px) { div[data-testid="stNumberInput"] button { min-width: 36px !important; min-height: 36px !important; font-size: 1rem !important; } div[data-testid="stNumberInput"] input { min-height: 36px !important; font-size: 0.95rem !important; } div[data-testid="stHorizontalBlock"]:has(div[data-testid="stNumberInput"]) { padding: 6px 8px !important; gap: 4px !important; } }
     </style>''', unsafe_allow_html=True)
     # Banner pedido mínimo
     _current_pallets = sum(i.get('pallets',0) for i in st.session_state.portal_carrito)
