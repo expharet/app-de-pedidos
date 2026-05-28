@@ -2742,7 +2742,7 @@ def render_portal_pedido():
         _moneda_dest = 'USD'
         if tipo_precio == 'CIF' and destino:
             _dv2 = data.get('config',{}).get('destinos',{}).get(destino,{})
-            _moneda_dest = _dv2.get('moneda','USD') if isinstance(_dv2,dict) else 'USD'
+            _moneda_dest = data.get('config',{}).get('destinos_moneda',{}).get(destino, _dv2.get('moneda','USD') if isinstance(_dv2,dict) else 'USD')
         _dest_rate = _rates_portal.get(_moneda_dest, 1)
         _disp_mon = _moneda_dest if _moneda_dest != 'USD' else 'EUR'; _disp_rate = _rates_portal.get(_disp_mon, _eur_rate); _disp_sym = MONEDA_SIMBOLO.get(_disp_mon, _disp_mon); _show_dest = False
         # ── Resumen del pedido (responsive: cards en móvil, tabla en desktop) ──
