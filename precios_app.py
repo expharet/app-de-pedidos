@@ -849,7 +849,7 @@ def render_catalogo():
             save_data(data)
             st.toast('Precios guardados \u2705', icon='\u2705')
             st.session_state.price_edit_v = st.session_state.get('price_edit_v', 0) + 1
-        st.rerun()
+            st.rerun()
 
     # ─── SUB-TAB 2: DESTINOS & MONEDAS ───────────────────────────────
     with sub2:
@@ -3252,43 +3252,12 @@ def main():
         '📦 Pedidos',
         '👥 Clientes',
     ])
-    import traceback as _tb
-    with tab1:
-        try:
-            render_dashboard()
-        except Exception as _e:
-            st.error(f'Dashboard error: {_e}')
-            st.code(_tb.format_exc())
-    with tab2:
-        try:
-            render_catalogo()
-        except Exception as _e:
-            st.error(f'Catalogo error: {_e}')
-            st.code(_tb.format_exc())
-    with tab3:
-        try:
-            render_hacer_pedido()
-        except Exception as _e:
-            st.error(f'Hacer Pedido error: {_e}')
-            st.code(_tb.format_exc())
-    with tab4:
-        try:
-            render_configuracion()
-        except Exception as _e:
-            st.error(f'Configuracion error: {_e}')
-            st.code(_tb.format_exc())
-    with tab5:
-        try:
-            render_gestion_pedidos()
-        except Exception as _e:
-            st.error(f'Pedidos error: {_e}')
-            st.code(_tb.format_exc())
-    with tab6:
-        try:
-            render_clientes()
-        except Exception as _e:
-            st.error(f'Clientes error: {_e}')
-            st.code(_tb.format_exc())
+    with tab1: render_dashboard()
+    with tab2: render_catalogo()
+    with tab3: render_hacer_pedido()
+    with tab4: render_configuracion()
+    with tab5: render_gestion_pedidos()
+    with tab6: render_clientes()
     st.markdown('---')
     st.markdown('<div style="text-align:center;color:#888;"><small>🚀 Export Haret © 2026 | Sistema Profesional de Gestión de Pedidos</small></div>',unsafe_allow_html=True)
 
