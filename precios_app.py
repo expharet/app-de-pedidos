@@ -2934,7 +2934,7 @@ def render_portal_pedido():
                 f'{_prod_cards_html}'
                 '<div class="eh-cnf-total-row">'
                 f'<div><div class="eh-cnf-tl">🛒 TOTAL DEL PEDIDO</div><div class="eh-cnf-tv">${tot_final:,.2f} USD</div>{_fin_alt}</div>'
-                f'<div style="text-align:right"><div class="eh-cnf-tx">📦 {_tot_pal_fin:.2f} pallets</div><div class="eh-cnf-tx">📋 {_tot_caj_fin:,} cajas</div>' + (f'<div class="eh-cnf-tx">⚖️ {_tot_peso_fin:,.0f} kg</div>' if _tot_peso_fin > 0 else '') + '</div>'
+                f'<div style="text-align:right"><div class="eh-cnf-tx">📦 {_tot_pal_fin:.2f} pallets</div><div class="eh-cnf-tx">📋 {_tot_caj_fin:,} cajas</div>' + (f'<div class="eh-cnf-tx">⚖️ {_tot_peso_fin:,.0f} kg net.</div><div class="eh-cnf-tx" style="font-size:0.72rem;opacity:0.78;font-style:italic;margin-top:2px;text-align:right">* kg net. de fruta — no incluye embalaje</div>' if _tot_peso_fin > 0 else '') + '</div>'
                 '</div>'
                 '</div>'
             )
@@ -3233,6 +3233,19 @@ def main():
         st.session_state['admin_active_tab'] = 'pedidos'
         st.rerun()
     st.sidebar.markdown('---')
+    st.sidebar.markdown('---')
+    with st.sidebar.expander('🔗 Compartir Portal Clientes', expanded=False):
+        _portal_url = 'https://exportharet-pedidos.streamlit.app/'
+        st.caption('Envía este enlace a tus clientes:')
+        st.code(_portal_url, language=None)
+        from urllib.parse import quote as _qsh
+        _msg_sh = _qsh(f'Hola, te invitamos a usar nuestro portal de pedidos Export Haret: {_portal_url}')
+        _c1sh, _c2sh = st.columns(2)
+        with _c1sh:
+            st.link_button('💬 WhatsApp', f'https://wa.me/?text={_msg_sh}', use_container_width=True)
+        with _c2sh:
+            st.link_button('✉️ Email', f'mailto:?subject={_qsh("Portal de Pedidos Export Haret")}&body={_msg_sh}', use_container_width=True)
+        st.caption('🔓 Acceso público, sin login.')
     st.sidebar.markdown('---')
     if st.sidebar.button('🌐 Ver Portal Clientes', use_container_width=True, key='admin_go_portal'):
         st.session_state.app_mode = 'portal'
