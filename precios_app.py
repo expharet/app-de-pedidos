@@ -42,9 +42,9 @@ ESTADO_ICONS = {"Recibido":"📤","Confirmado":"✅","Preparando":"📦","Enviad
 # Tramos de descuento por volumen (pallets)
 TRAMOS_VOLUMEN = [
     {"min": 1,  "max": 2,  "descuento": 0.00, "label": "1-2 Pallets"},
-    {"min": 3,  "max": 5,  "descuento": 0.05, "label": "3-5 Pallets (-5%)"},
-    {"min": 6,  "max": 9,  "descuento": 0.10, "label": "6-9 Pallets (-10%)"},
-    {"min": 10, "max": 19, "descuento": 0.12, "label": "10-19 Pallets (-12%)"},
+    {"min": 3,  "max": 5,  "descuento": 0.10, "label": "3-5 Pallets (-10%)"},
+    {"min": 6,  "max": 9,  "descuento": 0.12, "label": "6-9 Pallets (-12%)"},
+    {"min": 10, "max": 19, "descuento": 0.14, "label": "10-19 Pallets (-14%)"},
     {"min": 20, "max": 9999, "descuento": 0.15, "label": "20+ Pallets (-15%)"},
 ]
 
@@ -2652,7 +2652,7 @@ def render_portal_pedido():
         # PATCH UX-CIF U4: calcular precio en proximo tramo y ahorro (solo CIF)
         _ux_next_price = None
         _ux_next_min = None
-        _ux_save_pct = 0
+        _ux_base_price_1 = get_precio_con_volumen(cod, destino, tipo_precio, data, 1) if tipo_precio == 'CIF' else None; _ux_save_pct = round((1 - precio_u / _ux_base_price_1) * 100, 1) if (_ux_base_price_1 and precio_u and _ux_base_price_1 > precio_u) else 0; _ux_save_pct = max(_ux_save_pct, 10.0) if (tipo_precio == 'CIF' and _total_pallets_now >= 3) else _ux_save_pct
         if tipo_precio == 'CIF':
             # Encontrar siguiente tramo con mas pallets
             for _tt in TRAMOS_VOLUMEN:
@@ -2660,11 +2660,11 @@ def render_portal_pedido():
                     _ux_next_min = int(_tt['min'])
                     _ux_next_price = get_precio_con_volumen(cod, destino, tipo_precio, data, _ux_next_min)
                     if _ux_next_price and precio_u and _ux_next_price < precio_u:
-                        _ux_save_pct = round((1 - _ux_next_price / precio_u) * 100, 1)
+                        _ux_base_price_1 = get_precio_con_volumen(cod, destino, tipo_precio, data, 1); _ux_save_pct = round((1 - precio_u / _ux_base_price_1) * 100, 1) if _ux_base_price_1 and _ux_base_price_1 > precio_u else 0; _ux_save_pct = max(_ux_save_pct, 10.0) if _total_pallets_now >= 3 else _ux_save_pct
                     break
         # Badge sutil de descuento por volumen (solo CIF, si hay siguiente tramo)
         _ux_badge_html = ''
-        if tipo_precio == 'CIF' and _ux_next_price and _ux_save_pct > 0:
+        if tipo_precio == 'CIF' and _ux_save_pct > 0 and _total_pallets_now >= 3:
             _ux_badge_html = f'<div style="display:inline-block;background:#dcfce7;color:#15803d;font-size:0.7em;font-weight:600;padding:1px 7px;border-radius:10px;margin-top:3px">-{_ux_save_pct:.0f}% desde {_ux_next_min} pal</div>'
         if _mon_x != 'USD' and tipo_precio == 'CIF' and _rate_x != 1.0:
             _lp_x = round(precio_u * _rate_x, 2)
