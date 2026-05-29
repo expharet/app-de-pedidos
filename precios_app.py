@@ -14,6 +14,10 @@ try:
 except Exception:
     finanzas_sync = None
 try:
+    import outbox  # cola durable de pedidos (Gist) para recuperación cuando el Mac estaba apagado
+except Exception:
+    outbox = None
+try:
     from reportlab.lib.pagesizes import A4
     from reportlab.lib import colors
     from reportlab.lib.units import cm
@@ -299,7 +303,13 @@ def load_app_config():
 def save_app_config(cfg): _save(APP_CONFIG_FILE, cfg)
 def save_data(d): _save(DATA_FILE,d); st.cache_data.clear()
 def save_clients(c): _save(CLIENTS_FILE,c)
-def save_pedidos(p): _save(PEDIDOS_FILE,p)
+def save_pedidos(p):
+    _save(PEDIDOS_FILE, p)
+    if outbox:
+        try:
+            outbox.publish(p)  # vuelca a la cola durable (Gist); no-op si no está configurado
+        except Exception as e:
+            logger.warning(f'outbox falló: {e}')
 def sync_finanzas(ped, todos=None):
     """Empuja el pedido al hub Finanzas. Nunca rompe el flujo si falla."""
     if not finanzas_sync:
