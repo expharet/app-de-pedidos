@@ -84,7 +84,8 @@ def upsert_cliente(razon_social: str, **campos: Any) -> int | None:
         return None
     try:
         r = requests.get(f"{BASE_URL}/api/clientes/buscar",
-                         params={"razon_social": razon}, timeout=TIMEOUT)
+                         params={"razon_social": razon},
+                         headers=_auth_only(), timeout=TIMEOUT)
         if r.status_code == 200:
             return int(r.json()["id"])
         payload = {"razon_social": razon, **{k: v for k, v in campos.items() if v}}
@@ -94,7 +95,8 @@ def upsert_cliente(razon_social: str, **campos: Any) -> int | None:
             return int(r.json()["id"])
         if r.status_code == 409:
             r2 = requests.get(f"{BASE_URL}/api/clientes/buscar",
-                             params={"razon_social": razon}, timeout=TIMEOUT)
+                             params={"razon_social": razon},
+                             headers=_auth_only(), timeout=TIMEOUT)
             if r2.status_code == 200:
                 return int(r2.json()["id"])
     except requests.RequestException:
@@ -138,7 +140,8 @@ def convertir_cotizacion(cot_id: int) -> dict | None:
 # ----------------------------------------------------------------- envíos
 def _estado_envio(envio_id: int) -> str | None:
     try:
-        r = requests.get(f"{BASE_URL}/api/envios", timeout=TIMEOUT)
+        r = requests.get(f"{BASE_URL}/api/envios",
+                         headers=_auth_only(), timeout=TIMEOUT)
         if r.status_code == 200:
             for e in r.json():
                 if e.get("id") == envio_id:
