@@ -10,6 +10,10 @@ from datetime import datetime, date, timedelta
 from typing import Dict, List, Optional
 from PIL import Image
 try:
+    import finanzas_sync  # sincronización con el hub Finanzas (cliente/cotización/envío)
+except Exception:
+    finanzas_sync = None
+try:
     from reportlab.lib.pagesizes import A4
     from reportlab.lib import colors
     from reportlab.lib.units import cm
@@ -296,6 +300,16 @@ def save_app_config(cfg): _save(APP_CONFIG_FILE, cfg)
 def save_data(d): _save(DATA_FILE,d); st.cache_data.clear()
 def save_clients(c): _save(CLIENTS_FILE,c)
 def save_pedidos(p): _save(PEDIDOS_FILE,p)
+def sync_finanzas(ped, todos=None):
+    """Empuja el pedido al hub Finanzas. Nunca rompe el flujo si falla."""
+    if not finanzas_sync:
+        return
+    try:
+        finanzas_sync.sync_pedido(ped)
+        if todos is not None:
+            save_pedidos(todos)  # re-persistir con los ids de Finanzas
+    except Exception as e:
+        logger.warning(f'sync Finanzas falló: {e}')
 def save_historial(h2): _save(HIST_FILE,h2)
 def save_email_log(e): _save(EMAIL_FILE,e)
 def load_accesos(): return _load(ACCESOS_FILE, [])
@@ -1219,6 +1233,7 @@ def render_hacer_pedido():
             tot=sum(i['total'] for i in st.session_state.carrito)
             ped={'id':pid,'client_email':c_email,'client_name':c_name,'destino':destino,'moneda':moneda,'productos':list(st.session_state.carrito),'total_usd':round(tot,2),'estado':'Recibido','fecha':datetime.now().isoformat(),'notas':notas,'notas_internas':notas_internas,'terminos_pago':hp_term,'fecha_entrega':hp_ent,'historial_estados':[{'estado':'Recibido','fecha':datetime.now().isoformat(),'usuario':st.session_state.user_email}],'creado_por':st.session_state.user_email}
             todos=load_pedidos(); todos.append(ped); save_pedidos(todos)
+            sync_finanzas(ped, todos)
             if c_email not in clients: clients[c_email]={'nombre':c_name,'email':c_email,'fecha_registro':datetime.now().isoformat(),'pedidos_ids':[]}
             clients[c_email]['pedidos_ids']=clients[c_email].get('pedidos_ids',[])+[pid]
             save_clients(clients)
@@ -1311,6 +1326,7 @@ def render_gestion_pedidos():
                                 _all_pe[_ipe]['historial_estados'] = _hist
                                 break
                         save_pedidos(_all_pe); st.cache_data.clear()
+                        sync_finanzas(_all_pe[_ipe], _all_pe)
                         st.toast(f'Estado actualizado: {_est_actual} -> {_nuevo_est}', icon='✅')
                         st.rerun()
                     else:
@@ -1368,7 +1384,9 @@ def render_gestion_pedidos():
                                 todos[_i]['estado']=qe
                                 todos[_i].setdefault('historial_estados',[]).append({'estado':qe,'fecha':datetime.now().isoformat(),'usuario':st.session_state.user_email})
                                 break
-                        save_pedidos(todos); st.cache_data.clear(); st.rerun()
+                        save_pedidos(todos); st.cache_data.clear()
+                        sync_finanzas(todos[_i], todos)
+                        st.rerun()
 
 # ─── TAB CONFIGURACION ──────────────────────────────────────────────
 def render_configuracion():
@@ -2518,6 +2536,7 @@ def render_portal_pedido():
                                         _tp['historial_estados'] = _tp.get('historial_estados',[]) + [{'estado':'Cancelado','fecha':datetime.now().isoformat(),'usuario':email_input,'nota':'Cancelado por cliente via portal'}]
                                         break
                                 save_pedidos(_all_peds)
+                                sync_finanzas(_tp, _all_peds)
                                 log_email('order@exportharet.com', f'CANCELACION {op_id} solicitada por {email_input}', 'cancelacion_cliente')
                                 st.session_state[f'confirm_cancel_{op_id}'] = False
                                 st.cache_data.clear()
@@ -3210,6 +3229,7 @@ def render_portal_pedido():
                 todos = load_pedidos()
                 todos.append(ped)
                 save_pedidos(todos)
+                sync_finanzas(ped, todos)
                 # Registrar / actualizar cliente en portal
                 portal_clients[email_input] = {
                     'nombre': nombre, 'empresa': empresa, 'telefono': telefono,
