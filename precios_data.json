@@ -244,8 +244,8 @@
         14.6754
       ],
       "precio_fob_final": 7.3288,
-      "min_unidad": "Pallets",
-      "min_cantidad": 1
+      "min_unidad": "Cajas",
+      "min_cantidad": 40
     },
     {
       "codigo": "F-PPA01",
@@ -283,7 +283,7 @@
       ],
       "precio_fob_final": 15.2613,
       "min_unidad": "Pallets",
-      "min_cantidad": 1
+      "min_cantidad": 2
     },
     {
       "codigo": "F-PSR02",
@@ -321,7 +321,7 @@
       ],
       "precio_fob_final": 20.7495,
       "min_unidad": "Pallets",
-      "min_cantidad": 1
+      "min_cantidad": 4
     },
     {
       "codigo": "F-PSR05",
@@ -359,7 +359,7 @@
       ],
       "precio_fob_final": 14.7744,
       "min_unidad": "Pallets",
-      "min_cantidad": 1
+      "min_cantidad": 4
     },
     {
       "codigo": "F-PSM09",
@@ -434,8 +434,8 @@
         14.6417
       ],
       "precio_fob_final": 7.2952,
-      "min_unidad": "Pallets",
-      "min_cantidad": 1
+      "min_unidad": "Cajas",
+      "min_cantidad": 40
     },
     {
       "codigo": "F-GNB010",
@@ -472,8 +472,8 @@
         26.2412
       ],
       "precio_fob_final": 15.3696,
-      "min_unidad": "Pallets",
-      "min_cantidad": 1
+      "min_unidad": "Cajas",
+      "min_cantidad": 60
     },
     {
       "codigo": "F-MPS03",
@@ -510,8 +510,8 @@
         14.48
       ],
       "precio_fob_final": 5.9585,
-      "min_unidad": "Pallets",
-      "min_cantidad": 1
+      "min_unidad": "Cajas",
+      "min_cantidad": 40
     },
     {
       "codigo": "F-CCN017",
@@ -738,8 +738,8 @@
         15.0074
       ],
       "precio_fob_final": 7.6609,
-      "min_unidad": "Pallets",
-      "min_cantidad": 1
+      "min_unidad": "Cajas",
+      "min_cantidad": 40
     },
     {
       "codigo": "F-UVP08",
@@ -776,8 +776,8 @@
         14.0561
       ],
       "precio_fob_final": 9.647,
-      "min_unidad": "Pallets",
-      "min_cantidad": 1
+      "min_unidad": "Cajas",
+      "min_cantidad": 50
     },
     {
       "codigo": "F-UVP07",
@@ -814,8 +814,8 @@
         13.2249
       ],
       "precio_fob_final": 8.2284,
-      "min_unidad": "Pallets",
-      "min_cantidad": 1
+      "min_unidad": "Cajas",
+      "min_cantidad": 50
     },
     {
       "codigo": "F-SLK011",
@@ -891,7 +891,7 @@
       ],
       "precio_fob_final": 12.4503,
       "min_unidad": "Pallets",
-      "min_cantidad": 1
+      "min_cantidad": 2
     }
   ],
   "minimos": {
