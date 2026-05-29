@@ -79,24 +79,30 @@ def disponible() -> bool:
 
 # --------------------------------------------------------------- clientes
 def upsert_cliente(razon_social: str, **campos: Any) -> int | None:
-    razon = (razon_social or "").strip()
-    if not razon:
+    razon = " ".join((razon_social or "").split())  # normaliza espacios
+    email = (campos.get("email") or "").strip()
+    if not razon and not email:
         return None
+    # buscar por email (preferente) y por razón social → evita duplicados
+    params = {}
+    if razon:
+        params["razon_social"] = razon
+    if email:
+        params["email"] = email
     try:
         r = requests.get(f"{BASE_URL}/api/clientes/buscar",
-                         params={"razon_social": razon},
-                         headers=_auth_only(), timeout=TIMEOUT)
+                         params=params, headers=_auth_only(), timeout=TIMEOUT)
         if r.status_code == 200:
             return int(r.json()["id"])
-        payload = {"razon_social": razon, **{k: v for k, v in campos.items() if v}}
+        payload = {"razon_social": razon or email,
+                   **{k: v for k, v in campos.items() if v}}
         r = requests.post(f"{BASE_URL}/api/clientes", json=payload,
                          headers=_headers(), timeout=TIMEOUT)
         if r.status_code == 200:
             return int(r.json()["id"])
         if r.status_code == 409:
             r2 = requests.get(f"{BASE_URL}/api/clientes/buscar",
-                             params={"razon_social": razon},
-                             headers=_auth_only(), timeout=TIMEOUT)
+                             params=params, headers=_auth_only(), timeout=TIMEOUT)
             if r2.status_code == 200:
                 return int(r2.json()["id"])
     except requests.RequestException:
