@@ -8,6 +8,10 @@ import io
 import hashlib
 from typing import Dict, List, Optional
 from PIL import Image
+try:
+    import outbox  # cola durable de pedidos (Gist) para sincronizar con Finanzas
+except Exception:
+    outbox = None
 
 # ─── PAGE CONFIG ─────────────────────────────────────────────
 st.set_page_config(
@@ -78,6 +82,11 @@ def save_clients(clients):
 
 def save_pedidos(pedidos):
     _save_json(PEDIDOS_FILE, pedidos)
+    if outbox:
+        try:
+            outbox.publish(pedidos)  # vuelca a la cola durable (Gist); no-op si no está configurado
+        except Exception:
+            pass
 
 def save_historial(hist):
     _save_json(HIST_FILE, hist)
