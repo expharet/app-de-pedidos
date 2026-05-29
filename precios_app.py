@@ -20,14 +20,14 @@ try:
 except ImportError:
     REPORTLAB_OK = False
 
-# âââ LOGGING SETUP âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+# ─── LOGGING SETUP ───────────────────────────────────────────────────────────
 logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(name)s: %(message)s')
 logger = logging.getLogger('exportharet')
 
-# âââ PAGE CONFIG âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+# ─── PAGE CONFIG ─────────────────────────────────────────────────────────────
 # Logo dinamico: usar logo.png si existe, sino emoji generico
 import os as _os_init
-_PAGE_ICON = 'logo.png' if _os_init.path.exists('logo.png') else 'ð'
+_PAGE_ICON = 'logo.png' if _os_init.path.exists('logo.png') else '📋'
 st.set_page_config(
     page_title="Export Haret - Sistema de Pedidos",
     page_icon=_PAGE_ICON,
@@ -35,9 +35,9 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# âââ CONSTANTES âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+# ─── CONSTANTES ───────────────────────────────────────────────────────────────
 ORDEN_ESTADOS = ["Recibido","Confirmado","Preparando","Enviado","Entregado","Cancelado"]
-ESTADO_ICONS = {"Recibido":"ð¤","Confirmado":"â","Preparando":"ð¦","Enviado":"ð","Entregado":"â¨","Cancelado":"â"}
+ESTADO_ICONS = {"Recibido":"📤","Confirmado":"✅","Preparando":"📦","Enviado":"🚚","Entregado":"✨","Cancelado":"❌"}
 
 # Tramos de descuento por volumen (pallets)
 TRAMOS_VOLUMEN = [
@@ -60,131 +60,131 @@ def get_descuento_volumen(total_pallets):
     return 0.0
 
 MONEDAS = ["USD", "EUR", "GBP", "CHF", "AED", "CAD", "MXN", "BRL", "COP"]
-MONEDA_SIMBOLO = {"USD": "$", "EUR": "â¬", "GBP": "Â£", "CHF": "Fr", "AED": "Ø¯.Ø¥", "CAD": "CA$", "MXN": "MX$", "BRL": "R$", "COP": "COP$"}
+MONEDA_SIMBOLO = {"USD": "$", "EUR": "€", "GBP": "£", "CHF": "Fr", "AED": "د.إ", "CAD": "CA$", "MXN": "MX$", "BRL": "R$", "COP": "COP$"}
 # -- IDIOMA / LANGUAGE TRANSLATIONS --
 LANG_TEXTS = {
     'es': {
-        'step1': '### 1ï¸â£ Tus Datos',
-        'step2': '### 2ï¸â£ Tipo de Precio y Destino',
-        'step3': '### 3ï¸â£ Selecciona tus Productos',
-        'step4': '### 4ï¸â£ Confirmar Pedido',
-        'email_label': 'ð§ Tu correo electrÃ³nico',
+        'step1': '### 1️⃣ Tus Datos',
+        'step2': '### 2️⃣ Tipo de Precio y Destino',
+        'step3': '### 3️⃣ Selecciona tus Productos',
+        'step4': '### 4️⃣ Confirmar Pedido',
+        'email_label': '📧 Tu correo electrónico',
         'email_ph': 'tu@empresa.com',
-        'no_catalog': 'â ï¸ CatÃ¡logo no disponible. Contacte a order@exportharet.com',
-        'enter_email': 'ð§ **Ingresa tu correo electrÃ³nico arriba para continuar**',
-        'welcome_back': 'â Bienvenido de vuelta, **{name}**!',
-        'not_registered': 'â¨ Â¡Bienvenido! Eres nuevo aquÃ­ â completa tus datos para crear tu cuenta y empezar.',
-        'nombre_label': 'ð¤ Nombre completo *',
-        'empresa_label': 'ð¢ Empresa',
-        'telefono_label': 'ð± TelÃ©fono / WhatsApp',
+        'no_catalog': '⚠️ Catálogo no disponible. Contacte a order@exportharet.com',
+        'enter_email': '📧 **Ingresa tu correo electrónico arriba para continuar**',
+        'welcome_back': '✅ Bienvenido de vuelta, **{name}**!',
+        'not_registered': '✨ ¡Bienvenido! Eres nuevo aquí — completa tus datos para crear tu cuenta y empezar.',
+        'nombre_label': '👤 Nombre completo *',
+        'empresa_label': '🏢 Empresa',
+        'telefono_label': '📱 Teléfono / WhatsApp',
         'telefono_ph': '+34 600 000 000',
-        'pais_label': 'ð PaÃ­s',
-        'auto_register': 'ð Al guardar el pedido, tu cuenta quedarÃ¡ registrada automÃ¡ticamente.',
-        'tab_datos': 'ð¤ Mis Datos',
-        'tab_pedidos': 'ð¦ Mis Pedidos ({n})',
-        'no_orders': 'ð¦ AÃºn no tienes pedidos. Â¡Haz tu primer pedido a continuaciÃ³n!',
-        'price_type_label': 'ð² Tipo de precio',
+        'pais_label': '🌍 País',
+        'auto_register': '🔒 Al guardar el pedido, tu cuenta quedará registrada automáticamente.',
+        'tab_datos': '👤 Mis Datos',
+        'tab_pedidos': '📦 Mis Pedidos ({n})',
+        'no_orders': '📦 Aún no tienes pedidos. ¡Haz tu primer pedido a continuación!',
+        'price_type_label': '💲 Tipo de precio',
         'price_type_help': 'FOB = Precio en origen (sin flete). CIF = Precio incluye flete al destino.',
-        'dest_label': 'ð Destino',
-        'no_dest': 'â ï¸ No hay destinos configurados',
-        'flete_caption': 'ð« Flete incluido: **${flete:.2f} USD/Kilo** | {orig} â {dest}',
-        'cif_info': 'ð **Incoterm CIF** â Precio incluye costo + flete hasta **{dest}**. Embarcamos desde **{orig}**.',
-        'fob_info': 'ð¦ **FOB (Free On Board)** â El precio **no incluye flete**. TÃº coordinas el transporte desde Ecuador.',
- 'price_update_notice': 'â¹ï¸ Los precios del catÃ¡logo se actualizan cada **martes**. Dudas: order@exportharet.com', 'btn_validate': 'â Validar', 'btn_acceder': 'â Validar', 'progress_step1': 'Tus Datos', 'progress_step2': 'Precio & Destino', 'progress_step3': 'Productos', 'progress_step4': 'Confirmar', 'save_data_btn': 'ð¾ Guardar datos', 'data_saved': 'â Datos guardados', 'header_subtitle': 'Sistema de Pedidos â Frutas ExÃ³ticas Premium | order@exportharet.com', 'admin_access': 'ð Acceso administraciÃ³n', 'download_catalog': 'ð¥ Descargar CatÃ¡logo', 'sidebar_subtitle': 'Portal de Pedidos', 'sidebar_footer': 'Export Haret Â© 2026 | order@exportharet.com', 'footer_text': 'Export Haret Â© 2026 | order@exportharet.com | Frutas ExÃ³ticas Premium', 'cart_label': 'ð Carrito', 'cart_products': 'producto(s)', 'min_progress_zero': 'ð Pedido mÃ­nimo: 3 pallets â AÃ±ade productos para comenzar', 'min_progress_short': 'â ï¸ {curr:.1f}/{min} pallets â Faltan {needed:.1f} pallets para el mÃ­nimo', 'min_progress_ok': 'â {curr:.1f}/{min} pallets', 'min_progress_next': ' | Con {n}+ pallets el precio baja aÃºn mÃ¡s ð', 'cart_summary_label': 'Carrito', 'group_summary': 'ð¦ Resumen por Grupo de Embalaje', 'group_full_pallets': 'pallet(s) completo(s)', 'group_partial_boxes': 'cj parciales', 'group_total_pallets': 'ð Total pallets agrupados',
+        'dest_label': '🌍 Destino',
+        'no_dest': '⚠️ No hay destinos configurados',
+        'flete_caption': '🛫 Flete incluido: **${flete:.2f} USD/Kilo** | {orig} → {dest}',
+        'cif_info': '📍 **Incoterm CIF** — Precio incluye costo + flete hasta **{dest}**. Embarcamos desde **{orig}**.',
+        'fob_info': '📦 **FOB (Free On Board)** — El precio **no incluye flete**. Tú coordinas el transporte desde Ecuador.',
+ 'price_update_notice': 'ℹ️ Los precios del catálogo se actualizan cada **martes**. Dudas: order@exportharet.com', 'btn_validate': '✅ Validar', 'btn_acceder': '✅ Validar', 'progress_step1': 'Tus Datos', 'progress_step2': 'Precio & Destino', 'progress_step3': 'Productos', 'progress_step4': 'Confirmar', 'save_data_btn': '💾 Guardar datos', 'data_saved': '✅ Datos guardados', 'header_subtitle': 'Sistema de Pedidos — Frutas Exóticas Premium | order@exportharet.com', 'admin_access': '🔒 Acceso administración', 'download_catalog': '📥 Descargar Catálogo', 'sidebar_subtitle': 'Portal de Pedidos', 'sidebar_footer': 'Export Haret © 2026 | order@exportharet.com', 'footer_text': 'Export Haret © 2026 | order@exportharet.com | Frutas Exóticas Premium', 'cart_label': '🛒 Carrito', 'cart_products': 'producto(s)', 'min_progress_zero': '📋 Pedido mínimo: 3 pallets — Añade productos para comenzar', 'min_progress_short': '⚠️ {curr:.1f}/{min} pallets — Faltan {needed:.1f} pallets para el mínimo', 'min_progress_ok': '✅ {curr:.1f}/{min} pallets', 'min_progress_next': ' | Con {n}+ pallets el precio baja aún más 🚀', 'cart_summary_label': 'Carrito', 'group_summary': '📦 Resumen por Grupo de Embalaje', 'group_full_pallets': 'pallet(s) completo(s)', 'group_partial_boxes': 'cj parciales', 'group_total_pallets': '📊 Total pallets agrupados',
         'order_total_label': 'Total del pedido',
         'unit_pallets': 'pallets',
         'unit_boxes': 'cajas',
         'unit_products': 'producto(s)',
-        'unit_kg_per_box': 'kg/caja', 'group_missing': 'ð Te faltan <b>{n} cj</b> para completar 1 pallet del Grupo {g} y mejorar el precio', 'group_complete_with': ' Â· Completalo con: <b>{names}</b>', 'col_product': 'Producto', 'col_price': 'Precio/cja', 'col_qty': 'Cantidad', 'col_unit': 'Unidad', 'col_boxes': 'Cajas', 'unit_pallets': 'Pallets', 'unit_boxes': 'Cajas', 'min_from': 'Desde', 'added_mark': 'â Agregado', 'saved_per_box': 'ð° Ahorras', 'min_warning': 'â ï¸ MÃ­nimo: <b>{n} {u}</b> para {p}', 'calc_title': 'ð§® Calculadora de costo en otra moneda (referencial)', 'calc_convert_to': 'ð Convertir a:', 'calc_total_usd': 'Total en USD:', 'calc_total_dest': 'Total en {m}:', 'calc_rate': 'Tasa aplicada:', 'calc_per_pallet': 'Costo aprox. por pallet:', 'calc_note': 'â¹ Valor referencial. La transacciÃ³n se realiza en USD.', 'order_summary_title': 'ð Resumen del Pedido', 'order_lbl_client': 'Cliente:', 'order_lbl_company': 'Empresa:', 'order_lbl_country': 'PaÃ­s:', 'order_lbl_mode': 'Modalidad:', 'order_lbl_payment': 'T. pago:', 'order_lbl_pending': 'Por confirmar', 'order_savings': 'ð° Ahorro por volumen: ${s:,.2f} USD', 'order_total_label': 'ð TOTAL DEL PEDIDO', 'order_n_pallets': 'ð¦ {n:.2f} pallets', 'order_n_boxes': 'ð {n:,} cajas', 'order_weight': 'âï¸ {n:,.0f} kg net.', 'order_weight_note': '* kg net. de fruta â no incluye embalaje', 'savings_per_box': 'ð° Ahorras ${d:.2f}/cj', 'unlock_better_price': 'ð Â¡Desbloqueaste mejor precio! Tramo: {label}', 'min_order_alert': 'â ï¸ Pedido mÃ­nimo: 3 pallets. Tienes {curr:.1f} pallets â aÃ±ade {miss:.1f} pallets mÃ¡s para poder confirmar.', 'order_sent_email': 'ð§ Tu pedido ha sido enviado a <b>order@exportharet.com</b> para su confirmaciÃ³n. Nuestro equipo te contactarÃ¡ en 24-48h. Sigue el estado en la pestaÃ±a <b>Mis Pedidos</b> â', 'post_order_h3': 'Pedido {pid} enviado', 'post_order_thanks': 'â <b>Gracias {name}</b>, hemos recibido tu pedido correctamente.<br>ð Nuestro equipo se pondrÃ¡ en contacto contigo en <b>menos de 24 horas</b> para confirmar disponibilidad, precios finales y logÃ­stica.<br>ð§ TambiÃ©n recibirÃ¡s confirmaciÃ³n por email cuando el pedido sea procesado.', 'wa_confirm': 'ð¬ Confirmar por WhatsApp', 'em_send': 'ð§ Enviar por Email', 'wa_msg_greeting': 'Estimado equipo de Export Haret,', 'wa_msg_intro': 'Acabo de realizar el siguiente pedido a travÃ©s del portal:', 'wa_msg_order': 'ð *Pedido', 'wa_msg_client': 'ð¤ Cliente:', 'wa_msg_company': 'Empresa:', 'wa_msg_country': 'ð PaÃ­s:', 'wa_msg_details': '*Detalle de productos:*', 'wa_msg_total': 'ð° *TOTAL', 'wa_msg_closing': 'Quedo a disposiciÃ³n para coordinar los detalles.', 'wa_msg_regards': 'Saludos.', 'em_subj': 'Pedido', 'em_body_intro': 'Adjunto el albarÃ¡n del pedido', 'em_body_data': 'Datos del pedido:', 'em_body_client': 'â¢ Cliente:', 'em_body_company': 'Empresa:', 'em_body_incoterm': 'â¢ Incoterm:', 'em_body_total': 'â¢ Total:', 'em_body_products': 'Productos:', 'em_body_closing': 'Quedo a disposiciÃ³n para cualquier consulta.', 'em_body_regards': 'Saludos.', 'share_portal_title': 'ð Compartir Portal Clientes', 'share_portal_caption': 'EnvÃ­a este enlace a tus clientes:', 'share_msg': 'Hola, te invitamos a usar nuestro portal de pedidos Export Haret:', 'destination_fob': 'FOB (desde Ecuador)', 'order_status': 'Estado:', 'order_type': 'Tipo:', 'order_destination': 'Destino:', 'order_date': 'Fecha:', 'order_total_lbl': 'Total:', 'tracking_title': 'ð Seguimiento:', 'full_history': 'ð Historial completo', 'products_label': 'Productos:', 'btn_repeat': 'ð Repetir', 'btn_repeat_help': 'Cargar en carrito', 'btn_cancel': 'ðï¸ Cancelar', 'order_repeat_loaded': 'â Pedido {pid} cargado. Revisa y confirma.', 'order_no_products': 'Este pedido no tiene productos registrados.', 'confirm_cancel': 'â ï¸ Â¿Confirmas la cancelaciÃ³n del pedido <b>{pid}</b>? Se notificarÃ¡ a nuestro equipo.', 'btn_yes_cancel': 'â SÃ­, cancelar', 'btn_no': 'â No', 'order_cancelled': 'â Pedido {pid} cancelado. NotificaciÃ³n enviada a order@exportharet.com', 'enter_valid_email': 'ð§ Ingresa un correo electrÃ³nico vÃ¡lido para continuar.', 'enter_full_name': 'ð¤ Ingresa tu nombre completo para continuar.', 'err_invalid_email': 'â Formato de email invÃ¡lido', 'fob_freight_caption': 'Flete: ${flete:.2f} USD/Kilo', 'price_in_dest': 'ð± <b>Equiv. {m}</b> (ref.): <b style="color:#1a7a3c">{sym}{tot:,.2f} {m}</b> <small style="color:#888">1 USD = {rate:.4f} {m}</small>', 'rate_info': 'ð± 1 USD = <b>{sym}{rate:.4f} {m}</b> â {live} | Fuente: {src} | Actualizado: {ts}', 'rate_info_sub': 'Precios en {m} son de referencia. La transacciÃ³n se realiza en USD.', 'rate_live': 'ð¢ En vivo', 'rate_approx': 'âª Aprox.', 'btn_change_client': 'ð Cambiar cliente', 'err_email_format': 'â Formato de email invÃ¡lido', 'msg_click_validate': 'ð Haz clic en validar para continuar', 'order_cleared': 'ðï¸ Carrito vaciado',       'fob_origin': 'ð Origen de embarque: **Quito o Guayaquil, Ecuador**',
-        'min_order_empty': 'ð <strong>Pedido mÃ­nimo: 3 pallets</strong> â AÃ±ade productos para comenzar tu pedido',
-        'min_order_short': 'ð <strong>Pedido mÃ­nimo: 3 pallets</strong> â Tienes {plt:.1f} plt. AÃ±ade mÃ¡s productos.',
-        'cart_fob': 'ð¦ Precios FOB â El flete corre por tu cuenta desde Quito/Guayaquil, Ecuador',
-        'clear_cart': 'ðï¸ Vaciar carrito',
-        'notes_label': 'ð Notas / instrucciones especiales',
-        'notes_ph': 'Ej: Entrega en almÃ©n frigorÃ­fico, embalaje especial...',
-        'payment_terms': 'ð TÃ©rminos de pago (opcional)',
-        'confirm_btn': 'ð¤ CONFIRMAR Y ENVIAR PEDIDO',
-        'err_email': 'â Ingresa tu correo electrÃ³nico',
-        'err_nombre': 'â Ingresa tu nombre completo',
-        'err_cart': 'â Agrega al menos un producto al carrito',
-        'err_destino': 'â Selecciona un destino para precio CIF',
-        'order_confirmed': 'â **Pedido {pid} confirmado y enviado**',
-        'order_email_sent': 'ð§ RecibirÃ¡s confirmaciÃ³n en **{email}** en 24-48h.',
-        'download_pdf': 'â¬ï¸ Descargar AlbarÃ¡n PDF',
-        'new_order_btn': 'ð Nuevo Pedido',
-        'quote_expander': 'ð¬ Solicitar cotizaciÃ³n especial',
-        'quote_intro': '**Â¿Necesitas presupuesto personalizado?** Rellena el formulario y te contactamos en 24h.',
+        'unit_kg_per_box': 'kg/caja', 'group_missing': '🎁 Te faltan <b>{n} cj</b> para completar 1 pallet del Grupo {g} y mejorar el precio', 'group_complete_with': ' · Completalo con: <b>{names}</b>', 'col_product': 'Producto', 'col_price': 'Precio/cja', 'col_qty': 'Cantidad', 'col_unit': 'Unidad', 'col_boxes': 'Cajas', 'unit_pallets': 'Pallets', 'unit_boxes': 'Cajas', 'min_from': 'Desde', 'added_mark': '✓ Agregado', 'saved_per_box': '💰 Ahorras', 'min_warning': '⚠️ Mínimo: <b>{n} {u}</b> para {p}', 'calc_title': '🧮 Calculadora de costo en otra moneda (referencial)', 'calc_convert_to': '🌍 Convertir a:', 'calc_total_usd': 'Total en USD:', 'calc_total_dest': 'Total en {m}:', 'calc_rate': 'Tasa aplicada:', 'calc_per_pallet': 'Costo aprox. por pallet:', 'calc_note': 'ℹ Valor referencial. La transacción se realiza en USD.', 'order_summary_title': '📝 Resumen del Pedido', 'order_lbl_client': 'Cliente:', 'order_lbl_company': 'Empresa:', 'order_lbl_country': 'País:', 'order_lbl_mode': 'Modalidad:', 'order_lbl_payment': 'T. pago:', 'order_lbl_pending': 'Por confirmar', 'order_savings': '💰 Ahorro por volumen: ${s:,.2f} USD', 'order_total_label': '🛒 TOTAL DEL PEDIDO', 'order_n_pallets': '📦 {n:.2f} pallets', 'order_n_boxes': '📋 {n:,} cajas', 'order_weight': '⚖️ {n:,.0f} kg net.', 'order_weight_note': '* kg net. de fruta — no incluye embalaje', 'savings_per_box': '💰 Ahorras ${d:.2f}/cj', 'unlock_better_price': '🎉 ¡Desbloqueaste mejor precio! Tramo: {label}', 'min_order_alert': '⚠️ Pedido mínimo: 3 pallets. Tienes {curr:.1f} pallets — añade {miss:.1f} pallets más para poder confirmar.', 'order_sent_email': '📧 Tu pedido ha sido enviado a <b>order@exportharet.com</b> para su confirmación. Nuestro equipo te contactará en 24-48h. Sigue el estado en la pestaña <b>Mis Pedidos</b> ↑', 'post_order_h3': 'Pedido {pid} enviado', 'post_order_thanks': '✅ <b>Gracias {name}</b>, hemos recibido tu pedido correctamente.<br>📞 Nuestro equipo se pondrá en contacto contigo en <b>menos de 24 horas</b> para confirmar disponibilidad, precios finales y logística.<br>📧 También recibirás confirmación por email cuando el pedido sea procesado.', 'wa_confirm': '💬 Confirmar por WhatsApp', 'em_send': '📧 Enviar por Email', 'wa_msg_greeting': 'Estimado equipo de Export Haret,', 'wa_msg_intro': 'Acabo de realizar el siguiente pedido a través del portal:', 'wa_msg_order': '📋 *Pedido', 'wa_msg_client': '👤 Cliente:', 'wa_msg_company': 'Empresa:', 'wa_msg_country': '🌍 País:', 'wa_msg_details': '*Detalle de productos:*', 'wa_msg_total': '💰 *TOTAL', 'wa_msg_closing': 'Quedo a disposición para coordinar los detalles.', 'wa_msg_regards': 'Saludos.', 'em_subj': 'Pedido', 'em_body_intro': 'Adjunto el albarán del pedido', 'em_body_data': 'Datos del pedido:', 'em_body_client': '• Cliente:', 'em_body_company': 'Empresa:', 'em_body_incoterm': '• Incoterm:', 'em_body_total': '• Total:', 'em_body_products': 'Productos:', 'em_body_closing': 'Quedo a disposición para cualquier consulta.', 'em_body_regards': 'Saludos.', 'share_portal_title': '🔗 Compartir Portal Clientes', 'share_portal_caption': 'Envía este enlace a tus clientes:', 'share_msg': 'Hola, te invitamos a usar nuestro portal de pedidos Export Haret:', 'destination_fob': 'FOB (desde Ecuador)', 'order_status': 'Estado:', 'order_type': 'Tipo:', 'order_destination': 'Destino:', 'order_date': 'Fecha:', 'order_total_lbl': 'Total:', 'tracking_title': '📍 Seguimiento:', 'full_history': '📜 Historial completo', 'products_label': 'Productos:', 'btn_repeat': '🔄 Repetir', 'btn_repeat_help': 'Cargar en carrito', 'btn_cancel': '🗑️ Cancelar', 'order_repeat_loaded': '✅ Pedido {pid} cargado. Revisa y confirma.', 'order_no_products': 'Este pedido no tiene productos registrados.', 'confirm_cancel': '⚠️ ¿Confirmas la cancelación del pedido <b>{pid}</b>? Se notificará a nuestro equipo.', 'btn_yes_cancel': '✅ Sí, cancelar', 'btn_no': '❌ No', 'order_cancelled': '✅ Pedido {pid} cancelado. Notificación enviada a order@exportharet.com', 'enter_valid_email': '📧 Ingresa un correo electrónico válido para continuar.', 'enter_full_name': '👤 Ingresa tu nombre completo para continuar.', 'err_invalid_email': '❌ Formato de email inválido', 'fob_freight_caption': 'Flete: ${flete:.2f} USD/Kilo', 'price_in_dest': '💱 <b>Equiv. {m}</b> (ref.): <b style="color:#1a7a3c">{sym}{tot:,.2f} {m}</b> <small style="color:#888">1 USD = {rate:.4f} {m}</small>', 'rate_info': '💱 1 USD = <b>{sym}{rate:.4f} {m}</b> — {live} | Fuente: {src} | Actualizado: {ts}', 'rate_info_sub': 'Precios en {m} son de referencia. La transacción se realiza en USD.', 'rate_live': '🟢 En vivo', 'rate_approx': '⚪ Aprox.', 'btn_change_client': '🔄 Cambiar cliente', 'err_email_format': '❌ Formato de email inválido', 'msg_click_validate': '👆 Haz clic en validar para continuar', 'order_cleared': '🗑️ Carrito vaciado',       'fob_origin': '📌 Origen de embarque: **Quito o Guayaquil, Ecuador**',
+        'min_order_empty': '📋 <strong>Pedido mínimo: 3 pallets</strong> — Añade productos para comenzar tu pedido',
+        'min_order_short': '📋 <strong>Pedido mínimo: 3 pallets</strong> — Tienes {plt:.1f} plt. Añade más productos.',
+        'cart_fob': '📦 Precios FOB — El flete corre por tu cuenta desde Quito/Guayaquil, Ecuador',
+        'clear_cart': '🗑️ Vaciar carrito',
+        'notes_label': '📝 Notas / instrucciones especiales',
+        'notes_ph': 'Ej: Entrega en almén frigorífico, embalaje especial...',
+        'payment_terms': '📋 Términos de pago (opcional)',
+        'confirm_btn': '📤 CONFIRMAR Y ENVIAR PEDIDO',
+        'err_email': '❌ Ingresa tu correo electrónico',
+        'err_nombre': '❌ Ingresa tu nombre completo',
+        'err_cart': '❌ Agrega al menos un producto al carrito',
+        'err_destino': '❌ Selecciona un destino para precio CIF',
+        'order_confirmed': '✅ **Pedido {pid} confirmado y enviado**',
+        'order_email_sent': '📧 Recibirás confirmación en **{email}** en 24-48h.',
+        'download_pdf': '⬇️ Descargar Albarán PDF',
+        'new_order_btn': '🔄 Nuevo Pedido',
+        'quote_expander': '💬 Solicitar cotización especial',
+        'quote_intro': '**¿Necesitas presupuesto personalizado?** Rellena el formulario y te contactamos en 24h.',
         'quote_name_lbl': 'Tu nombre / empresa',
         'quote_name_ph': 'Nombre o empresa',
         'quote_msg_lbl': 'Mensaje adicional',
         'quote_msg_ph': 'Condiciones especiales...',
-        'send_quote': 'ð¤ Enviar solicitud',
-        'price_update_notice': 'â¹ï¸ Los precios del catÃ¡logo se actualizan cada **martes**. Dudas: order@exportharet.com',
+        'send_quote': '📤 Enviar solicitud',
+        'price_update_notice': 'ℹ️ Los precios del catálogo se actualizan cada **martes**. Dudas: order@exportharet.com',
     },
     'en': {
-        'step1': '### 1ï¸â£ Your Details',
-        'step2': '### 2ï¸â£ Price Type & Destination',
-        'step3': '### 3ï¸â£ Select your Products',
-        'step4': '### 4ï¸â£ Confirm Order',
-        'email_label': 'ð§ Your email address',
+        'step1': '### 1️⃣ Your Details',
+        'step2': '### 2️⃣ Price Type & Destination',
+        'step3': '### 3️⃣ Select your Products',
+        'step4': '### 4️⃣ Confirm Order',
+        'email_label': '📧 Your email address',
         'email_ph': 'you@company.com',
-        'no_catalog': 'â ï¸ Catalogue not available. Contact order@exportharet.com',
-        'enter_email': 'ð§ **Enter your email address above to continue**',
-        'welcome_back': 'â Welcome back, **{name}**!',
-        'not_registered': 'â¨ Welcome! You are new here â complete your details to create your account and get started.',
-        'nombre_label': 'ð¤ Full name *',
-        'empresa_label': 'ð¢ Company',
-        'telefono_label': 'ð± Phone / WhatsApp',
+        'no_catalog': '⚠️ Catalogue not available. Contact order@exportharet.com',
+        'enter_email': '📧 **Enter your email address above to continue**',
+        'welcome_back': '✅ Welcome back, **{name}**!',
+        'not_registered': '✨ Welcome! You are new here — complete your details to create your account and get started.',
+        'nombre_label': '👤 Full name *',
+        'empresa_label': '🏢 Company',
+        'telefono_label': '📱 Phone / WhatsApp',
         'telefono_ph': '+1 000 000 0000',
-        'pais_label': 'ð Country',
-        'auto_register': 'ð By placing your order, your account will be registered automatically.',
-        'tab_datos': 'ð¤ My Details',
-        'tab_pedidos': 'ð¦ My Orders ({n})',
-        'no_orders': 'ð¦ No orders yet. Place your first order below!',
-        'price_type_label': 'ð² Price type',
+        'pais_label': '🌍 Country',
+        'auto_register': '🔒 By placing your order, your account will be registered automatically.',
+        'tab_datos': '👤 My Details',
+        'tab_pedidos': '📦 My Orders ({n})',
+        'no_orders': '📦 No orders yet. Place your first order below!',
+        'price_type_label': '💲 Price type',
         'price_type_help': 'FOB = Ex-works price (no freight). CIF = Price includes freight to destination.',
-        'dest_label': 'ð Destination',
-        'no_dest': 'â ï¸ No destinations configured',
-        'flete_caption': 'ð« Freight included: **${flete:.2f} USD/Kilo** | {orig} â {dest}',
-        'cif_info': 'ð **Incoterm CIF** â Price includes cost + freight to **{dest}**. We ship from **{orig}**.',
-        'fob_info': 'ð¦ **FOB (Free On Board)** â Price **does not include freight**. You arrange transport from Ecuador.',
-        'fob_origin': 'ð Port of origin: **Quito or Guayaquil, Ecuador**',
-        'min_order_empty': 'ð <strong>Minimum order: 3 pallets</strong> â Add products to start your order',
-        'min_order_short': 'ð <strong>Minimum order: 3 pallets</strong> â You have {plt:.1f} plt. Add more products.',
-        'cart_fob': 'ð¦ FOB prices â Freight is your responsibility from Quito/Guayaquil, Ecuador',
-        'clear_cart': 'ðï¸ Clear cart',
-        'notes_label': 'ð Notes / special instructions',
+        'dest_label': '🌍 Destination',
+        'no_dest': '⚠️ No destinations configured',
+        'flete_caption': '🛫 Freight included: **${flete:.2f} USD/Kilo** | {orig} → {dest}',
+        'cif_info': '📍 **Incoterm CIF** — Price includes cost + freight to **{dest}**. We ship from **{orig}**.',
+        'fob_info': '📦 **FOB (Free On Board)** — Price **does not include freight**. You arrange transport from Ecuador.',
+        'fob_origin': '📌 Port of origin: **Quito or Guayaquil, Ecuador**',
+        'min_order_empty': '📋 <strong>Minimum order: 3 pallets</strong> — Add products to start your order',
+        'min_order_short': '📋 <strong>Minimum order: 3 pallets</strong> — You have {plt:.1f} plt. Add more products.',
+        'cart_fob': '📦 FOB prices — Freight is your responsibility from Quito/Guayaquil, Ecuador',
+        'clear_cart': '🗑️ Clear cart',
+        'notes_label': '📝 Notes / special instructions',
         'notes_ph': 'e.g. Delivery to cold storage, special packaging...',
-        'payment_terms': 'ð Payment terms (optional)',
-        'confirm_btn': 'ð¤ CONFIRM AND SEND ORDER',
-        'err_email': 'â Please enter your email address',
-        'err_nombre': 'â Please enter your full name',
-        'err_cart': 'â Please add at least one product to your cart',
-        'err_destino': 'â Please select a destination for CIF pricing',
-        'order_confirmed': 'â **Order {pid} confirmed and sent**',
-        'order_email_sent': 'ð§ Confirmation will be sent to **{email}** within 24-48h.',
-        'download_pdf': 'â¬ï¸ Download Order PDF',
-        'new_order_btn': 'ð New Order',
-        'quote_expander': 'ð¬ Request special quote',
+        'payment_terms': '📋 Payment terms (optional)',
+        'confirm_btn': '📤 CONFIRM AND SEND ORDER',
+        'err_email': '❌ Please enter your email address',
+        'err_nombre': '❌ Please enter your full name',
+        'err_cart': '❌ Please add at least one product to your cart',
+        'err_destino': '❌ Please select a destination for CIF pricing',
+        'order_confirmed': '✅ **Order {pid} confirmed and sent**',
+        'order_email_sent': '📧 Confirmation will be sent to **{email}** within 24-48h.',
+        'download_pdf': '⬇️ Download Order PDF',
+        'new_order_btn': '🔄 New Order',
+        'quote_expander': '💬 Request special quote',
         'quote_intro': '**Need a custom quote?** Fill in the form and we will contact you within 24h.',
         'quote_name_lbl': 'Your name / company',
         'quote_name_ph': 'Your name or company',
         'quote_msg_lbl': 'Additional message',
         'quote_msg_ph': 'Special conditions...',
-        'send_quote': 'ð¤ Send request',
-        'price_update_notice': 'â¹ï¸ Catalogue prices are updated every **Tuesday**. Questions: order@exportharet.com', 'btn_validate': 'â Validate / Access', 'btn_change_client': 'ð Change client', 'err_email_format': 'â Invalid email format', 'msg_click_validate': 'ð Click validate to continue', 'order_cleared': 'ðï¸ Cart cleared', 'btn_validate': 'â Validate', 'btn_acceder': 'â Validate', 'progress_step1': 'Your Details', 'progress_step2': 'Price & Destination', 'progress_step3': 'Products', 'progress_step4': 'Confirm', 'save_data_btn': 'ð¾ Save details', 'data_saved': 'â Details saved', 'header_subtitle': 'Order System â Premium Exotic Fruits | order@exportharet.com', 'admin_access': 'ð Admin access', 'download_catalog': 'ð¥ Download Catalog', 'sidebar_subtitle': 'Order Portal', 'sidebar_footer': 'Export Haret Â© 2026 | order@exportharet.com', 'footer_text': 'Export Haret Â© 2026 | order@exportharet.com | Premium Exotic Fruits', 'cart_label': 'ð Cart', 'cart_products': 'product(s)', 'min_progress_zero': 'ð Minimum order: 3 pallets â Add products to start', 'min_progress_short': 'â ï¸ {curr:.1f}/{min} pallets â {needed:.1f} more pallets needed', 'min_progress_ok': 'â {curr:.1f}/{min} pallets', 'min_progress_next': ' | With {n}+ pallets the price goes even lower ð', 'cart_summary_label': 'Cart', 'group_summary': 'ð¦ Summary by Packaging Group', 'group_full_pallets': 'full pallet(s)', 'group_partial_boxes': 'partial boxes', 'group_total_pallets': 'ð Total grouped pallets',
+        'send_quote': '📤 Send request',
+        'price_update_notice': 'ℹ️ Catalogue prices are updated every **Tuesday**. Questions: order@exportharet.com', 'btn_validate': '✅ Validate / Access', 'btn_change_client': '🔄 Change client', 'err_email_format': '❌ Invalid email format', 'msg_click_validate': '👆 Click validate to continue', 'order_cleared': '🗑️ Cart cleared', 'btn_validate': '✅ Validate', 'btn_acceder': '✅ Validate', 'progress_step1': 'Your Details', 'progress_step2': 'Price & Destination', 'progress_step3': 'Products', 'progress_step4': 'Confirm', 'save_data_btn': '💾 Save details', 'data_saved': '✅ Details saved', 'header_subtitle': 'Order System — Premium Exotic Fruits | order@exportharet.com', 'admin_access': '🔒 Admin access', 'download_catalog': '📥 Download Catalog', 'sidebar_subtitle': 'Order Portal', 'sidebar_footer': 'Export Haret © 2026 | order@exportharet.com', 'footer_text': 'Export Haret © 2026 | order@exportharet.com | Premium Exotic Fruits', 'cart_label': '🛒 Cart', 'cart_products': 'product(s)', 'min_progress_zero': '📋 Minimum order: 3 pallets — Add products to start', 'min_progress_short': '⚠️ {curr:.1f}/{min} pallets — {needed:.1f} more pallets needed', 'min_progress_ok': '✅ {curr:.1f}/{min} pallets', 'min_progress_next': ' | With {n}+ pallets the price goes even lower 🚀', 'cart_summary_label': 'Cart', 'group_summary': '📦 Summary by Packaging Group', 'group_full_pallets': 'full pallet(s)', 'group_partial_boxes': 'partial boxes', 'group_total_pallets': '📊 Total grouped pallets',
         'order_total_label': 'Order Total',
         'unit_pallets': 'pallets',
         'unit_boxes': 'boxes',
         'unit_products': 'product(s)',
-        'unit_kg_per_box': 'kg/box', 'group_missing': 'ð You need <b>{n} bx</b> more to complete 1 pallet in Group {g} and improve the price', 'group_complete_with': ' Â· Complete with: <b>{names}</b>', 'col_product': 'Product', 'col_price': 'Price/box', 'col_qty': 'Quantity', 'col_unit': 'Unit', 'col_boxes': 'Boxes', 'unit_pallets': 'Pallets', 'unit_boxes': 'Boxes', 'min_from': 'From', 'added_mark': 'â Added', 'saved_per_box': 'ð° You save', 'min_warning': 'â ï¸ Minimum: <b>{n} {u}</b> for {p}', 'calc_title': 'ð§® Cost calculator in another currency (reference)', 'calc_convert_to': 'ð Convert to:', 'calc_total_usd': 'Total in USD:', 'calc_total_dest': 'Total in {m}:', 'calc_rate': 'Applied rate:', 'calc_per_pallet': 'Approx. cost per pallet:', 'calc_note': 'â¹ Reference value. Transactions are made in USD.', 'order_summary_title': 'ð Order Summary', 'order_lbl_client': 'Customer:', 'order_lbl_company': 'Company:', 'order_lbl_country': 'Country:', 'order_lbl_mode': 'Mode:', 'order_lbl_payment': 'Payment:', 'order_lbl_pending': 'To be confirmed', 'order_savings': 'ð° Volume savings: ${s:,.2f} USD', 'order_total_label': 'ð ORDER TOTAL', 'order_n_pallets': 'ð¦ {n:.2f} pallets', 'order_n_boxes': 'ð {n:,} boxes', 'order_weight': 'âï¸ {n:,.0f} kg net', 'order_weight_note': '* kg net of fruit â does not include packaging', 'savings_per_box': 'ð° You save ${d:.2f}/bx', 'unlock_better_price': 'ð You unlocked a better price! Tier: {label}', 'min_order_alert': 'â ï¸ Minimum order: 3 pallets. You have {curr:.1f} pallets â add {miss:.1f} more pallets to confirm.', 'order_sent_email': 'ð§ Your order has been sent to <b>order@exportharet.com</b> for confirmation. Our team will contact you within 24-48h. Track the status in the <b>My Orders</b> tab â', 'post_order_h3': 'Order {pid} sent', 'post_order_thanks': 'â <b>Thank you {name}</b>, we have received your order correctly.<br>ð Our team will contact you within <b>less than 24 hours</b> to confirm availability, final prices and logistics.<br>ð§ You will also receive an email confirmation when the order is processed.', 'wa_confirm': 'ð¬ Confirm via WhatsApp', 'em_send': 'ð§ Send by Email', 'wa_msg_greeting': 'Dear Export Haret team,', 'wa_msg_intro': 'I have just placed the following order through the portal:', 'wa_msg_order': 'ð *Order', 'wa_msg_client': 'ð¤ Customer:', 'wa_msg_company': 'Company:', 'wa_msg_country': 'ð Country:', 'wa_msg_details': '*Product details:*', 'wa_msg_total': 'ð° *TOTAL', 'wa_msg_closing': 'I remain available to coordinate the details.', 'wa_msg_regards': 'Best regards.', 'em_subj': 'Order', 'em_body_intro': 'Attached the delivery note for order', 'em_body_data': 'Order data:', 'em_body_client': 'â¢ Customer:', 'em_body_company': 'Company:', 'em_body_incoterm': 'â¢ Incoterm:', 'em_body_total': 'â¢ Total:', 'em_body_products': 'Products:', 'em_body_closing': 'I remain available for any question.', 'em_body_regards': 'Best regards.', 'share_portal_title': 'ð Share Customer Portal', 'share_portal_caption': 'Send this link to your customers:', 'share_msg': 'Hello, we invite you to use our Export Haret order portal:', 'destination_fob': 'FOB (from Ecuador)', 'order_status': 'Status:', 'order_type': 'Type:', 'order_destination': 'Destination:', 'order_date': 'Date:', 'order_total_lbl': 'Total:', 'tracking_title': 'ð Tracking:', 'full_history': 'ð Full history', 'products_label': 'Products:', 'btn_repeat': 'ð Repeat', 'btn_repeat_help': 'Load to cart', 'btn_cancel': 'ðï¸ Cancel', 'order_repeat_loaded': 'â Order {pid} loaded. Review and confirm.', 'order_no_products': 'This order has no registered products.', 'confirm_cancel': 'â ï¸ Confirm cancellation of order <b>{pid}</b>? Our team will be notified.', 'btn_yes_cancel': 'â Yes, cancel', 'btn_no': 'â No', 'order_cancelled': 'â Order {pid} cancelled. Notification sent to order@exportharet.com', 'enter_valid_email': 'ð§ Please enter a valid email address to continue.', 'enter_full_name': 'ð¤ Please enter your full name to continue.', 'err_invalid_email': 'â Invalid email format', 'fob_freight_caption': 'Freight: ${flete:.2f} USD/Kilo', 'price_in_dest': 'ð± <b>Equiv. {m}</b> (ref.): <b style="color:#1a7a3c">{sym}{tot:,.2f} {m}</b> <small style="color:#888">1 USD = {rate:.4f} {m}</small>', 'rate_info': 'ð± 1 USD = <b>{sym}{rate:.4f} {m}</b> â {live} | Source: {src} | Updated: {ts}', 'rate_info_sub': 'Prices in {m} are for reference. Transactions are made in USD.', 'rate_live': 'ð¢ Live', 'rate_approx': 'âª Approx.',
+        'unit_kg_per_box': 'kg/box', 'group_missing': '🎁 You need <b>{n} bx</b> more to complete 1 pallet in Group {g} and improve the price', 'group_complete_with': ' · Complete with: <b>{names}</b>', 'col_product': 'Product', 'col_price': 'Price/box', 'col_qty': 'Quantity', 'col_unit': 'Unit', 'col_boxes': 'Boxes', 'unit_pallets': 'Pallets', 'unit_boxes': 'Boxes', 'min_from': 'From', 'added_mark': '✓ Added', 'saved_per_box': '💰 You save', 'min_warning': '⚠️ Minimum: <b>{n} {u}</b> for {p}', 'calc_title': '🧮 Cost calculator in another currency (reference)', 'calc_convert_to': '🌍 Convert to:', 'calc_total_usd': 'Total in USD:', 'calc_total_dest': 'Total in {m}:', 'calc_rate': 'Applied rate:', 'calc_per_pallet': 'Approx. cost per pallet:', 'calc_note': 'ℹ Reference value. Transactions are made in USD.', 'order_summary_title': '📝 Order Summary', 'order_lbl_client': 'Customer:', 'order_lbl_company': 'Company:', 'order_lbl_country': 'Country:', 'order_lbl_mode': 'Mode:', 'order_lbl_payment': 'Payment:', 'order_lbl_pending': 'To be confirmed', 'order_savings': '💰 Volume savings: ${s:,.2f} USD', 'order_total_label': '🛒 ORDER TOTAL', 'order_n_pallets': '📦 {n:.2f} pallets', 'order_n_boxes': '📋 {n:,} boxes', 'order_weight': '⚖️ {n:,.0f} kg net', 'order_weight_note': '* kg net of fruit — does not include packaging', 'savings_per_box': '💰 You save ${d:.2f}/bx', 'unlock_better_price': '🎉 You unlocked a better price! Tier: {label}', 'min_order_alert': '⚠️ Minimum order: 3 pallets. You have {curr:.1f} pallets — add {miss:.1f} more pallets to confirm.', 'order_sent_email': '📧 Your order has been sent to <b>order@exportharet.com</b> for confirmation. Our team will contact you within 24-48h. Track the status in the <b>My Orders</b> tab ↑', 'post_order_h3': 'Order {pid} sent', 'post_order_thanks': '✅ <b>Thank you {name}</b>, we have received your order correctly.<br>📞 Our team will contact you within <b>less than 24 hours</b> to confirm availability, final prices and logistics.<br>📧 You will also receive an email confirmation when the order is processed.', 'wa_confirm': '💬 Confirm via WhatsApp', 'em_send': '📧 Send by Email', 'wa_msg_greeting': 'Dear Export Haret team,', 'wa_msg_intro': 'I have just placed the following order through the portal:', 'wa_msg_order': '📋 *Order', 'wa_msg_client': '👤 Customer:', 'wa_msg_company': 'Company:', 'wa_msg_country': '🌍 Country:', 'wa_msg_details': '*Product details:*', 'wa_msg_total': '💰 *TOTAL', 'wa_msg_closing': 'I remain available to coordinate the details.', 'wa_msg_regards': 'Best regards.', 'em_subj': 'Order', 'em_body_intro': 'Attached the delivery note for order', 'em_body_data': 'Order data:', 'em_body_client': '• Customer:', 'em_body_company': 'Company:', 'em_body_incoterm': '• Incoterm:', 'em_body_total': '• Total:', 'em_body_products': 'Products:', 'em_body_closing': 'I remain available for any question.', 'em_body_regards': 'Best regards.', 'share_portal_title': '🔗 Share Customer Portal', 'share_portal_caption': 'Send this link to your customers:', 'share_msg': 'Hello, we invite you to use our Export Haret order portal:', 'destination_fob': 'FOB (from Ecuador)', 'order_status': 'Status:', 'order_type': 'Type:', 'order_destination': 'Destination:', 'order_date': 'Date:', 'order_total_lbl': 'Total:', 'tracking_title': '📍 Tracking:', 'full_history': '📜 Full history', 'products_label': 'Products:', 'btn_repeat': '🔄 Repeat', 'btn_repeat_help': 'Load to cart', 'btn_cancel': '🗑️ Cancel', 'order_repeat_loaded': '✅ Order {pid} loaded. Review and confirm.', 'order_no_products': 'This order has no registered products.', 'confirm_cancel': '⚠️ Confirm cancellation of order <b>{pid}</b>? Our team will be notified.', 'btn_yes_cancel': '✅ Yes, cancel', 'btn_no': '❌ No', 'order_cancelled': '✅ Order {pid} cancelled. Notification sent to order@exportharet.com', 'enter_valid_email': '📧 Please enter a valid email address to continue.', 'enter_full_name': '👤 Please enter your full name to continue.', 'err_invalid_email': '❌ Invalid email format', 'fob_freight_caption': 'Freight: ${flete:.2f} USD/Kilo', 'price_in_dest': '💱 <b>Equiv. {m}</b> (ref.): <b style="color:#1a7a3c">{sym}{tot:,.2f} {m}</b> <small style="color:#888">1 USD = {rate:.4f} {m}</small>', 'rate_info': '💱 1 USD = <b>{sym}{rate:.4f} {m}</b> — {live} | Source: {src} | Updated: {ts}', 'rate_info_sub': 'Prices in {m} are for reference. Transactions are made in USD.', 'rate_live': '🟢 Live', 'rate_approx': '⚪ Approx.',
     }
 }
 
-# ââ CSS personalizado y responsive âââââââââââââââââââââââââââââââââââââââââââ
+# ── CSS personalizado y responsive ───────────────────────────────────────────
 CUSTOM_CSS = """
 <style>
-/* === RESPONSIVE MÃVIL === */
+/* === RESPONSIVE MÓVIL === */
 @media (max-width: 768px) {
     .stApp { font-size: 14px !important; }
     div[data-testid="column"] { min-width: 0 !important; }
@@ -201,7 +201,7 @@ CUSTOM_CSS = """
     font-weight: bold;
     font-size: 0.85em;
 }
-/* === PROGRESS BAR MÃNIMO === */
+/* === PROGRESS BAR MÍNIMO === */
 .min-progress {
     height: 8px;
     background: #e0e0e0;
@@ -228,7 +228,7 @@ CUSTOM_CSS = """
 /* === PRODUCT ROW === */
 .product-header { font-weight: 600; color: #555; font-size: 0.8em; border-bottom: 1px solid #eee; padding-bottom: 4px; margin-bottom: 4px; }
 /* === LANG BUTTONS === */
-div[data-testid="column"]:has(> div > div > button[title="EspaÃ±ol"]),
+div[data-testid="column"]:has(> div > div > button[title="Español"]),
 div[data-testid="column"]:has(> div > div > button[title="English"]) {
     padding: 0 2px !important;
 }
@@ -248,7 +248,7 @@ USERS = {
     "ventas@exportharet.com": {"pwd": hashlib.md5(b"ventas123").hexdigest(), "rol": "ventas", "nombre": "Ventas"},
 }
 
-# âââ DATA HELPERS âââââââââââââââââââââââââââââââââââââââââââââââââââ
+# ─── DATA HELPERS ───────────────────────────────────────────────────
 def _load(path, default):
     try:
         if os.path.exists(path):
@@ -290,7 +290,7 @@ def load_pedidos(): return _load(PEDIDOS_FILE, [])
 def load_historial(): return _load(HIST_FILE, [])
 def load_email_log(): return _load(EMAIL_FILE, [])
 def load_app_config():
-    return _load(APP_CONFIG_FILE, {"app_title": "ð Export Haret â Panel de AdministraciÃ³n"})
+    return _load(APP_CONFIG_FILE, {"app_title": "📊 Export Haret — Panel de Administración"})
 def save_app_config(cfg): _save(APP_CONFIG_FILE, cfg)
 def save_data(d): _save(DATA_FILE,d); st.cache_data.clear()
 def save_clients(c): _save(CLIENTS_FILE,c)
@@ -300,13 +300,12 @@ def save_email_log(e): _save(EMAIL_FILE,e)
 def load_accesos(): return _load(ACCESOS_FILE, [])
 def save_accesos(data): _save(ACCESOS_FILE, data)
 def registrar_acceso(email, nombre, rol):
-    from datetime import datetime as _dt
     acc = load_accesos()
-    acc.append({"fecha_hora": _dt.now().strftime("%Y-%m-%d %H:%M:%S"), "email": email, "nombre": nombre, "rol": rol})
+    acc.append({"fecha_hora": datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "email": email, "nombre": nombre, "rol": rol})
     save_accesos(acc)
 
 
-# âââ AUTH ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+# ─── AUTH ────────────────────────────────────────────────────────────────
 def init_session():
     defaults = {'logged_in':False,'user_email':'','user_rol':'','user_nombre':'','carrito':[]}
     for k,v in defaults.items():
@@ -321,11 +320,11 @@ def login_page():
             st.image('logo.png', use_container_width=True)
         else:
             st.markdown('<div style="text-align:center;padding:30px 0 10px"><h1 style="margin:0">Export Haret</h1></div>', unsafe_allow_html=True)
-        st.markdown('<div style="text-align:center;color:#6b7280;margin-bottom:24px">Sistema de GestiÃ³n de Pedidos</div>', unsafe_allow_html=True)
-        st.markdown('#### ð Iniciar SesiÃ³n')
+        st.markdown('<div style="text-align:center;color:#6b7280;margin-bottom:24px">Sistema de Gestión de Pedidos</div>', unsafe_allow_html=True)
+        st.markdown('#### 🔐 Iniciar Sesión')
         email = st.text_input('Email', placeholder='usuario@exportharet.com')
-        pwd = st.text_input('ContraseÃ±a', type='password')
-        if st.button('Entrar â', use_container_width=True, type='primary'):
+        pwd = st.text_input('Contraseña', type='password')
+        if st.button('Entrar →', use_container_width=True, type='primary'):
             h = hashlib.md5(pwd.encode()).hexdigest()
             if email in USERS and USERS[email]['pwd'] == h:
                 st.session_state.logged_in = True
@@ -334,21 +333,21 @@ def login_page():
                 st.session_state.user_nombre = USERS[email]['nombre']
                 registrar_acceso(email=email, nombre=USERS[email]['nombre'], rol=USERS[email]['rol'])
                 st.rerun()
-            else: st.error('â Email o contraseÃ±a incorrectos')
+            else: st.error('❌ Email o contraseña incorrectos')
         st.markdown('---')
-        st.caption('ð Acceso restringido al personal autorizado.')
+        st.caption('🔒 Acceso restringido al personal autorizado.')
         # credentials hidden for security
 
-# âââ BUSINESS LOGIC ââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+# ─── BUSINESS LOGIC ──────────────────────────────────────────────────────
 def segmentar(email, clients):
     peds = [p for p in load_pedidos() if p.get('client_email') == email]
-    if not peds: return {'segmento':'Nuevo','descuento':0.0,'credito':10000,'badge':'ð Nuevo'}
+    if not peds: return {'segmento':'Nuevo','descuento':0.0,'credito':10000,'badge':'🆕 Nuevo'}
     hoy = datetime.now()
     p30 = [p for p in peds if (hoy-datetime.fromisoformat(p.get('fecha',hoy.isoformat()))).days<=30]
     fac = sum(p.get('total_usd',0) for p in p30)
-    if fac>=5000 or len(p30)>=10: return {'segmento':'VIP','descuento':0.05,'credito':50000,'badge':'â­ VIP'}
-    if len(peds)>=2: return {'segmento':'Regular','descuento':0.02,'credito':25000,'badge':'â« Regular'}
-    return {'segmento':'Nuevo','descuento':0.0,'credito':10000,'badge':'ð Nuevo'}
+    if fac>=5000 or len(p30)>=10: return {'segmento':'VIP','descuento':0.05,'credito':50000,'badge':'⭐ VIP'}
+    if len(peds)>=2: return {'segmento':'Regular','descuento':0.02,'credito':25000,'badge':'⚫ Regular'}
+    return {'segmento':'Nuevo','descuento':0.0,'credito':10000,'badge':'🆕 Nuevo'}
 
 def get_precio(codigo, destino, data):
     """Calcula precio CIF = precio_compra + flete_destino."""
@@ -358,7 +357,7 @@ def get_precio(codigo, destino, data):
             base = p.get('precio_cif_usd', 0) or p.get('precio_compra', 0)
             dest_val = data.get('config', {}).get('destinos', {}).get(destino, 0)
             if isinstance(dest_val, dict):
-                # New format: {'moneda': 'USD', 'factor': 2.35} â factor = flete USD/caja
+                # New format: {'moneda': 'USD', 'factor': 2.35} — factor = flete USD/caja
                 flete = dest_val.get('factor', 0.0)
             elif isinstance(dest_val, (int, float)):
                 # Original format: flete en USD/Kilo directamente
@@ -374,7 +373,7 @@ def reg_cambio_precio(cod, antes, desp, motivo='Manual'):
     h2 = load_historial()
     h2.append({'id':f'CHG-{len(h2)+1:05d}','fecha':datetime.now().isoformat(),'producto':cod,'antes':antes,'despues':desp,'cambio_pct':round(pct,2),'usuario':st.session_state.get('user_email','sistema'),'motivo':motivo})
     save_historial(h2)
-    if abs(pct)>20: st.warning(f'â ï¸ Cambio >20% en {cod}: {pct:+.1f}%')
+    if abs(pct)>20: st.warning(f'⚠️ Cambio >20% en {cod}: {pct:+.1f}%')
 
 def exportar_excel(pedidos):
     try:
@@ -413,14 +412,14 @@ def calc_sla(pedidos):
                 t1=datetime.fromisoformat(hist[i]['fecha']); t2=datetime.fromisoformat(hist[i+1]['fecha'])
                 h2=(t2-t1).total_seconds()/3600
                 meta=metas.get(f'{de}_{a}')
-                if meta: slas.append({'p':p.get('id',''),'tr':f'{de}â{a}','h':round(h2,1),'m':meta,'ok':h2<=meta})
+                if meta: slas.append({'p':p.get('id',''),'tr':f'{de}→{a}','h':round(h2,1),'m':meta,'ok':h2<=meta})
             except Exception as e:
                 logger.debug(f'SLA calc skip: {e}')
     tot=len(slas) or 1
     ok=sum(1 for s in slas if s['ok'])
     return slas,{'pct':round(ok/tot*100,1),'crit':tot-ok,'tot':len(slas),'prom':round(sum(s['h'] for s in slas)/tot,1)}
 
-# âââ TAB DASHBOARD âââââââââââââââââââââââââââââââââââââââââââââ
+# ─── TAB DASHBOARD ─────────────────────────────────────────────
 def render_dashboard():
     import os as _os
     if _os.path.exists('logo.png'):
@@ -428,26 +427,26 @@ def render_dashboard():
         _logo = _Img.open('logo.png')
         _lc1, _lc2, _lc3 = st.columns([1, 2, 1])
         with _lc2: st.image(_logo, width=220)
-    st.markdown('## ð Dashboard Ejecutivo')
+    st.markdown('## 📊 Dashboard Ejecutivo')
     pedidos=load_pedidos(); clients=load_clients(); data=load_data()
     c1,c2,c3,c4=st.columns(4)
     fac=sum(p.get('total_usd',0) for p in pedidos)
     vip=sum(1 for e in clients if segmentar(e,clients)['segmento']=='VIP')
     hoy_peds=len([p for p in pedidos if p.get('fecha','')[:10]==str(date.today())])
-    c1.metric('ð¦ Pedidos',f'{len(pedidos):,}')
-    c2.metric('ðµ FacturaciÃ³n',f'${fac:,.0f}','USD')
-    c3.metric('ð¥ Clientes',f'{len(clients):,}',f'{vip} VIP')
-    c4.metric('ð¬ Hoy',hoy_peds,'nuevos')
+    c1.metric('📦 Pedidos',f'{len(pedidos):,}')
+    c2.metric('💵 Facturación',f'${fac:,.0f}','USD')
+    c3.metric('👥 Clientes',f'{len(clients):,}',f'{vip} VIP')
+    c4.metric('📬 Hoy',hoy_peds,'nuevos')
     st.markdown('---')
-    st.markdown('### ð Pedidos por Estado')
+    st.markdown('### 📋 Pedidos por Estado')
     ec={}
     for p in pedidos: ec[p.get('estado','Recibido')]=ec.get(p.get('estado','Recibido'),0)+1
     if ec:
         cols=st.columns(len(ORDEN_ESTADOS))
         for i,e in enumerate(ORDEN_ESTADOS): cols[i].metric(f"{ESTADO_ICONS.get(e,'')} {e}",ec.get(e,0))
-    else: st.info('â¹ï¸ No hay pedidos. Crea uno en el tab **Hacer Pedido**.')
+    else: st.info('ℹ️ No hay pedidos. Crea uno en el tab **Hacer Pedido**.')
     st.markdown('---')
-    st.markdown('### ð FacturaciÃ³n Mensual (USD)')
+    st.markdown('### 📈 Facturación Mensual (USD)')
     if pedidos:
         _mes_data = {}
         for _p in pedidos:
@@ -457,21 +456,21 @@ def render_dashboard():
             _meses_sorted = sorted(_mes_data.keys())[-12:]
             _df_chart = pd.DataFrame({'Mes': _meses_sorted, 'Total USD': [round(_mes_data[m], 2) for m in _meses_sorted]}).set_index('Mes')
             st.bar_chart(_df_chart, use_container_width=True, height=250)
-    else: st.info('ð GrÃ¡fico disponible cuando haya pedidos.')
+    else: st.info('📊 Gráfico disponible cuando haya pedidos.')
     st.markdown('---')
-    with st.expander('â± SLA de Procesos', expanded=False):
+    with st.expander('⏱ SLA de Procesos', expanded=False):
         _,ss=calc_sla(pedidos)
         s1,s2,s3,s4=st.columns(4)
-        s1.metric('â Cumplimiento',f"{ss['pct']:.1f}%",'Meta:95%')
-        s2.metric('â ï¸ CrÃ­ticos',ss['crit'])
-        s3.metric('â± Prom.h',f"{ss['prom']:.1f}h")
-        s4.metric('ð Trans.',ss['tot'])
+        s1.metric('✅ Cumplimiento',f"{ss['pct']:.1f}%",'Meta:95%')
+        s2.metric('⚠️ Críticos',ss['crit'])
+        s3.metric('⏱ Prom.h',f"{ss['prom']:.1f}h")
+        s4.metric('📊 Trans.',ss['tot'])
     st.markdown('---')
     st.markdown('---')
-    # ââ Alertas pedidos nuevos ââ
+    # —— Alertas pedidos nuevos ——
     _nuevos = [p for p in pedidos if p.get('estado','') == 'Recibido']
     if _nuevos:
-        st.markdown(f'### ð Pedidos Nuevos Sin Atender ({len(_nuevos)})')
+        st.markdown(f'### 🔔 Pedidos Nuevos Sin Atender ({len(_nuevos)})')
         _col_alerta = 'background:#fff3cd;border-left:4px solid #ffc107;border-radius:6px;padding:10px 14px;margin:4px 0'
         for _np in sorted(_nuevos, key=lambda x: x.get('fecha',''), reverse=True)[:5]:
             _np_id = _np.get('id','').upper()
@@ -479,26 +478,26 @@ def render_dashboard():
             _np_total = _np.get('total_usd',0)
             _np_fecha = _np.get('fecha','')[:16].replace('T',' ')
             _np_dest = _np.get('destino','')
-            st.markdown(f'<div style="{_col_alerta}">ð¦ <b>{_np_id}</b> â {_np_cliente} â <b>${_np_total:,.2f} USD</b> â {_np_dest} â <small style="color:#888">{_np_fecha}</small></div>', unsafe_allow_html=True)
+            st.markdown(f'<div style="{_col_alerta}">📦 <b>{_np_id}</b> — {_np_cliente} — <b>${_np_total:,.2f} USD</b> — {_np_dest} — <small style="color:#888">{_np_fecha}</small></div>', unsafe_allow_html=True)
         if len(_nuevos) > 5:
-            st.caption(f'... y {len(_nuevos)-5} pedido(s) mÃ¡s en el tab ð¦ Pedidos')
+            st.caption(f'... y {len(_nuevos)-5} pedido(s) más en el tab 📦 Pedidos')
     st.markdown('---')
-    st.markdown('### â­ SegmentaciÃ³n')
+    st.markdown('### ⭐ Segmentación')
     segs={'VIP':0,'Regular':0,'Nuevo':0}
     for e in clients: seg=segmentar(e,clients)['segmento']; segs[seg]=segs.get(seg,0)+1
     sg1,sg2,sg3=st.columns(3)
-    sg1.metric('â­ VIP',segs.get('VIP',0),'+5% desc.')
-    sg2.metric('â« Regular',segs.get('Regular',0),'+2% desc.')
-    sg3.metric('ð Nuevo',segs.get('Nuevo',0))
+    sg1.metric('⭐ VIP',segs.get('VIP',0),'+5% desc.')
+    sg2.metric('⚫ Regular',segs.get('Regular',0),'+2% desc.')
+    sg3.metric('🆕 Nuevo',segs.get('Nuevo',0))
     if data.get('products',[]):
         st.markdown('---')
-        st.markdown(f"### ð¦ Productos ({len(data['products'])} activos)")
-        _df_prods = pd.DataFrame([{'CÃ³digo':p.get('codigo',''),'Producto':p.get('descripcion','') or p.get('producto',''),'Precio Compra':f"${p.get('precio_compra',0):.4f}",'Margen':f"{float(p.get('margen_pct',0.1) or 0.1)*100:.0f}%",'Activo':'â' if p.get('activo',True) else 'â'} for p in data['products'][:15]])
+        st.markdown(f"### 📦 Productos ({len(data['products'])} activos)")
+        _df_prods = pd.DataFrame([{'Código':p.get('codigo',''),'Producto':p.get('descripcion','') or p.get('producto',''),'Precio Compra':f"${p.get('precio_compra',0):.4f}",'Margen':f"{float(p.get('margen_pct',0.1) or 0.1)*100:.0f}%",'Activo':'✅' if p.get('activo',True) else '❌'} for p in data['products'][:15]])
         st.dataframe(_df_prods,use_container_width=True,hide_index=True)
 
-# âââ TAB COTIZACION âââââââââââââââââââââââââââââââââââââââââââââââââââ
+# ─── TAB COTIZACION ───────────────────────────────────────────────────
 
-# ââ Mapa columnas Excel â cÃ³digo producto (igual que vigilar_excel.py) ââââââ
+# ── Mapa columnas Excel → código producto (igual que vigilar_excel.py) ──────
 COL_MAP = {
      4: "F-PSG10",    5: "F-PN016",    6: "F-PPA01",
      7: "F-PSR02",    8: "F-PSR05",    9: "F-PSM09",
@@ -535,7 +534,7 @@ def parse_excel_file(xl_path):
         raise ValueError("No se encontro la hoja 'TABLA PRECIOS'")
     ws_pr = wb['TABLA PRECIOS']
 
-    # ââ Leer tabla de productos fila a fila (filas 7+) âââââââââââââ
+    # ── Leer tabla de productos fila a fila (filas 7+) ─────────────
     # Col: 1=blank, 2=Codigo, 3=Producto, 4=Kg/caja, 5=Precio_compra,
     #      6=Costo_caja, 7=FOBbase, 8=Merma, 9=FOB+Merma, 10=Margen%,
     #      11=Margen$, 12=PrecioFOBFinal, 13=Flete/caja, 14=CIF_USD,
@@ -571,7 +570,7 @@ def parse_excel_file(xl_path):
             'kg_caja': round(float(kg), 3) if isinstance(kg, (int, float)) else 0.0,
         }
 
-    # ââ Leer historial precios (filas 32-83, por columna) â legacy ââ
+    # ── Leer historial precios (filas 32-83, por columna) — legacy ──
     latest_prices = {}
     for col, cod in COL_MAP.items():
         last = None
@@ -582,7 +581,7 @@ def parse_excel_file(xl_path):
         if last is not None:
             latest_prices[cod] = last
 
-    # ââ Construir lista de productos ââââââââââââââââââââââââââââââââ
+    # ── Construir lista de productos ────────────────────────────────
     products = []
     all_codes = set(list(row_prices.keys()) + list(COL_MAP.values()))
     for col, cod in sorted(COL_MAP.items()):
@@ -607,7 +606,7 @@ def parse_excel_file(xl_path):
             prod_data['cajas_pallet'] = 200
         products.append(prod_data)
 
-    # ââ Leer destinos de CONFIGURACION ââââââââââââââââââââââââââââââ
+    # ── Leer destinos de CONFIGURACION ──────────────────────────────
     destinos_cfg = {}
     config_existing = data.get('config', {})
     if 'CONFIGURACION' in wb.sheetnames:
@@ -626,16 +625,16 @@ def parse_excel_file(xl_path):
     return products, destinos_cfg
 
 def auto_load_excel():
-    """Auto-carga Cotizaciones.xlsx al inicio si los productos no tienen precios vÃ¡lidos."""
+    """Auto-carga Cotizaciones.xlsx al inicio si los productos no tienen precios válidos."""
     data = load_data()
     prods = data.get('products', [])
-    # Re-parsear si no hay productos con precio_cif_usd vÃ¡lido
+    # Re-parsear si no hay productos con precio_cif_usd válido
     has_prices = any(
         (p.get('precio_cif_usd', 0) or p.get('precio_compra', 0)) > 0
         for p in prods
     )
     if has_prices:
-        return  # ya hay precios vÃ¡lidos
+        return  # ya hay precios válidos
     xl_path = 'Cotizaciones.xlsx'
     if not os.path.exists(xl_path):
         return  # esperar upload manual
@@ -659,9 +658,9 @@ def render_catalogo():
     dests_moneda = cfg.get('destinos_moneda', {})
     flete_ref = float(cfg.get('flete_ref', 2.35) or 2.35)  # flete referencia Madrid
 
-    sub1, sub2, sub3, sub4 = st.tabs(['ð Tabla de Precios', 'ð Destinos & Monedas', 'ð Importar Excel', 'ð¦ Embalaje'])
+    sub1, sub2, sub3, sub4 = st.tabs(['📊 Tabla de Precios', '🌍 Destinos & Monedas', '📂 Importar Excel', '📦 Embalaje'])
 
-    # âââ SUB-TAB 1: TABLA MAESTRA DE PRECIOS âââââââââââââââââââââââââ
+    # ─── SUB-TAB 1: TABLA MAESTRA DE PRECIOS ─────────────────────────
     with sub1:
         _fc1, _fc2 = st.columns([3, 1])
         with _fc2:
@@ -671,7 +670,7 @@ def render_catalogo():
             st.markdown('### \U0001f4cb Tabla de Precios por Pallets (USD/caja)')
 
         # P1-buscador: filtrar productos por nombre/c\u00f3digo/categor\u00eda
-        _search_q = st.text_input('ð Buscar producto', placeholder='nombre, cÃ³digo o categorÃ­a...', key='cat_search_q')
+        _search_q = st.text_input('🔍 Buscar producto', placeholder='nombre, código o categoría...', key='cat_search_q')
         prods_vis = prods if _show_inactive else [p for p in prods if p.get('activo', True)]
         if _search_q:
             _sq = _search_q.lower().strip()
@@ -704,7 +703,7 @@ def render_catalogo():
             _dest_flete_v = float(_dest_flete.get('factor', _dest_flete) if isinstance(_dest_flete, dict) else _dest_flete if isinstance(_dest_flete, (int, float)) else 0)
             st.metric('\U0001f4b1 Moneda / Flete', f'{_moneda_dest} | ${_dest_flete_v:.2f}/Kilo')
 
-        # ââ Tabla estilo Excel: filas=pallets, columnas=productos ââââ
+        # ── Tabla estilo Excel: filas=pallets, columnas=productos ────
         if _cat_tipo == 'FOB':
             st.caption('Precios **FOB** (en origen, sin flete) | Todos los precios en USD/caja. A mayor volumen total del pedido, menor precio.')
         else:
@@ -766,12 +765,12 @@ def render_catalogo():
                     styles.loc[_idx_r, _col] = f'background-color:rgb({_r},{_g},{_r});font-weight:bold;text-align:right'
             return styles
 
-        _df_styled = df_plt.style.apply(_style_plt, axis=None).format('${:.2f}', na_rep='â')
+        _df_styled = df_plt.style.apply(_style_plt, axis=None).format('${:.2f}', na_rep='—')
         st.dataframe(_df_styled, use_container_width=True, height=min(50 + 38*(N_PALLETS+1), 950))
 
         st.caption('\U0001f7e2 Verde = precio m\u00e1s bajo (m\u00e1s volumen). La app usa autom\u00e1ticamente el precio correspondiente al total de pallets del pedido.')
 
-        # ââ Descarga cat\u00e1logo âââââââââââââââââââââââââââââââââââââââââ
+        # ── Descarga cat\u00e1logo ─────────────────────────────────────────
         st.markdown('---')
         _dlc1, _dlc2 = st.columns(2)
         try:
@@ -795,7 +794,7 @@ def render_catalogo():
         except ImportError:
             _dlc1.info('Instalar openpyxl para exportar')
 
-        # ââ Edici\u00f3n directa de precios por pallet ââââââââââââââââââ
+        # ── Edici\u00f3n directa de precios por pallet ──────────────────
         st.markdown('---')
         st.markdown('### \u2699\ufe0f Editar Precios por Pallet')
         st.caption('Edita los precios USD/caja directamente. Cada fila = 1 pallet total del pedido. Cambios se guardan en el cat\u00e1logo.')
@@ -844,9 +843,9 @@ def render_catalogo():
             'Activo': st.column_config.CheckboxColumn('Activo', width='small',
                 help='Desactiva para ocultar del portal del cliente'),
             'Min Unidad': st.column_config.SelectboxColumn('Min Unidad', options=['Pallets', 'Cajas'], width='small',
-                help='Unidad del pedido mÃ­nimo: Pallets o Cajas'),
-            'Min Cant': st.column_config.NumberColumn('MÃ­nimo', min_value=0, step=1, width='small',
-                help='Cantidad mÃ­nima de pedido por producto (0 = sin mÃ­nimo)'),
+                help='Unidad del pedido mínimo: Pallets o Cajas'),
+            'Min Cant': st.column_config.NumberColumn('Mínimo', min_value=0, step=1, width='small',
+                help='Cantidad mínima de pedido por producto (0 = sin mínimo)'),
         }
         for _pc_name in _plt_cols:
             _col_cfg_edit[_pc_name] = st.column_config.NumberColumn(
@@ -888,7 +887,7 @@ def render_catalogo():
             st.session_state.price_edit_v = st.session_state.get('price_edit_v', 0) + 1
             st.rerun()
 
-    # âââ SUB-TAB 2: DESTINOS & MONEDAS âââââââââââââââââââââââââââââââ
+    # ─── SUB-TAB 2: DESTINOS & MONEDAS ───────────────────────────────
     with sub2:
         st.markdown('### \U0001f30d Gestionar Destinos & Fletes')
         st.caption('Flete en USD/Kilo. A\u00f1ade, edita o elimina destinos directamente en la tabla.')
@@ -931,7 +930,7 @@ def render_catalogo():
                 _sym2 = MONEDA_SIMBOLO.get(_cur2, _cur2)
                 st.metric(f'USD/{_cur2}', f'{_sym2}{_rate2:.4f}')
 
-    # âââ SUB-TAB 3: IMPORTAR EXCEL ââââââââââââââââââââââââââââââââââââ
+    # ─── SUB-TAB 3: IMPORTAR EXCEL ────────────────────────────────────
     with sub3:
         st.markdown('### \U0001f4c2 Importar desde Excel')
         st.info('\U0001f4a1 El archivo Excel debe tener la hoja **TABLA PRECIOS** con la estructura est\u00e1ndar de Export Haret (fila 6 = cabeceras, filas 7+ = productos, columnas 16-24 = precios 1-9 pallets).')
@@ -961,9 +960,9 @@ def render_catalogo():
             except Exception as _xe:
                 st.error(f'Error al importar: {_xe}')
                 import traceback as _xtb; st.code(_xtb.format_exc())
-    # âââ SUB-TAB 4: TABLA DE EMBALAJE âââââââââââââââââââââââââââââââââââââââââââââ
+    # ─── SUB-TAB 4: TABLA DE EMBALAJE ─────────────────────────────────────────────
     with sub4:
-        st.markdown('### ð¦ Tabla de Embalaje por Grupos')
+        st.markdown('### 📦 Tabla de Embalaje por Grupos')
         st.caption('Define los grupos de embalaje. Cada grupo determina las cajas por pallet y kg/caja de los productos asignados.')
 
         _emb_data = load_data()
@@ -977,7 +976,7 @@ def render_catalogo():
             for p in _emb_prods if p.get('codigo','')
         }
 
-        # ââ Tabla editable de grupos ââââââââââââââââââââââââââââââââââââââââââ
+        # ── Tabla editable de grupos ──────────────────────────────────────────
         st.markdown('#### Grupos de Embalaje')
         _emb_rows = []
         for _grp_key in sorted(_emb_grupos.keys()):
@@ -1029,12 +1028,12 @@ def render_catalogo():
                 _new_grupos[_grp_k] = _upd
             _emb_data['config']['grupos'] = _new_grupos
             save_data(_emb_data)
-            st.toast('â Grupos guardados', icon='â')
+            st.toast('✅ Grupos guardados', icon='✅')
             st.rerun()
 
         st.markdown('---')
 
-        # ââ Asignacion de productos a grupos (multiselect por grupo) âââââââââ
+        # ── Asignacion de productos a grupos (multiselect por grupo) ─────────
         st.markdown('#### Productos por Grupo')
         st.caption('Asigna productos a cada grupo. Puedes seleccionar varios productos por grupo. Al guardar se actualizan las cajas/pallet y kg/caja de cada producto.')
 
@@ -1049,7 +1048,7 @@ def render_catalogo():
                 _grp_to_cods[_ppg].append(_ppc)
 
         # Label maps
-        _cod_label_map = {cod: cod + ' â ' + nom for cod, nom in _all_prod_opts.items()}
+        _cod_label_map = {cod: cod + ' – ' + nom for cod, nom in _all_prod_opts.items()}
         _label_cod_map = {v: k for k, v in _cod_label_map.items()}
         _prod_names_for_select = list(_cod_label_map.values())
 
@@ -1063,7 +1062,7 @@ def render_catalogo():
 
             _gc1, _gc2 = st.columns([1, 3])
             with _gc1:
-                st.markdown(f'**Grupo {_grp_k}** â `{_grp_cxp2}` cj/plt')
+                st.markdown(f'**Grupo {_grp_k}** — `{_grp_cxp2}` cj/plt')
                 if _grp_nom2:
                     st.caption(_grp_nom2[:60])
             with _gc2:
@@ -1097,44 +1096,44 @@ def render_catalogo():
                 _new_prods2.append(_pp2c)
             _emb_data['products'] = _new_prods2
             save_data(_emb_data)
-            st.toast('â Asignacion de productos guardada', icon='â')
+            st.toast('✅ Asignacion de productos guardada', icon='✅')
             st.rerun()
 
 
 def render_hacer_pedido():
-    st.markdown('## ð Crear Nuevo Pedido')
+    st.markdown('## 🛒 Crear Nuevo Pedido')
     data=load_data(); prods=data.get('products',[]); dests=data.get('config',{}).get('destinos',{})
     if not prods:
-        st.warning('â ï¸ No hay productos. Ve al tab **CotizaciÃ³n** y sube tu archivo Excel primero.')
+        st.warning('⚠️ No hay productos. Ve al tab **Cotización** y sube tu archivo Excel primero.')
         return
     clients=load_clients()
     # Paso 1: Cliente
-    st.markdown('### 1ï¸â£ Datos del Cliente')
+    st.markdown('### 1️⃣ Datos del Cliente')
     cl1,cl2=st.columns(2)
-    c_email=cl1.text_input('ð§ Email',placeholder='cliente@empresa.com',key='hp_email')
-    c_name=cl2.text_input('ð¤ Nombre',placeholder='Nombre / Empresa',key='hp_nombre')
+    c_email=cl1.text_input('📧 Email',placeholder='cliente@empresa.com',key='hp_email')
+    c_name=cl2.text_input('👤 Nombre',placeholder='Nombre / Empresa',key='hp_nombre')
     seg=None
     if c_email and c_email in clients:
         c=clients[c_email]; seg=segmentar(c_email,clients)
-        st.success(f'â Cliente: {c.get("nombre","")} | {seg["badge"]} | Desc: {seg["descuento"]*100:.0f}%')
+        st.success(f'✅ Cliente: {c.get("nombre","")} | {seg["badge"]} | Desc: {seg["descuento"]*100:.0f}%')
         if not c_name: c_name=c.get('nombre','')
-    elif c_email: st.info('ð Cliente nuevo - se registrarÃ¡ al guardar')
+    elif c_email: st.info('🆕 Cliente nuevo - se registrará al guardar')
     # Paso 2: Destino
-    st.markdown('### 2ï¸â£ Destino')
-    dest_opts=list(dests.keys()) if dests else ['Madrid/EspaÃ±a','ParÃ­s/Francia','Londres/UK','Miami/USA']
-    destino=st.selectbox('ð Destino',dest_opts,key='hp_dest')
+    st.markdown('### 2️⃣ Destino')
+    dest_opts=list(dests.keys()) if dests else ['Madrid/España','París/Francia','Londres/UK','Miami/USA']
+    destino=st.selectbox('🌍 Destino',dest_opts,key='hp_dest')
     dest_v=dests.get(destino,{}) if dests else {}
     moneda=dest_v.get('moneda','USD') if isinstance(dest_v,dict) else 'USD'
     dest_factor=dest_v.get('factor',1.0) if isinstance(dest_v,dict) else (float(dest_v) if isinstance(dest_v,(int,float)) else 1.0)
     st.caption(f'Moneda destino: {moneda}')
     # Paso 3: Productos
-    st.markdown('### 3ï¸â£ Agregar Productos')
+    st.markdown('### 3️⃣ Agregar Productos')
     pc1,pc2,pc3=st.columns([3,1,1])
     prod_opts=[p.get('codigo','')+' - '+(p.get('descripcion','') or p.get('producto','')) for p in prods]
     psel=pc1.selectbox('Producto',['Seleccionar...']+prod_opts,key='hp_prod')
     cajas=pc2.number_input('Cajas',min_value=1,value=100,step=50,key='hp_cajas')
     pc3.markdown('<br>',unsafe_allow_html=True)
-    if pc3.button('â Agregar') and psel!='Seleccionar...':
+    if pc3.button('➕ Agregar') and psel!='Seleccionar...':
         cod=psel.split(' - ')[0]
         pd_=next((p for p in prods if p.get('codigo')==cod),{})
         _cart_pals_admin = sum(i.get('pallets',0) for i in st.session_state.carrito)
@@ -1153,39 +1152,39 @@ def render_hacer_pedido():
         st.rerun()
     # Carrito
     if st.session_state.carrito:
-        st.markdown('#### ð Carrito')
+        st.markdown('#### 🛒 Carrito')
         st.dataframe(pd.DataFrame(st.session_state.carrito)[['codigo','producto','cajas','pallets','precio_usd','total']],use_container_width=True,hide_index=True)
         tot=sum(i['total'] for i in st.session_state.carrito)
         tc1,tc2,tc3=st.columns(3)
-        tc1.metric('ð¦ Cajas',f'{sum(i["cajas"] for i in st.session_state.carrito):,}')
-        tc2.metric('ð Pallets',f'{sum(i["pallets"] for i in st.session_state.carrito):.1f}')
-        tc3.metric('ð° Total',f'${tot:,.2f}')
-        if st.button('ðï¸ Vaciar',key='vaciar'): st.session_state.carrito=[]; st.rerun()
+        tc1.metric('📦 Cajas',f'{sum(i["cajas"] for i in st.session_state.carrito):,}')
+        tc2.metric('📍 Pallets',f'{sum(i["pallets"] for i in st.session_state.carrito):.1f}')
+        tc3.metric('💰 Total',f'${tot:,.2f}')
+        if st.button('🗑️ Vaciar',key='vaciar'): st.session_state.carrito=[]; st.rerun()
     # Paso 4
-    st.markdown('### 4ï¸â£ Confirmar')
+    st.markdown('### 4️⃣ Confirmar')
     notas=st.text_area('Notas',placeholder='Instrucciones especiales...',key='hp_notas')
     ht1,ht2=st.columns(2)
     TOPH=['','Pago anticipado 100%','50% adelanto / 50% contra documentos','30% adelanto / 70% contra BL','Carta de cr\xe9dito (LC)','Pago a 30 d\xedas','Pago a 60 d\xedas','Otro']
-    hp_term=ht1.selectbox('ð TÃ©rminos de pago',TOPH,key='hp_term')
-    hp_ent=ht2.text_input('ð Fecha entrega estimada',placeholder='ej: 2026-06-20',key='hp_ent')
-    notas_internas=st.text_area('ð Notas internas (no visibles al cliente)',placeholder='Instrucciones de almacÃ©n, condiciones especiales...',key='hp_notas_int',height=60)
+    hp_term=ht1.selectbox('📋 Términos de pago',TOPH,key='hp_term')
+    hp_ent=ht2.text_input('📅 Fecha entrega estimada',placeholder='ej: 2026-06-20',key='hp_ent')
+    notas_internas=st.text_area('🔒 Notas internas (no visibles al cliente)',placeholder='Instrucciones de almacén, condiciones especiales...',key='hp_notas_int',height=60)
     if st.session_state.carrito:
         _tot_pre = sum(i['total'] for i in st.session_state.carrito)
         _plt_pre = sum(i.get('pallets',0) for i in st.session_state.carrito)
         st.markdown(
             f'<div style="background:#f0f7ff;border:1px solid #003E8C;border-radius:8px;padding:12px 18px;margin:8px 0">'
-            f'ð <b>Resumen</b><br>'
+            f'📋 <b>Resumen</b><br>'
             f'&bull; Cliente: <b>{c_name}</b> ({c_email})<br>'
             f'&bull; Destino: <b>{destino}</b><br>'
             f'&bull; Productos: <b>{len(st.session_state.carrito)}</b> &nbsp; Pallets: <b>{_plt_pre:.2f}</b><br>'
-            f'&bull; ð° Total: <b style="color:#003E8C">${_tot_pre:,.2f} USD</b>'
+            f'&bull; 💰 Total: <b style="color:#003E8C">${_tot_pre:,.2f} USD</b>'
             f'</div>',
             unsafe_allow_html=True
         )
-    if st.button('ð¤ GUARDAR PEDIDO',type='primary',use_container_width=True):
-        if not c_email: st.error('â Ingresa email del cliente')
-        elif not c_name: st.error('â Ingresa nombre del cliente')
-        elif not st.session_state.carrito: st.error('â Agrega productos al carrito')
+    if st.button('📤 GUARDAR PEDIDO',type='primary',use_container_width=True):
+        if not c_email: st.error('❌ Ingresa email del cliente')
+        elif not c_name: st.error('❌ Ingresa nombre del cliente')
+        elif not st.session_state.carrito: st.error('❌ Agrega productos al carrito')
         else:
             _tod_h=load_pedidos()
             _yn_h=datetime.now().strftime('%Y')
@@ -1204,23 +1203,23 @@ def render_hacer_pedido():
                 _email_status = 'fallido'
             el=load_email_log(); el.append({'id':f'EMAIL-{len(el)+1:05d}','destinatario':c_email,'asunto':f'Pedido {pid} recibido','tipo':'confirmacion','fecha':datetime.now().isoformat(),'estado':_email_status}); save_email_log(el)
             st.session_state.carrito=[]
-            st.success(f'â Pedido {pid} creado por ${tot:,.2f}')
+            st.success(f'✅ Pedido {pid} creado por ${tot:,.2f}')
             st.cache_data.clear()
 
-# âââ TAB PRECIOS âââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+# ─── TAB PRECIOS ─────────────────────────────────────────────────────────
 def render_destinos():
-    st.markdown('## ð Todos los Destinos - Tarifas')
+    st.markdown('## 🌍 Todos los Destinos - Tarifas')
     data=load_data(); dests=data.get('config',{}).get('destinos',{})
-    if not dests: st.info('â ï¸ Sube el Excel en CotizaciÃ³n para ver los destinos.'); return
+    if not dests: st.info('⚠️ Sube el Excel en Cotización para ver los destinos.'); return
     rows_d=[]
     for k,v in dests.items():
         if isinstance(v,dict): rows_d.append({'Destino':k,'Moneda':v.get('moneda','USD'),'CIF':v.get('factor',1.0)})
         else: rows_d.append({'Destino':k,'Moneda':'USD/EUR','CIF USD':round(float(v),2) if isinstance(v,(int,float)) else 0})
     st.dataframe(pd.DataFrame(rows_d),use_container_width=True,hide_index=True)
 
-# âââ TAB GESTION PEDIDOS ââââââââââââââââââââââââââââââââââââââââââââââ
+# ─── TAB GESTION PEDIDOS ──────────────────────────────────────────────
 def render_gestion_pedidos():
-    st.markdown('## ð¦ GestiÃ³n de Pedidos')
+    st.markdown('## 📦 Gestión de Pedidos')
     pedidos=load_pedidos()
     # KPI filter: si vienen de sidebar 'En proceso', precargar estados pendientes
     _kpi_filter = st.session_state.pop('pedidos_filter_estado', None)
@@ -1236,8 +1235,8 @@ def render_gestion_pedidos():
     fc=f2.text_input('Cliente/ID',key='gp_c')
     fd=f3.selectbox('Destino',['Todos']+sorted(set(p.get('destino','') for p in pedidos if p.get('destino'))),key='gp_d')
     fd1,fd2=st.columns(2)
-    _fecha_desde = fd1.date_input('ð Desde', value=date.today() - timedelta(days=90), key='gp_desde')
-    _fecha_hasta = fd2.date_input('ð Hasta', value=date.today(), key='gp_hasta')
+    _fecha_desde = fd1.date_input('📅 Desde', value=date.today() - timedelta(days=90), key='gp_desde')
+    _fecha_hasta = fd2.date_input('📅 Hasta', value=date.today(), key='gp_hasta')
     filt=[p for p in pedidos if
         ((_use_multi and p.get('estado') in fe) or (not _use_multi and (fe=='Todos' or p.get('estado')==fe))) and
         (not fc or fc.lower() in (p.get('client_name','')+p.get('id','')).lower()) and
@@ -1245,34 +1244,34 @@ def render_gestion_pedidos():
         (str(_fecha_desde) <= p.get('fecha','')[:10] <= str(_fecha_hasta))
     ]
     _tot_filt = sum(p.get('total_usd',0) for p in filt)
-    st.info(f'ð¦ **{len(filt)} pedidos** filtrados | ð° Total: $**{_tot_filt:,.2f}** USD')
+    st.info(f'📦 **{len(filt)} pedidos** filtrados | 💰 Total: $**{_tot_filt:,.2f}** USD')
     if filt:
         xb=exportar_excel(filt)
-        if xb: st.download_button('ð¥ Excel',data=xb,file_name=f'pedidos_{date.today()}.xlsx',mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        if xb: st.download_button('📥 Excel',data=xb,file_name=f'pedidos_{date.today()}.xlsx',mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
     st.markdown('---')
     for ped in sorted(filt,key=lambda x:x.get('fecha',''),reverse=True):
-        icon=ESTADO_ICONS.get(ped.get('estado',''),'ð¦')
-        with st.expander(f"{icon} #{ped.get('id','').upper()} â¢ {ped.get('client_name','N/A')} â¢ {ped.get('destino','')} â¢ ${ped.get('total_usd',0):,.2f}"):
+        icon=ESTADO_ICONS.get(ped.get('estado',''),'📦')
+        with st.expander(f"{icon} #{ped.get('id','').upper()} • {ped.get('client_name','N/A')} • {ped.get('destino','')} • ${ped.get('total_usd',0):,.2f}"):
             cl1,cl2,cl3=st.columns(3)
             cl1.markdown(f"**Cliente:** {ped.get('client_name','')}"); cl1.markdown(f"**Email:** {ped.get('client_email','')}")
             cl2.markdown(f"**Destino:** {ped.get('destino','')}"); cl2.markdown(f"**Fecha:** {ped.get('fecha','')[:10]}")
             cl3.markdown(f"**Total:** ${ped.get('total_usd',0):,.2f}"); cl3.markdown(f"**Estado:** {ped.get('estado','')}")
             _bl_key = f'bl_{ped.get("id","")}'
             _bl_val = ped.get('bl_numero','')
-            _bl_new = st.text_input('ð³ï¸ NÂº BL / Contenedor', value=_bl_val, key=_bl_key, placeholder='ej: MSKU1234567')
+            _bl_new = st.text_input('🛳️ Nº BL / Contenedor', value=_bl_val, key=_bl_key, placeholder='ej: MSKU1234567')
             if _bl_new != _bl_val:
                 _all_p2 = load_pedidos()
                 for _ip2, _pp2 in enumerate(_all_p2):
                     if _pp2.get('id') == ped.get('id'): _all_p2[_ip2]['bl_numero'] = _bl_new; break
                 save_pedidos(_all_p2); st.cache_data.clear()
             if ped.get('productos'):
-                st.dataframe(pd.DataFrame(ped['productos'])[['codigo','producto','cajas','pallets','precio_usd','total']].rename(columns={'codigo':'CÃ³digo','producto':'Producto','cajas':'Cajas','pallets':'Pallets','precio_usd':'Precio USD','total':'Total USD'}),use_container_width=True,hide_index=True)
+                st.dataframe(pd.DataFrame(ped['productos'])[['codigo','producto','cajas','pallets','precio_usd','total']].rename(columns={'codigo':'Código','producto':'Producto','cajas':'Cajas','pallets':'Pallets','precio_usd':'Precio USD','total':'Total USD'}),use_container_width=True,hide_index=True)
             if ped.get('notas'): st.markdown(f"**Notas:** {ped['notas']}")
             # PEND4: Cambio rapido de estado en linea
             _est_actual = ped.get('estado','Recibido')
             _se1, _se2 = st.columns([3,1])
             with _se1:
-                _nuevo_est = st.selectbox(f'ð Estado actual del pedido', ORDEN_ESTADOS, index=ORDEN_ESTADOS.index(_est_actual) if _est_actual in ORDEN_ESTADOS else 0, key=f"se_est_{ped.get('id','')}")
+                _nuevo_est = st.selectbox(f'🚚 Estado actual del pedido', ORDEN_ESTADOS, index=ORDEN_ESTADOS.index(_est_actual) if _est_actual in ORDEN_ESTADOS else 0, key=f"se_est_{ped.get('id','')}")
             with _se2:
                 st.markdown('<br>', unsafe_allow_html=True)
                 if st.button('Guardar estado', key=f"se_btn_{ped.get('id','')}", use_container_width=True, type='secondary'):
@@ -1286,12 +1285,12 @@ def render_gestion_pedidos():
                                 _all_pe[_ipe]['historial_estados'] = _hist
                                 break
                         save_pedidos(_all_pe); st.cache_data.clear()
-                        st.toast(f'Estado actualizado: {_est_actual} -> {_nuevo_est}', icon='â')
+                        st.toast(f'Estado actualizado: {_est_actual} -> {_nuevo_est}', icon='✅')
                         st.rerun()
                     else:
-                        st.toast('El estado no cambio', icon='â¹')
+                        st.toast('El estado no cambio', icon='ℹ')
             if REPORTLAB_OK:
-                with st.expander('âï¸ Editar pedido',expanded=False):
+                with st.expander('✒️ Editar pedido',expanded=False):
                     ec1,ec2=st.columns(2)
                     new_nom_g=ec1.text_input('Nombre',value=ped.get('client_name',''),key=f'g_nom_{ped.get("id","")}' )
                     new_eml_g=ec2.text_input('Email',value=ped.get('client_email',''),key=f'g_eml_{ped.get("id","")}')
@@ -1299,14 +1298,14 @@ def render_gestion_pedidos():
                     new_dst_g=ed1.text_input('Destino',value=ped.get('destino',''),key=f'g_dst_{ped.get("id","")}' )
                     new_not_g=ed2.text_input('Notas',value=ped.get('notas',''),key=f'g_not_{ped.get("id","")}')
                     et1,et2=st.columns(2)
-                    TOPTG=['','Pago anticipado 100%','50% adelanto / 50% contra documentos','30% adelanto / 70% contra BL','Carta de crÃ©dito (LC)','Pago a 30 dÃ­as','Pago a 60 dÃ­as','Otro']
+                    TOPTG=['','Pago anticipado 100%','50% adelanto / 50% contra documentos','30% adelanto / 70% contra BL','Carta de crédito (LC)','Pago a 30 días','Pago a 60 días','Otro']
                     cur_tg=ped.get('terminos_pago',''); t_ig=TOPTG.index(cur_tg) if cur_tg in TOPTG else 0
-                    new_ter_g=et1.selectbox('TÃ©rminos',TOPTG,index=t_ig,key=f'g_ter_{ped.get("id","")}')
+                    new_ter_g=et1.selectbox('Términos',TOPTG,index=t_ig,key=f'g_ter_{ped.get("id","")}')
                     new_ent_g=et2.text_input('Fecha entrega',value=ped.get('fecha_entrega',''),placeholder='ej: 2026-06-20',key=f'g_ent_{ped.get("id","")}')
                     ep_rg=[{'Cod':i.get('codigo',''),'Producto':i.get('producto',''),'Cajas':int(i.get('cajas',0)),'Precio_USD':float(i.get('precio_usd',0))} for i in ped.get('productos',[])]
                     if ep_rg:
                         ep_eg=st.data_editor(pd.DataFrame(ep_rg),column_config={'Cod':st.column_config.TextColumn('Cod',disabled=True),'Producto':st.column_config.TextColumn('Prod',disabled=True),'Cajas':st.column_config.NumberColumn('Cajas',min_value=1,step=1),'Precio_USD':st.column_config.NumberColumn('$/cj',format='$%.4f')},use_container_width=True,num_rows='dynamic',key=f'g_ep_{ped.get("id","")}',hide_index=True)
-                    if st.button('ð¾ Guardar cambios',key=f'g_save_{ped.get("id","")}',type='primary'):
+                    if st.button('💾 Guardar cambios',key=f'g_save_{ped.get("id","")}',type='primary'):
                         all_p=load_pedidos(); dd_g=load_data()
                         for _i,_p in enumerate(all_p):
                             if _p.get('id')==ped.get('id'):
@@ -1319,17 +1318,17 @@ def render_gestion_pedidos():
                                 all_p[_i]['productos']=nw_it; all_p[_i]['total_usd']=round(sum(it['total'] for it in nw_it),2)
                                 all_p[_i].setdefault('historial_estados',[]).append({'estado':'Editado','fecha':datetime.now().isoformat(),'usuario':st.session_state.user_email,'nota':'Editado manualmente'})
                                 break
-                        save_pedidos(all_p); st.toast('â Pedido actualizado',icon='â'); st.rerun()
+                        save_pedidos(all_p); st.toast('✅ Pedido actualizado',icon='✅'); st.rerun()
             hist_g=ped.get('historial_estados',[])
             if hist_g:
-                with st.expander('ð Historial',expanded=False):
+                with st.expander('📜 Historial',expanded=False):
                     for h in reversed(hist_g):
-                        h_ic=ESTADO_ICONS.get(h.get('estado',''),'ð'); h_fe=h.get('fecha','')[:16].replace('T',' ')
-                        h_no=h.get('nota',''); no_s=f' â {h_no}' if h_no else ''
-                        st.caption(f"{h_ic} **{h.get('estado','')}** â¢ {h_fe} â¢ {h.get('usuario','')}{no_s}")
+                        h_ic=ESTADO_ICONS.get(h.get('estado',''),'📜'); h_fe=h.get('fecha','')[:16].replace('T',' ')
+                        h_no=h.get('nota',''); no_s=f' — {h_no}' if h_no else ''
+                        st.caption(f"{h_ic} **{h.get('estado','')}** • {h_fe} • {h.get('usuario','')}{no_s}")
             _pdf_b, _pdf_m, _pdf_x = build_order_pdf(ped)
-            st.download_button('â¬ï¸ AlbarÃ¡n PDF', data=_pdf_b, file_name=f"{ped.get('id','ped')}{_pdf_x}", mime=_pdf_m, key=f'pdf_adm_{ped.get("id","")}', use_container_width=True)
-            st.markdown('**Cambiar Estado â clic rÃ¡pido:**')
+            st.download_button('⬇️ Albarán PDF', data=_pdf_b, file_name=f"{ped.get('id','ped')}{_pdf_x}", mime=_pdf_m, key=f'pdf_adm_{ped.get("id","")}', use_container_width=True)
+            st.markdown('**Cambiar Estado — clic rápido:**')
             estado_actual = ped.get('estado','Recibido')
             qb_cols = st.columns(len(ORDEN_ESTADOS))
             for qi, qe in enumerate(ORDEN_ESTADOS):
@@ -1345,48 +1344,48 @@ def render_gestion_pedidos():
                                 break
                         save_pedidos(todos); st.cache_data.clear(); st.rerun()
 
-# âââ TAB CONFIGURACION ââââââââââââââââââââââââââââââââââââââââââââââ
+# ─── TAB CONFIGURACION ──────────────────────────────────────────────
 def render_configuracion():
-    st.markdown('## âï¸ ConfiguraciÃ³n del Sistema')
-    st.markdown('### ð¤ Usuarios del Sistema')
+    st.markdown('## ⚙️ Configuración del Sistema')
+    st.markdown('### 👤 Usuarios del Sistema')
     _users_file = 'users_custom.json'
     _users_data = _load(_users_file, {})
     _all_users_display = []
     for _ue, _uv in USERS.items():
-        _all_users_display.append({'Email': _ue, 'Nombre': _uv['nombre'], 'Rol': _uv['rol'], 'Tipo': 'ð Sistema'})
+        _all_users_display.append({'Email': _ue, 'Nombre': _uv['nombre'], 'Rol': _uv['rol'], 'Tipo': '🔒 Sistema'})
     for _ue, _uv in _users_data.items():
         if _ue not in USERS:
-            _all_users_display.append({'Email': _ue, 'Nombre': _uv.get('nombre',''), 'Rol': _uv.get('rol','ventas'), 'Tipo': 'ð¤ Custom'})
+            _all_users_display.append({'Email': _ue, 'Nombre': _uv.get('nombre',''), 'Rol': _uv.get('rol','ventas'), 'Tipo': '👤 Custom'})
     if _all_users_display:
         st.dataframe(pd.DataFrame(_all_users_display), use_container_width=True, hide_index=True)
     else:
         st.info('\u2139\ufe0f No hay usuarios configurados. Usa el panel de abajo para agregar uno.')
-    with st.expander('â Agregar / Cambiar ContraseÃ±a de Usuario', expanded=False):
+    with st.expander('➕ Agregar / Cambiar Contraseña de Usuario', expanded=False):
         _un1, _un2 = st.columns(2)
-        _new_email = _un1.text_input('ð§ Email del usuario', key='cfg_new_email', placeholder='usuario@exportharet.com')
-        _new_nombre = _un2.text_input('ð¤ Nombre', key='cfg_new_nombre')
+        _new_email = _un1.text_input('📧 Email del usuario', key='cfg_new_email', placeholder='usuario@exportharet.com')
+        _new_nombre = _un2.text_input('👤 Nombre', key='cfg_new_nombre')
         _np1, _np2, _np3 = st.columns(3)
-        _new_pwd = _np1.text_input('ð ContraseÃ±a', type='password', key='cfg_new_pwd')
+        _new_pwd = _np1.text_input('🔑 Contraseña', type='password', key='cfg_new_pwd')
         _new_rol = _np2.selectbox('Rol', ['admin', 'ventas'], key='cfg_new_rol')
         _np3.markdown('<br>', unsafe_allow_html=True)
-        if _np3.button('ð¾ Guardar Usuario', key='cfg_save_user', type='primary'):
+        if _np3.button('💾 Guardar Usuario', key='cfg_save_user', type='primary'):
             if not _new_email or not _new_pwd:
-                st.error('Email y contraseÃ±a son obligatorios')
+                st.error('Email y contraseña son obligatorios')
             else:
                 _users_data[_new_email] = {'pwd': hashlib.md5(_new_pwd.encode()).hexdigest(), 'rol': _new_rol, 'nombre': _new_nombre or _new_email}
                 _save(_users_file, _users_data)
-                st.toast(f'â Usuario {_new_email} guardado', icon='â')
+                st.toast(f'✅ Usuario {_new_email} guardado', icon='✅')
                 st.rerun()
     if _users_data:
-        with st.expander('ðï¸ Eliminar Usuario Custom', expanded=False):
+        with st.expander('🗑️ Eliminar Usuario Custom', expanded=False):
             _del_user = st.selectbox('Usuario a eliminar', list(_users_data.keys()), key='cfg_del_user')
-            if st.button('ðï¸ Eliminar', key='cfg_del_btn', type='secondary'):
+            if st.button('🗑️ Eliminar', key='cfg_del_btn', type='secondary'):
                 del _users_data[_del_user]
                 _save(_users_file, _users_data)
-                st.toast(f'â Usuario {_del_user} eliminado')
+                st.toast(f'✅ Usuario {_del_user} eliminado')
                 st.rerun()
     st.markdown('---')
-    st.markdown('### ð§ Log de Emails')
+    st.markdown('### 📧 Log de Emails')
     elog=load_email_log()
     if elog:
         df_e=pd.DataFrame(elog[-20:][::-1])
@@ -1394,42 +1393,42 @@ def render_configuracion():
     else: st.info('Sin emails registrados')
     st.markdown('---')
     st.markdown('---')
-    st.markdown('### ð¨ Emails de Pedidos')
+    st.markdown('### 📨 Emails de Pedidos')
     _pend_e = _load('pending_emails.json', [])
     _unsent_e = [e for e in _pend_e if not e.get('sent')]
     if _unsent_e:
-        st.error(f'â ï¸ {len(_unsent_e)} pedido(s) sin email enviado â configurar SMTP en Streamlit Secrets')
+        st.error(f'⚠️ {len(_unsent_e)} pedido(s) sin email enviado — configurar SMTP en Streamlit Secrets')
         for _ue in reversed(_unsent_e[-5:]):
-            st.caption(f'â {_ue.get("id","")} | {_ue.get("fecha","")[:16]} | {_ue.get("cliente","")} | ${_ue.get("total",0):,.2f} | {_ue.get("error","")}')
+            st.caption(f'❌ {_ue.get("id","")} | {_ue.get("fecha","")[:16]} | {_ue.get("cliente","")} | ${_ue.get("total",0):,.2f} | {_ue.get("error","")}')
     elif _pend_e:
-        st.success(f'â {len([e for e in _pend_e if e.get("sent")])} email(s) enviados correctamente')
+        st.success(f'✅ {len([e for e in _pend_e if e.get("sent")])} email(s) enviados correctamente')
     else:
-        st.info('ð¬ Sin historial de emails aÃºn')
+        st.info('📬 Sin historial de emails aún')
     st.markdown('---')
-    st.markdown('### ð§ Estado SMTP (order@exportharet.com)')
+    st.markdown('### 📧 Estado SMTP (order@exportharet.com)')
     try:
         _smtp_cfg = st.secrets.get('email', {})
         _smtp_host = _smtp_cfg.get('smtp_host', '')
         if _smtp_host:
-            st.success(f'â SMTP activo: {_smtp_cfg.get("smtp_user","?")} â {_smtp_host}:{_smtp_cfg.get("smtp_port",587)} | Emails van a order@exportharet.com')
+            st.success(f'✅ SMTP activo: {_smtp_cfg.get("smtp_user","?")} → {_smtp_host}:{_smtp_cfg.get("smtp_port",587)} | Emails van a order@exportharet.com')
         else:
-            st.warning('â ï¸ SMTP no configurado â agregar en Streamlit Secrets: [email] smtp_host / smtp_user / smtp_pass')
+            st.warning('⚠️ SMTP no configurado — agregar en Streamlit Secrets: [email] smtp_host / smtp_user / smtp_pass')
     except Exception as e:
         logger.debug(f'SMTP secrets not accessible: {e}')
-        st.info('â¹ï¸ Configura SMTP en Streamlit Cloud â App settings â Secrets.')
+        st.info('ℹ️ Configura SMTP en Streamlit Cloud → App settings → Secrets.')
     st.markdown('---')
-    st.markdown('### ðï¸ Archivos de Datos')
+    st.markdown('### 🗃️ Archivos de Datos')
     for fname in [DATA_FILE,CLIENTS_FILE,PEDIDOS_FILE,HIST_FILE,EMAIL_FILE]:
         exists=os.path.exists(fname)
         st.markdown(f"{'\u2705' if exists else '\u274C'} `{fname}`")
     st.markdown('---')
-    st.markdown('### ð¼ï¸ Logotipo de la AplicaciÃ³n')
+    st.markdown('### 🖼️ Logotipo de la Aplicación')
     _logo_col1, _logo_col2 = st.columns([2, 1])
     with _logo_col1:
         _logo_file = st.file_uploader('Subir nuevo logo (PNG o JPG)', type=['png','jpg','jpeg'], key='cfg_logo_upload')
         if _logo_file is not None:
             with open('logo.png', 'wb') as _lf: _lf.write(_logo_file.getbuffer())
-            st.success('â Logo actualizado. Recarga la pÃ¡gina para verlo.')
+            st.success('✅ Logo actualizado. Recarga la página para verlo.')
     with _logo_col2:
         import os as _oscfg
         if _oscfg.path.exists('logo.png'):
@@ -1438,16 +1437,17 @@ def render_configuracion():
         else:
             st.info('Sin logo')
     st.markdown('---')
-    st.markdown('### âï¸ TÃ­tulo de la AplicaciÃ³n')
+    st.markdown('### ✏️ Título de la Aplicación')
     _cur_cfg = load_app_config()
-    _cur_title = _cur_cfg.get("app_title", "ð Export Haret â Panel de AdministraciÃ³n")
-    _new_title = st.text_input('TÃ­tulo del panel de administraciÃ³n', value=_cur_title, key='cfg_app_title', help='Aparece en el header y sidebar del panel admin.')
-    if st.button('ð¾ Guardar TÃ­tulo', key='cfg_save_title'):
+    _cur_title = _cur_cfg.get("app_title", "📊 Export Haret — Panel de Administración")
+    _new_title = st.text_input('Título del panel de administración', value=_cur_title, key='cfg_app_title', help='Aparece en el header y sidebar del panel admin.')
+    if st.button('💾 Guardar Título', key='cfg_save_title'):
         _cur_cfg["app_title"] = _new_title
         save_app_config(_cur_cfg)
-        st.success('â TÃ­tulo guardado. Recarga para verlo en el header y sidebar.')
+        st.success('✅ Título guardado. Recarga para verlo en el header y sidebar.')
 
-    # ─── Historial de Accesos ─────────────────────────────────────────────────
+
+    # ─── Historial de Accesos ─────────────────────────────────────────
     st.markdown("---")
     st.markdown("### 🔐 Historial de Accesos de Clientes")
     _accesos = load_accesos()
@@ -1462,8 +1462,7 @@ def render_configuracion():
             _df_acc = _df_acc[_df_acc["Email"] == _filtro]
         st.dataframe(_df_acc, use_container_width=True, hide_index=True)
         st.caption(f"Total de accesos registrados: {len(_accesos)}")
-
-# âââ TAB CLIENTES ââââââââââââââââââââââââââââââââââââââââââââââ
+# ─── TAB CLIENTES ──────────────────────────────────────────────
 def _migrate_clients_swap(clients):
     """Corrige clientes legacy con swap nombre<->email."""
     import re as _re
@@ -1490,7 +1489,7 @@ def _migrate_clients_swap(clients):
     return _new
 
 def render_clientes():
-    st.markdown('## ð¥ Clientes')
+    st.markdown('## 👥 Clientes')
     clients=load_clients()
     clients=_migrate_clients_swap(clients)
     # Merge portal-registered clients so admin can see all
@@ -1504,24 +1503,24 @@ def render_clientes():
         pass
     pedidos=load_pedidos()
     if not clients: st.info('No hay clientes. Se crean al hacer pedidos.'); return
-    _search = st.text_input('ð Buscar cliente', key='cli_search', placeholder='Nombre, email, empresa...')
+    _search = st.text_input('🔍 Buscar cliente', key='cli_search', placeholder='Nombre, email, empresa...')
     rows=[]
     for e,c in clients.items():
         if _search and _search.lower() not in (e + c.get('nombre','') + c.get('empresa','')).lower(): continue
         seg=segmentar(e,clients)
         mp=[p for p in pedidos if p.get('client_email')==e]
-        rows.append({'Nombre':c.get('nombre',''),'Email':e,'Empresa':c.get('empresa',''),'PaÃ­s':c.get('pais',''),'Segmento':seg['badge'],'Pedidos':len(mp),'FacturaciÃ³n':f"${sum(p.get('total_usd',0) for p in mp):,.2f}",'Descuento':f"{seg['descuento']*100:.0f}%"})
+        rows.append({'Nombre':c.get('nombre',''),'Email':e,'Empresa':c.get('empresa',''),'País':c.get('pais',''),'Segmento':seg['badge'],'Pedidos':len(mp),'Facturación':f"${sum(p.get('total_usd',0) for p in mp):,.2f}",'Descuento':f"{seg['descuento']*100:.0f}%"})
     st.dataframe(pd.DataFrame(rows),use_container_width=True,hide_index=True)
     st.caption(f'{len(rows)} de {len(clients)} clientes')
-    with st.expander('ðï¸ Eliminar Cliente', expanded=False):
+    with st.expander('🗑️ Eliminar Cliente', expanded=False):
         _cli_opts = list(clients.keys())
         _del_cli = st.selectbox('Cliente a eliminar', _cli_opts, format_func=lambda e: f"{clients[e].get('nombre','')} ({e})", key='cli_del_sel')
         _cli_peds = [p for p in pedidos if p.get('client_email') == _del_cli]
-        if _cli_peds: st.warning(f'â ï¸ Este cliente tiene {len(_cli_peds)} pedidos. Se conservarÃ¡n los pedidos.')
-        if st.button('ðï¸ Eliminar Cliente', key='cli_del_btn', type='secondary'):
+        if _cli_peds: st.warning(f'⚠️ Este cliente tiene {len(_cli_peds)} pedidos. Se conservarán los pedidos.')
+        if st.button('🗑️ Eliminar Cliente', key='cli_del_btn', type='secondary'):
             if _del_cli in clients:
                 del clients[_del_cli]; save_clients(clients)
-                st.toast(f'â Cliente {_del_cli} eliminado'); st.rerun()
+                st.toast(f'✅ Cliente {_del_cli} eliminado'); st.rerun()
     st.markdown('---')
     sel=st.selectbox('Detalle de cliente',['']+list(clients.keys()),key='cli_d')
     if sel:
@@ -1531,12 +1530,12 @@ def render_clientes():
         d1.markdown(f"**Email:** {sel}")
         d1.markdown(f"**Segmento:** {seg['badge']}")
         d2.markdown(f"**Pedidos:** {len(mp)}")
-        d2.markdown(f"**FacturaciÃ³n:** ${sum(p.get('total_usd',0) for p in mp):,.2f}")
+        d2.markdown(f"**Facturación:** ${sum(p.get('total_usd',0) for p in mp):,.2f}")
         d2.markdown(f"**Descuento:** {seg['descuento']*100:.0f}%")
         if mp:
             st.dataframe(pd.DataFrame([{'ID':p.get('id',''),'Destino':p.get('destino',''),'Total':f"${p.get('total_usd',0):,.2f}",'Estado':p.get('estado',''),'Fecha':p.get('fecha','')[:10]} for p in sorted(mp,key=lambda x:x.get('fecha',''),reverse=True)]),use_container_width=True,hide_index=True)
     st.markdown("---")
-    st.markdown("### ð Ficha de Cliente")
+    st.markdown("### 🔍 Ficha de Cliente")
     _cl_list = list(clients.keys())
     if _cl_list:
         _sel=st.selectbox('Seleccionar cliente',_cl_list,format_func=lambda e:f"{clients[e].get('nombre','')} ({e})",key='sel_cl')
@@ -1544,52 +1543,52 @@ def render_clientes():
             _c=clients[_sel]; _seg=segmentar(_sel,clients); _mp=[p for p in pedidos if p.get('client_email')==_sel]
             col_f1,col_f2=st.columns([3,1])
             with col_f1:
-                st.markdown(f"#### ð¤ {_c.get('nombre','')} {_seg['badge']}")
+                st.markdown(f"#### 👤 {_c.get('nombre','')} {_seg['badge']}")
                 fc1,fc2=st.columns(2)
                 f_nom=fc1.text_input('Nombre',value=_c.get('nombre',''),key='f_nom')
                 f_emp=fc2.text_input('Empresa',value=_c.get('empresa',''),key='f_emp')
                 fc3,fc4=st.columns(2)
-                f_tel=fc3.text_input('TelÃ©fono/WhatsApp',value=_c.get('telefono',''),key='f_tel')
-                f_pais=fc4.text_input('PaÃ­s',value=_c.get('pais',''),key='f_pais')
-                TOPTC=['','Pago anticipado 100%','50% adelanto / 50% contra documentos','30% adelanto / 70% contra BL','Carta de crÃ©dito (LC)','Pago a 30 dÃ­as','Pago a 60 dÃ­as','Otro']
+                f_tel=fc3.text_input('Teléfono/WhatsApp',value=_c.get('telefono',''),key='f_tel')
+                f_pais=fc4.text_input('País',value=_c.get('pais',''),key='f_pais')
+                TOPTC=['','Pago anticipado 100%','50% adelanto / 50% contra documentos','30% adelanto / 70% contra BL','Carta de crédito (LC)','Pago a 30 días','Pago a 60 días','Otro']
                 cur_tc=_c.get('terminos_habituales',''); tc_idx=TOPTC.index(cur_tc) if cur_tc in TOPTC else 0
-                f_term=st.selectbox('TÃ©rminos habituales',TOPTC,index=tc_idx,key='f_term')
-                f_seg=st.text_input('ð PrÃ³ximo seguimiento',value=_c.get('proximo_seguimiento',''),placeholder='ej: 2026-07-01',key='f_seg')
-                f_notas=st.text_area('ð Notas internas (solo admin)',value=_c.get('notas_internas',''),height=90,key='f_notas',placeholder='Preferencias, condiciones especiales...')
-                if st.button('ð¾ Guardar ficha',type='primary',key='save_ficha_cl'):
+                f_term=st.selectbox('Términos habituales',TOPTC,index=tc_idx,key='f_term')
+                f_seg=st.text_input('📅 Próximo seguimiento',value=_c.get('proximo_seguimiento',''),placeholder='ej: 2026-07-01',key='f_seg')
+                f_notas=st.text_area('📋 Notas internas (solo admin)',value=_c.get('notas_internas',''),height=90,key='f_notas',placeholder='Preferencias, condiciones especiales...')
+                if st.button('💾 Guardar ficha',type='primary',key='save_ficha_cl'):
                     clients[_sel].update({'nombre':f_nom,'empresa':f_emp,'telefono':f_tel,'pais':f_pais,'terminos_habituales':f_term,'proximo_seguimiento':f_seg,'notas_internas':f_notas})
-                    save_clients(clients); st.toast('â Ficha guardada',icon='â'); st.rerun()
+                    save_clients(clients); st.toast('✅ Ficha guardada',icon='✅'); st.rerun()
             with col_f2:
                 st.metric('Pedidos',len(_mp))
-                st.metric('FacturaciÃ³n',f"${sum(p.get('total_usd',0) for p in _mp):,.2f}")
+                st.metric('Facturación',f"${sum(p.get('total_usd',0) for p in _mp):,.2f}")
                 st.metric('Descuento',f"{_seg['descuento']*100:.0f}%")
-                if _c.get('proximo_seguimiento'): st.info(f"ð {_c.get('proximo_seguimiento')}")
+                if _c.get('proximo_seguimiento'): st.info(f"📅 {_c.get('proximo_seguimiento')}")
             if _mp:
-                st.markdown('#### ð Historial de pedidos')
+                st.markdown('#### 📜 Historial de pedidos')
                 st.dataframe(pd.DataFrame([{'ID':p.get('id',''),'Destino':p.get('destino',''),'Total':f"${p.get('total_usd',0):,.2f}",'Terminos':p.get('terminos_pago',''),'Estado':p.get('estado',''),'Fecha':p.get('fecha','')[:10]} for p in sorted(_mp,key=lambda x:x.get('fecha',''),reverse=True)]),use_container_width=True,hide_index=True)
 
 def render_reportes():
-    st.markdown('## ð Reportes y Analytics')
+    st.markdown('## 📊 Reportes y Analytics')
     pedidos=load_pedidos(); clients=load_clients()
     if not pedidos: st.info('No hay pedidos para analizar.'); return
     fc1,fc2=st.columns(2)
     fd=fc1.date_input('Desde',value=date.today()-timedelta(days=30),key='r_from')
     fh=fc2.date_input('Hasta',value=date.today(),key='r_to')
     pf=[p for p in pedidos if str(fd)<=p.get('fecha','')[:10]<=str(fh)]
-    st.markdown(f'**{len(pf)} pedidos en el perÃ­odo**')
+    st.markdown(f'**{len(pf)} pedidos en el período**')
     k1,k2,k3,k4=st.columns(4)
     fac=sum(p.get('total_usd',0) for p in pf)
-    k1.metric('ð° FacturaciÃ³n',f'${fac:,.0f}')
-    k2.metric('ð¦ Pedidos',len(pf))
-    k3.metric('ð« Ticket Prom.',f'${fac/len(pf):,.0f}' if pf else '$0')
-    k4.metric('â Entregados',len([p for p in pf if p.get('estado')=='Entregado']))
+    k1.metric('💰 Facturación',f'${fac:,.0f}')
+    k2.metric('📦 Pedidos',len(pf))
+    k3.metric('🎫 Ticket Prom.',f'${fac/len(pf):,.0f}' if pf else '$0')
+    k4.metric('✅ Entregados',len([p for p in pf if p.get('estado')=='Entregado']))
     st.markdown('---')
-    st.markdown('### ð Por Destino')
+    st.markdown('### 🌍 Por Destino')
     dd={}
     for p in pf: dd[p.get('destino','Otros')]=dd.get(p.get('destino','Otros'),0)+p.get('total_usd',0)
     if dd: st.dataframe(pd.DataFrame(sorted(dd.items(),key=lambda x:x[1],reverse=True),columns=['Destino','Total USD']),use_container_width=True,hide_index=True)
     st.markdown('---')
-    st.markdown('### ð Top Clientes')
+    st.markdown('### 👑 Top Clientes')
     cf={}
     for p in pf: cf[p.get('client_email','')]=cf.get(p.get('client_email',''),0)+p.get('total_usd',0)
     if cf:
@@ -1598,11 +1597,11 @@ def render_reportes():
     if pf:
         st.markdown('---')
         xb=exportar_excel(pf)
-        if xb: st.download_button('ð¥ Exportar Reporte',data=xb,file_name=f'reporte_{fd}_{fh}.xlsx',mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',type='primary')
+        if xb: st.download_button('📥 Exportar Reporte',data=xb,file_name=f'reporte_{fd}_{fh}.xlsx',mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',type='primary')
 
-# âââ MAIN âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+# ─── MAIN ─────────────────────────────────────────────────────────────────
 
-# âââ PORTAL CLIENT FILES âââââââââââââââââââââââââââââââââââââââââââââââââââââ
+# ─── PORTAL CLIENT FILES ─────────────────────────────────────────────────────
 PORTAL_CLIENTS_FILE = 'portal_clientes.json'
 
 def load_portal_clients():
@@ -1647,7 +1646,7 @@ def build_order_html(ped):
     e_row=f'<tr><td colspan="2" style="padding:6px;font-weight:bold;background:#f8f9fa">Entrega estimada:</td><td colspan="7" style="padding:6px">{f_entrega}</td></tr>' if f_entrega else ''
     return f'''<div style="font-family:Arial,sans-serif;max-width:750px;margin:0 auto;padding:20px">
       <div style="background:linear-gradient(135deg,#003E8C,#0066CC);color:white;padding:24px;border-radius:10px;margin-bottom:20px">
-        <h1 style="margin:0;font-size:1.6em">ð Export Haret</h1>
+        <h1 style="margin:0;font-size:1.6em">🚀 Export Haret</h1>
         <p style="margin:4px 0 0;opacity:.85">Confirmaci\xf3n de Pedido | Frutas Ex\xf3ticas Premium</p>
       </div>
       <table style="width:100%;border-collapse:collapse;margin-bottom:16px">
@@ -1683,35 +1682,35 @@ def build_order_html(ped):
 def build_order_pdf(ped):
     """Genera un PDF albaran del pedido con reportlab. Retorna bytes del PDF."""
     buf = io.BytesIO()
-    # ââ PDF translations (ES/EN) âââââââââââââââââââââââââââââââââââââââââ
+    # ── PDF translations (ES/EN) ─────────────────────────────────────────
     _pdf_lang = ped.get('lang', 'es')
     PDF_TEXTS = {
         'es': {
             'header_title': 'Export Haret',
-            'header_sub': 'Sistema de Pedidos â Frutas ExÃ³ticas Premium',
-            'doc_title': 'ALBARÃN / ORDEN DE PEDIDO',
+            'header_sub': 'Sistema de Pedidos — Frutas Exóticas Premium',
+            'doc_title': 'ALBARÁN / ORDEN DE PEDIDO',
             'sec_client': 'DATOS DEL CLIENTE',
             'sec_order': 'DETALLES DEL PEDIDO',
-            'name': 'Nombre', 'company': 'Empresa', 'email': 'Email', 'phone': 'TelÃ©fono',
-            'incoterm': 'Incoterm', 'order_no': 'NÂº Pedido', 'date': 'Fecha', 'status': 'Estado',
-            'country': 'PaÃ­s', 'destination': 'Destino',
+            'name': 'Nombre', 'company': 'Empresa', 'email': 'Email', 'phone': 'Teléfono',
+            'incoterm': 'Incoterm', 'order_no': 'Nº Pedido', 'date': 'Fecha', 'status': 'Estado',
+            'country': 'País', 'destination': 'Destino',
             'freight': 'Flete', 'fob_origin': 'FOB (en origen)',
             'shipping_from': 'Embarcamos desde Quito/Guayaquil, Ecuador',
             'product_detail': 'DETALLE DE PRODUCTOS',
-            'th_code': 'CÃ³digo', 'th_product': 'Producto', 'th_boxes': 'Cajas',
+            'th_code': 'Código', 'th_product': 'Producto', 'th_boxes': 'Cajas',
             'th_pallets': 'Pallets', 'th_price': 'Precio/caja', 'th_total': 'Total USD',
             'total_label': 'TOTAL:', 'notes_label': 'Notas:',
             'packing_title': 'TABLA DE EMBALAJE ESTIMADA',
             'pk_product': 'Producto', 'pk_group': 'Grupo', 'pk_pallets': 'Pallets',
             'pk_boxes': 'Cajas', 'pk_kgbox': 'Kg/Caja', 'pk_weight': 'Peso Total (kg)',
             'pk_bxpal': 'Cj/Plt', 'pk_total': 'TOTAL',
-            'pk_note': '* Pesos totales son estimados. El peso real puede variar Â±5% segÃºn calibre y variedad. No incluye embalaje de pallet.',
-            'footer_main': 'Export Haret Â© 2026 | order@exportharet.com | Frutas ExÃ³ticas Premium de Ecuador',
-            'footer_sub': 'Los precios USD son la divisa comercial. Precios en moneda destino son referenciales y sujetos a cotizaciÃ³n.',
+            'pk_note': '* Pesos totales son estimados. El peso real puede variar ±5% según calibre y variedad. No incluye embalaje de pallet.',
+            'footer_main': 'Export Haret © 2026 | order@exportharet.com | Frutas Exóticas Premium de Ecuador',
+            'footer_sub': 'Los precios USD son la divisa comercial. Precios en moneda destino son referenciales y sujetos a cotización.',
         },
         'en': {
             'header_title': 'Export Haret',
-            'header_sub': 'Order System â Premium Exotic Fruits',
+            'header_sub': 'Order System — Premium Exotic Fruits',
             'doc_title': 'ORDER / DELIVERY NOTE',
             'sec_client': 'CUSTOMER DETAILS',
             'sec_order': 'ORDER DETAILS',
@@ -1728,8 +1727,8 @@ def build_order_pdf(ped):
             'pk_product': 'Product', 'pk_group': 'Group', 'pk_pallets': 'Pallets',
             'pk_boxes': 'Boxes', 'pk_kgbox': 'Kg/Box', 'pk_weight': 'Total Weight (kg)',
             'pk_bxpal': 'Bx/Plt', 'pk_total': 'TOTAL',
-            'pk_note': '* Total weights are estimates. Actual weight may vary Â±5% depending on size and variety. Does not include pallet packaging.',
-            'footer_main': 'Export Haret Â© 2026 | order@exportharet.com | Premium Exotic Fruits from Ecuador',
+            'pk_note': '* Total weights are estimates. Actual weight may vary ±5% depending on size and variety. Does not include pallet packaging.',
+            'footer_main': 'Export Haret © 2026 | order@exportharet.com | Premium Exotic Fruits from Ecuador',
             'footer_sub': 'USD prices are the commercial currency. Prices in destination currency are referential and subject to quotation.',
         }
     }
@@ -1899,14 +1898,14 @@ def build_order_pdf(ped):
         _total_caj_pk += _pk_cajas
         packing_rows.append([
             _pk_name,
-            _pk_grp if _pk_grp else 'â',
+            _pk_grp if _pk_grp else '—',
             f'{_pk_pallets:.1f}',
             str(_pk_cajas),
-            f'{_pk_kg:.2f} kg' if _pk_kg else 'â',
-            f'{_pk_weight:,.0f} kg' if _pk_weight else 'â',
-            str(_pk_cxp_grp) if _pk_cxp_grp else 'â',
+            f'{_pk_kg:.2f} kg' if _pk_kg else '—',
+            f'{_pk_weight:,.0f} kg' if _pk_weight else '—',
+            str(_pk_cxp_grp) if _pk_cxp_grp else '—',
         ])
-    packing_rows.append([_PT['pk_total'], '', f'{_total_pal_pk:.1f}', str(_total_caj_pk), '', f'{_total_weight:,.0f} kg' if _total_weight else 'â', ''])
+    packing_rows.append([_PT['pk_total'], '', f'{_total_pal_pk:.1f}', str(_total_caj_pk), '', f'{_total_weight:,.0f} kg' if _total_weight else '—', ''])
     pk_col_widths = [4.5*cm, 1.5*cm, 1.8*cm, 1.8*cm, 2*cm, 2.8*cm, 1.8*cm]
     pk_table = Table(packing_rows, colWidths=pk_col_widths, repeatRows=1)
     pk_table.setStyle(TableStyle([
@@ -1943,10 +1942,10 @@ def build_order_pdf(ped):
 
 
 def build_catalog_pdf(data):
-    """Genera un PDF del catÃ¡logo de productos con precios de referencia CIF Madrid."""
+    """Genera un PDF del catálogo de productos con precios de referencia CIF Madrid."""
     buf = io.BytesIO()
     if not REPORTLAB_OK:
-        html = '<h1>CatÃ¡logo Export Haret</h1><table border=1><tr><th>Producto</th><th>CÃ³digo</th></tr>'
+        html = '<h1>Catálogo Export Haret</h1><table border=1><tr><th>Producto</th><th>Código</th></tr>'
         for p in data.get('products', []):
             if not p.get('activo', True): continue
             html += f"<tr><td>{p.get('producto','')}</td><td>{p.get('codigo','')}</td></tr>"
@@ -1959,15 +1958,15 @@ def build_catalog_pdf(data):
     GRIS = colors.HexColor('#666666')
     header_style = ParagraphStyle('h', fontSize=20, textColor=AZUL, fontName='Helvetica-Bold', spaceAfter=4, alignment=TA_LEFT)
     sub_style = ParagraphStyle('s', fontSize=10, textColor=GRIS, fontName='Helvetica', spaceAfter=12, alignment=TA_LEFT)
-    story.append(Paragraph('CatÃ¡logo de Productos', header_style))
-    story.append(Paragraph(f'Export Haret â Frutas ExÃ³ticas Premium de Ecuador  |  Generado: {datetime.now().strftime("%d/%m/%Y")}', sub_style))
+    story.append(Paragraph('Catálogo de Productos', header_style))
+    story.append(Paragraph(f'Export Haret — Frutas Exóticas Premium de Ecuador  |  Generado: {datetime.now().strftime("%d/%m/%Y")}', sub_style))
     story.append(Spacer(1, 0.4*cm))
     # Tabla productos
     prods = [p for p in data.get('products', []) if p.get('activo', True)]
     if not prods:
         story.append(Paragraph('Sin productos activos.', styles['Normal']))
     else:
-        rows = [['CÃ³digo','Producto','Grupo','Cajas/Pal','Kg/Caja']]
+        rows = [['Código','Producto','Grupo','Cajas/Pal','Kg/Caja']]
         grupos = data.get('config',{}).get('grupos',{})
         for p in prods:
             g = p.get('grupo','')
@@ -2096,7 +2095,7 @@ def log_email(destinatario, asunto, tipo_email):
     el.append({'id': f'EMAIL-{len(el)+1:05d}', 'destinatario': destinatario, 'asunto': asunto, 'tipo': tipo_email, 'fecha': datetime.now().isoformat(), 'estado': 'simulado'})
     save_email_log(el)
 
-# âââ PORTAL PÃBLICO DE PEDIDOS âââââââââââââââââââââââââââââââââââââââââââââââ
+# ─── PORTAL PÚBLICO DE PEDIDOS ───────────────────────────────────────────────
 def send_order_email(ped):
     """Envia el pedido por email a order@exportharet.com.
     Requiere en .streamlit/secrets.toml:
@@ -2134,7 +2133,7 @@ def send_order_email(ped):
     _notas_html = f'<p><b>Notas:</b> {notas}</p>' if notas else ''
     html = (f'<html><body style="font-family:Arial,sans-serif;color:#333">'
             f'<div style="background:#003E8C;padding:16px 24px;border-radius:8px">'
-            f'<h2 style="color:white;margin:0">ð Export Haret \u2014 Nueva Orden Recibida</h2>'
+            f'<h2 style="color:white;margin:0">🚀 Export Haret \u2014 Nueva Orden Recibida</h2>'
             f'</div><div style="padding:16px 0">'
             f'<table style="width:100%;border-collapse:collapse;font-size:14px">'
             f'<tr><td style="padding:6px"><b>N\u00ba Pedido:</b></td><td>{pid}</td>'
@@ -2158,7 +2157,7 @@ def send_order_email(ped):
             f'{_notas_html}'
             f'</div><p style="color:#888;font-size:11px">Export Haret \u00a9 2026 | order@exportharet.com</p>'
             f'</body></html>')
-    subject = f'ð¦ Nuevo Pedido {pid} â {nombre} ({empresa or email_c}) | ${total_usd:,.2f} USD'
+    subject = f'📦 Nuevo Pedido {pid} — {nombre} ({empresa or email_c}) | ${total_usd:,.2f} USD'
     sent = False
     error_msg = ''
     try:
@@ -2204,7 +2203,7 @@ def send_order_email(ped):
             if not smtp_host: _missing.append('smtp_host')
             if not smtp_user: _missing.append('smtp_user')
             if not smtp_pass: _missing.append('smtp_pass')
-            error_msg = f'SMTP no configurado. Faltan: {", ".join(_missing)}. Ir a Streamlit Cloud â App settings â Secrets y agregar [email] smtp_host / smtp_user / smtp_pass / smtp_port / from_addr'
+            error_msg = f'SMTP no configurado. Faltan: {", ".join(_missing)}. Ir a Streamlit Cloud → App settings → Secrets y agregar [email] smtp_host / smtp_user / smtp_pass / smtp_port / from_addr'
             log_email(DEST, subject, f'smtp_sin_config: {error_msg}')
     except Exception as e:
         error_msg = str(e)[:200]
@@ -2221,7 +2220,7 @@ def send_order_email(ped):
         pass
 
 def render_portal_pedido():
-    """PÃ¡gina pÃºblica para que los clientes hagan pedidos. No requiere login de staff."""
+    """Página pública para que los clientes hagan pedidos. No requiere login de staff."""
     st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
     data = load_data()
     prods = [p for p in data.get('products', []) if p.get('activo', True)]
@@ -2236,7 +2235,7 @@ def render_portal_pedido():
         with _ph2: st.image(_logo2, width=200)
         st.markdown(f'<div style="text-align:center;margin-bottom:16px"><p style="color:#666;margin:0">{LANG_TEXTS[st.session_state.get("portal_lang","es")]["header_subtitle"]}</p></div>',unsafe_allow_html=True)
     else:
-        st.markdown(f'<div style="background:linear-gradient(135deg,#003E8C,#0066CC,#0099FF);padding:20px 30px;border-radius:12px;margin-bottom:24px;text-align:center"><h1 style="color:white;margin:0;font-size:1.8em">ð Export Haret</h1><p style="color:rgba(255,255,255,0.85);margin:4px 0 0">{LANG_TEXTS[st.session_state.get("portal_lang","es")]["header_subtitle"].split(" | ")[0]}</p></div>',unsafe_allow_html=True)
+        st.markdown(f'<div style="background:linear-gradient(135deg,#003E8C,#0066CC,#0099FF);padding:20px 30px;border-radius:12px;margin-bottom:24px;text-align:center"><h1 style="color:white;margin:0;font-size:1.8em">🚀 Export Haret</h1><p style="color:rgba(255,255,255,0.85);margin:4px 0 0">{LANG_TEXTS[st.session_state.get("portal_lang","es")]["header_subtitle"].split(" | ")[0]}</p></div>',unsafe_allow_html=True)
     # Init lang EARLY so _T is available for error messages
     if 'portal_lang' not in st.session_state:
         st.session_state['portal_lang'] = 'es'
@@ -2256,16 +2255,16 @@ def render_portal_pedido():
     _cur_lang = st.session_state.get('portal_lang', 'es')
     _lbtn_c1, _lbtn_c2, _lbtn_c3 = st.columns([8, 1, 1])
     with _lbtn_c1:
-        st.markdown("<div style='text-align:right;padding-top:6px;color:#666;font-size:0.85rem;'>ð Idioma / Language</div>", unsafe_allow_html=True)
+        st.markdown("<div style='text-align:right;padding-top:6px;color:#666;font-size:0.85rem;'>🌐 Idioma / Language</div>", unsafe_allow_html=True)
     with _lbtn_c2:
         _es_type = 'primary' if _cur_lang == 'es' else 'secondary'
-        if st.button('ðªð¸', key='btn_lang_es', help='EspaÃ±ol', use_container_width=True, type=_es_type):
+        if st.button('🇪🇸', key='btn_lang_es', help='Español', use_container_width=True, type=_es_type):
             if _cur_lang != 'es':
                 st.session_state['portal_lang'] = 'es'
                 st.rerun()
     with _lbtn_c3:
         _en_type = 'primary' if _cur_lang == 'en' else 'secondary'
-        if st.button('ð¬ð§', key='btn_lang_en', help='English', use_container_width=True, type=_en_type):
+        if st.button('🇬🇧', key='btn_lang_en', help='English', use_container_width=True, type=_en_type):
             if _cur_lang != 'en':
                 st.session_state['portal_lang'] = 'en'
                 st.rerun()
@@ -2277,7 +2276,7 @@ def render_portal_pedido():
     # Pre-fill email from last confirmed order (persistence #17)
     if not st.session_state.get('portal_email') and st.session_state.get('_portal_last_confirmed_email'):
         st.session_state['portal_email'] = st.session_state['_portal_last_confirmed_email']
-    # ââ PASO 1: IdentificaciÃ³n del cliente ââââââââââââââââââââââââââââââââââââ
+    # ── PASO 1: Identificación del cliente ────────────────────────────────────
     # Progress bar - steps indicator
     _step1_done = bool(st.session_state.get('portal_email',''))
     _step2_done = bool(st.session_state.get('portal_carrito',[]))
@@ -2307,7 +2306,7 @@ def render_portal_pedido():
     # Email form with explicit "Acceder" button
     with st.form('portal_email_form', clear_on_submit=False):
         _email_form_raw = st.text_input(_T['email_label'], placeholder=_T['email_ph'], key='portal_email_input', value=st.session_state.portal_email)
-        _acceder_clicked = st.form_submit_button(_T.get('btn_acceder', 'ð Acceder'), type='primary', use_container_width=True)
+        _acceder_clicked = st.form_submit_button(_T.get('btn_acceder', '🔓 Acceder'), type='primary', use_container_width=True)
     if _acceder_clicked:
         _eml_trim = (_email_form_raw or '').strip()
         if _eml_trim and _eml_trim != st.session_state.portal_email:
@@ -2365,14 +2364,14 @@ def render_portal_pedido():
             if show_register:
                 st.caption(_T['auto_register'])
             _sv_c1, _sv_c2 = st.columns([1,3])
-            if _sv_c1.button(_T.get('save_data_btn','ð¾ Guardar datos'), key='portal_save_client_btn', type='primary', use_container_width=True):
+            if _sv_c1.button(_T.get('save_data_btn','💾 Guardar datos'), key='portal_save_client_btn', type='primary', use_container_width=True):
                 import re as _re_sv
                 _eml_sv = (email_input or '').strip()
                 _nm_sv = (nombre or '').strip()
                 if not _re_sv.match(r'^[^@\s]+@[^@\s]+\.[^@\s]+$', _eml_sv):
-                    st.error(_T.get('err_email_format','Formato de email invÃ¡lido'))
+                    st.error(_T.get('err_email_format','Formato de email inválido'))
                 elif not _nm_sv:
-                    st.error('âï¸ ' + _T.get('nombre_label','Nombre'))
+                    st.error('✏️ ' + _T.get('nombre_label','Nombre'))
                 else:
                     _now_sv = datetime.now().isoformat()
                     portal_clients[_eml_sv] = {'nombre': _nm_sv, 'empresa': empresa, 'telefono': telefono, 'pais': pais, 'email': _eml_sv, 'fecha_registro': portal_clients.get(_eml_sv, {}).get('fecha_registro', _now_sv), 'pedidos': portal_clients.get(_eml_sv, {}).get('pedidos', [])}
@@ -2381,14 +2380,14 @@ def render_portal_pedido():
                     _adm_sv[_eml_sv] = {'nombre': _nm_sv, 'email': _eml_sv, 'empresa': empresa, 'telefono': telefono, 'pais': pais, 'fecha_registro': _adm_sv.get(_eml_sv, {}).get('fecha_registro', _now_sv), 'pedidos_ids': _adm_sv.get(_eml_sv, {}).get('pedidos_ids', []), 'origen': _adm_sv.get(_eml_sv, {}).get('origen','portal_cliente')}
                     save_clients(_adm_sv)
                     st.cache_data.clear()
-                    st.success('â ' + _nm_sv)
+                    st.success('✅ ' + _nm_sv)
                     st.rerun()
 
         with tab_historial:
             if not _client_orders_all:
                 st.info(_T['no_orders'])
             else:
-                st.markdown(f'#### ð {_n_orders} Pedido(s) realizados')
+                st.markdown(f'#### 📋 {_n_orders} Pedido(s) realizados')
                 for op in sorted(_client_orders_all, key=lambda x: x.get('fecha',''), reverse=True):
                     op_id = op.get('id','')
                     op_fecha = op.get('fecha','')[:10]
@@ -2396,7 +2395,7 @@ def render_portal_pedido():
                     op_total = op.get('total_usd',0)
                     op_tipo = op.get('tipo_precio','FOB')
                     op_dest = op.get('destino','')
-                    op_icon = ESTADO_ICONS.get(op_estado, 'ð¦')
+                    op_icon = ESTADO_ICONS.get(op_estado, '📦')
                     _clr_map = {'Recibido':'#0066cc','Confirmado':'#28a745','Preparando':'#fd7e14','Enviado':'#6f42c1','Entregado':'#20c997','Cancelado':'#dc3545'}
                     _col = _clr_map.get(op_estado,'#666')
                     with st.expander(f'{op_icon} {op_id} | {op_fecha} | {op_tipo} | ${op_total:,.2f} USD', expanded=False):
@@ -2426,15 +2425,15 @@ def render_portal_pedido():
                             st.markdown('')
                             with st.expander(_T['full_history'], expanded=False):
                                 for _h in reversed(op_hist):
-                                    _h_ic = ESTADO_ICONS.get(_h.get('estado',''),'ð')
+                                    _h_ic = ESTADO_ICONS.get(_h.get('estado',''),'📜')
                                     _h_fe = _h.get('fecha','')[:16].replace('T',' ')
                                     _h_no = _h.get('nota','')
-                                    _no_str = f' â {_h_no}' if _h_no else ''
-                                    st.caption(f'{_h_ic} **{_h.get("estado","")}** â¢ {_h_fe}{_no_str}')
+                                    _no_str = f' — {_h_no}' if _h_no else ''
+                                    st.caption(f'{_h_ic} **{_h.get("estado","")}** • {_h_fe}{_no_str}')
                         if op.get('productos'):
                             st.markdown(f'**{_T["products_label"]}**')
                             for _pit in op.get('productos',[]):
-                                st.caption(f'â¢ {_pit.get("producto","")} â {_pit.get("cajas",0)} cj | {_pit.get("pallets",0):.2f} plt | ${_pit.get("total",0):,.2f}')
+                                st.caption(f'• {_pit.get("producto","")} — {_pit.get("cajas",0)} cj | {_pit.get("pallets",0):.2f} plt | ${_pit.get("total",0):,.2f}')
                         can_cancel = op_estado not in ['Cancelado','Entregado','Enviado']
                         # PATCH 17: Repetir pedido button
                         _rp_c1, _rp_c2, _rp_c3 = st.columns([1, 1, 3])
@@ -2501,7 +2500,7 @@ def render_portal_pedido():
     if not _nombre_val:
         st.warning(_T['enter_full_name'])
         return
-    # ââ PASO 2: Tipo de precio + Destino âââââââââââââââââââââââââââââââââââââ
+    # ── PASO 2: Tipo de precio + Destino ─────────────────────────────────────
     st.markdown(_T['step2'])
     t1, t2 = st.columns([1, 2])
     tipo_precio = t1.radio(_T['price_type_label'], ['FOB', 'CIF'], key='portal_tipo', horizontal=True,
@@ -2524,7 +2523,7 @@ def render_portal_pedido():
         t2.caption(_T['fob_origin'])
 
     st.markdown('---')
-    # ââ PASO 3: SelecciÃ³n de Productos âââââââââââââââââââââââââââââââ
+    # ── PASO 3: Selección de Productos ───────────────────────────────
     st.markdown(_T['step3'])
     st.info(_T['price_update_notice'], icon=None)
     # PATCH STEP3: CSS for responsive cards, sticky header, bigger qty buttons, highlight
@@ -2598,9 +2597,9 @@ def render_portal_pedido():
     /* Compact cart banner button alignment */
     .eh-cart-banner-actions { display:flex; gap:8px; align-items:center; justify-content:flex-end; } @media (max-width: 768px) { div[data-testid="stNumberInput"] button { min-width: 36px !important; min-height: 36px !important; font-size: 1rem !important; } div[data-testid="stNumberInput"] input { min-height: 36px !important; font-size: 0.95rem !important; } div[data-testid="stHorizontalBlock"]:has(div[data-testid="stNumberInput"]) { padding: 10px 12px !important; gap: 10px !important; flex-direction: column !important; } div[data-testid="stHorizontalBlock"]:has(div[data-testid="stNumberInput"]) > div { width: 100% !important; min-width: 100% !important; padding: 4px 0 !important; min-height: 28px !important; } div[data-testid="stHorizontalBlock"]:has(div[data-testid="stNumberInput"]) div[data-testid="stMarkdown"] { padding: 6px 0 8px !important; line-height: 1.5 !important; min-height: 32px !important; display: block !important; } div[data-testid="stHorizontalBlock"]:has(div[data-testid="stNumberInput"]) div[data-testid="stMarkdown"] p, div[data-testid="stHorizontalBlock"]:has(div[data-testid="stNumberInput"]) div[data-testid="stMarkdown"] div { line-height: 1.5 !important; margin: 0 0 4px !important; } }
     </style>''', unsafe_allow_html=True)
-    # Banner pedido mÃ­nimo
+    # Banner pedido mínimo
     _current_pallets = sum(i.get('pallets',0) for i in st.session_state.portal_carrito)
-    # ââ Indicador de volumen
+    # ── Indicador de volumen
     _desc_actual = get_descuento_volumen(max(_current_pallets, 1)) if _current_pallets >= 1 else 0.0
     # PATCH UX-CIF U6: Detectar cruce de tramo (toast cuando precio baja)
     if tipo_precio == 'CIF':
@@ -2612,7 +2611,7 @@ def render_portal_pedido():
                 break
         if _ux_prev_tramo is not None and _ux_curr_tramo_idx > _ux_prev_tramo and _current_pallets >= 1:
             try:
-                st.toast(_T['unlock_better_price'].format(label=TRAMOS_VOLUMEN[_ux_curr_tramo_idx]['label']), icon='ð°')
+                st.toast(_T['unlock_better_price'].format(label=TRAMOS_VOLUMEN[_ux_curr_tramo_idx]['label']), icon='💰')
             except Exception:
                 pass
         st.session_state['portal_last_tramo'] = _ux_curr_tramo_idx
@@ -2631,13 +2630,13 @@ def render_portal_pedido():
         _min_valido = False
         _progress_color = '#e0e0e0'
         _progress_text = _T['min_progress_zero']
-        _progress_icon = 'âª'
+        _progress_icon = '⚪'
     elif _current_pallets < _min_order:
         _min_valido = False
         _progress_color = '#f97316'
         _needed = _min_order - _current_pallets
         _progress_text = _T['min_progress_short'].format(curr=_current_pallets, min=_min_order, needed=_needed)
-        _progress_icon = 'ð¡'
+        _progress_icon = '🟡'
     else:
         _min_valido = True
         _progress_color = '#16a34a'
@@ -2645,7 +2644,7 @@ def render_portal_pedido():
         if _next_tramo and _pallets_para_siguiente > 0:
             _next_hint = _T['min_progress_next'].format(n=int(_next_tramo["min"]))
         _progress_text = _T['min_progress_ok'].format(curr=_current_pallets, min=_min_order) + _next_hint
-        _progress_icon = 'ð¢'
+        _progress_icon = '🟢'
     st.markdown(
         f'<div style="margin: 4px 0 2px 0; font-size:0.88rem">{_progress_icon} {_progress_text}</div>'
         f'<div style="height:8px;background:#e9ecef;border-radius:6px;margin-bottom:8px">'
@@ -2668,14 +2667,14 @@ def render_portal_pedido():
         _cart_html = (
             f'<div style="background:#e8f0fe;border:1.5px solid #003E8C;border-radius:8px;padding:8px 14px;margin:6px 0;display:flex;justify-content:space-between;align-items:center">'
             f'<span style="font-weight:600;color:#003E8C">{_T["cart_label"]}: {_cart_items} {_T["cart_products"]} | {_cart_total_pal:.1f} pal | {_cart_total_caj:,} cj</span>'
-            f'<span style="font-weight:700;color:#003E8C;font-size:1.1em">ð° ${_cart_total_usd:,.2f} USD{_alt_total}</span>'
+            f'<span style="font-weight:700;color:#003E8C;font-size:1.1em">💰 ${_cart_total_usd:,.2f} USD{_alt_total}</span>'
             f'</div>'
         )
         st.markdown(_cart_html, unsafe_allow_html=True)
         # PATCH P12: Vaciar carrito accesible junto al banner del carrito vivo
         _vc_cols = st.columns([5, 2])
         with _vc_cols[1]:
-            if st.button(_T.get('clear_cart','ðï¸ Vaciar carrito'), key='portal_vaciar_top', use_container_width=True, type='secondary'):
+            if st.button(_T.get('clear_cart','🗑️ Vaciar carrito'), key='portal_vaciar_top', use_container_width=True, type='secondary'):
                 st.session_state.portal_carrito = []
                 st.rerun()
         # PATCH GROUP-AGG: Resumen por Grupo de Embalaje
@@ -2704,7 +2703,7 @@ def render_portal_pedido():
                 _g_breakdown = f"{_g_full} " + _T['group_full_pallets'] + (f" + {_g_rem}/{_gv['cxp']} " + _T['group_partial_boxes'] if _g_rem else "")
                 _grp_html.append(
                     f'<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px dashed #e2e8f0">'
-                    f'<div><b style="color:#003E8C">Grupo {_gk}</b> <small style="color:#666">â {" Â· ".join(sorted(set(_gv["productos"])))}</small></div>'
+                    f'<div><b style="color:#003E8C">Grupo {_gk}</b> <small style="color:#666">— {" · ".join(sorted(set(_gv["productos"])))}</small></div>'
                     f'<div style="text-align:right;font-size:0.9rem">'
                     f'<b>{_gv["cajas"]:,} cj</b> / {_gv["cxp"]} cj-pal = <b style="color:#16a34a">{_g_pal_exact:.2f} pal</b>'
                     f'<br><small style="color:#888">{_g_breakdown}</small>'
@@ -2828,7 +2827,7 @@ def render_portal_pedido():
         )
         # Map translated label back to canonical value for internal logic
         unit_sel = 'Pallets' if unit_sel_raw == _T['unit_pallets'] else 'Cajas'
-        # Col 4: Cajas calculadas (solo informacion) â PATCH 8
+        # Col 4: Cajas calculadas (solo informacion) — PATCH 8
         if qty_val > 0:
             if unit_sel == 'Pallets':
                 _n_cajas = int(qty_val * cxp)
@@ -2839,9 +2838,9 @@ def render_portal_pedido():
                 _n_cajas = int(qty_val)
                 _n_pallets = round(_n_cajas / cxp, 2)
                 _cajas_label = f'**{_n_cajas:,}** cj'
-                _cajas_sub = f'<small style="color:#666">â {_n_pallets:.2f} pal ({cxp} cj/pal)</small>'
+                _cajas_sub = f'<small style="color:#666">≈ {_n_pallets:.2f} pal ({cxp} cj/pal)</small>'
             gc[4].markdown(f'{_cajas_label}\n{_cajas_sub}', unsafe_allow_html=True)
-            # Validar cantidad mÃ­nima
+            # Validar cantidad mínima
             if _min_cant_p > 0:
                 _qty_in_unit = qty_val if unit_sel == _min_unit_p else (
                     round(qty_val * cxp) if unit_sel == 'Pallets' else round(qty_val / cxp, 2)
@@ -2861,11 +2860,11 @@ def render_portal_pedido():
                 'descuento_vol': get_descuento_volumen(max(_total_pallets_now,1))
             })
         else:
-            gc[4].markdown('<span style="color:#ccc;font-size:0.85rem">â</span>', unsafe_allow_html=True)
+            gc[4].markdown('<span style="color:#ccc;font-size:0.85rem">—</span>', unsafe_allow_html=True)
 
         st.markdown('<hr style="margin:2px 0 2px;border-color:#f0f0f0">', unsafe_allow_html=True)
 
-    # Sincronizar carrito automÃ¡ticamente
+    # Sincronizar carrito automáticamente
     if _new_carrito != st.session_state.portal_carrito:
         st.session_state.portal_carrito = _new_carrito
         st.rerun()
@@ -2875,7 +2874,7 @@ def render_portal_pedido():
         _tot_c = sum(i['total'] for i in st.session_state.portal_carrito)
         _plt_c = sum(i.get('pallets',0) for i in st.session_state.portal_carrito)
         _cj_c = sum(i.get('cajas',0) for i in st.session_state.portal_carrito)
-        # CotizaciÃ³n en tiempo real
+        # Cotización en tiempo real
         _rates_meta = get_exchange_rates_meta()
         _rates_portal = _rates_meta['rates']
         _rate_ts = _rates_meta['ts']
@@ -2889,8 +2888,8 @@ def render_portal_pedido():
             _moneda_dest = data.get('config',{}).get('destinos_moneda',{}).get(destino, _dv2.get('moneda','USD') if isinstance(_dv2,dict) else 'USD')
         _dest_rate = _rates_portal.get(_moneda_dest, 1)
         _disp_mon = _moneda_dest if _moneda_dest != 'USD' else 'EUR'; _disp_rate = _rates_portal.get(_disp_mon, _eur_rate); _disp_sym = MONEDA_SIMBOLO.get(_disp_mon, _disp_mon); _show_dest = False
-        # ââ Resumen del pedido (responsive: cards en mÃ³vil, tabla en desktop) ââ
-        # Total destacado arriba para reducir scroll en mÃ³vil
+        # ── Resumen del pedido (responsive: cards en móvil, tabla en desktop) ──
+        # Total destacado arriba para reducir scroll en móvil
         _tot_eur = round(_tot_c * _disp_rate, 2)
         _resumen_html = ['<div class="eh-resumen-wrap">']
         # CSS local
@@ -2930,17 +2929,17 @@ def render_portal_pedido():
         if _show_dest:
             _tot_dest = round(_tot_c * _dest_rate, 2)
             _sym_dest = MONEDA_SIMBOLO.get(_moneda_dest, _moneda_dest)
-            _moneda_extra = f' &nbsp;Â·&nbsp; <span style="opacity:0.9">{_sym_dest}{_tot_dest:,.2f} {_moneda_dest}</span>'
+            _moneda_extra = f' &nbsp;·&nbsp; <span style="opacity:0.9">{_sym_dest}{_tot_dest:,.2f} {_moneda_dest}</span>'
         _resumen_html.append(f'''
         <div class="eh-resumen-total">
           <div>
-            <div class="eh-tot-lbl">ð {_T["order_total_label"]}</div>
+            <div class="eh-tot-lbl">🛒 {_T["order_total_label"]}</div>
             <div class="eh-tot-val">${_tot_c:,.2f} USD</div>
-            <div class="eh-tot-eur">â {_disp_sym}{_tot_eur:,.2f} {_disp_mon}{_moneda_extra}</div>
+            <div class="eh-tot-eur">≈ {_disp_sym}{_tot_eur:,.2f} {_disp_mon}{_moneda_extra}</div>
           </div>
           <div style="text-align:right">
-            <div class="eh-tot-meta">ð¦ {_plt_c:.2f} {_T["unit_pallets"]} Â· {_cj_c:,} {_T["unit_boxes"]}</div>
-            <div class="eh-tot-meta">ð§¾ {len(st.session_state.portal_carrito)} {_T["unit_products"]}</div>
+            <div class="eh-tot-meta">📦 {_plt_c:.2f} {_T["unit_pallets"]} · {_cj_c:,} {_T["unit_boxes"]}</div>
+            <div class="eh-tot-meta">🧾 {len(st.session_state.portal_carrito)} {_T["unit_products"]}</div>
           </div>
         </div>
         ''')
@@ -2971,7 +2970,7 @@ def render_portal_pedido():
             ''')
         _resumen_html.append('</div>')
         st.markdown(''.join(line.lstrip() for line in ''.join(_resumen_html).split('\n')), unsafe_allow_html=True)
-        # (Bloque antiguo de tabla y fila TOTAL eliminado â ahora se muestra arriba)
+        # (Bloque antiguo de tabla y fila TOTAL eliminado — ahora se muestra arriba)
         # Moneda destino adicional (si no es USD ni EUR)
         if _show_dest:
             _tot_dest = round(_tot_c * _dest_rate, 2)
@@ -2981,7 +2980,7 @@ def render_portal_pedido():
                 unsafe_allow_html=True
             )
         # Nota tipo de precio y tasa EUR
-        _live_lbl = 'ð¢ En vivo' if _rate_live else 'âª Aprox.'
+        _live_lbl = '🟢 En vivo' if _rate_live else '⚪ Aprox.'
         _live_lbl_t = _T['rate_live'] if _rate_live else _T['rate_approx']
         st.markdown(
             '<div style="margin:6px 0;padding:5px 0"><small style="color:#777">' + _T['rate_info'].format(sym=_disp_sym, rate=_disp_rate, m=_disp_mon, live=_live_lbl_t, src=_rate_src, ts=_rate_ts) + '</small><br><small style="color:#999"><i>' + _T['rate_info_sub'].format(m=_disp_mon) + '</i></small></div>',
@@ -2995,14 +2994,14 @@ def render_portal_pedido():
     st.markdown('---')
 
     if st.session_state.portal_carrito:
-        # ââ PASO 4: Confirmar y Enviar Pedido ââââââââââââââââââââââââââââââââââââ
+        # ── PASO 4: Confirmar y Enviar Pedido ────────────────────────────────────
         st.markdown(_T['step4'])
-        notas = st.text_area(_T.get('notes_label','ð Notas / instrucciones especiales'), placeholder=_T.get('notes_ph','Ej: Entrega en almacÃ©n X, condiciones especiales...'), key='portal_notas')
+        notas = st.text_area(_T.get('notes_label','📝 Notas / instrucciones especiales'), placeholder=_T.get('notes_ph','Ej: Entrega en almacén X, condiciones especiales...'), key='portal_notas')
 
         _toptES=['','Pago anticipado 100%','50% adelanto / 50% contra documentos','30% adelanto / 70% contra BL','Carta de cr\xe9dito (LC)','Pago a 30 d\xedas','Pago a 60 d\xedas','Otro']
         _toptEN=['','100% advance payment','50% advance / 50% against documents','30% advance / 70% against BL','Letter of credit (LC)','30-day payment','60-day payment','Other']
         TOPT = _toptEN if st.session_state.get('portal_lang','es')=='en' else _toptES
-        p_term=st.selectbox(_T.get('payment_terms', 'ð TÃ©rminos de pago (opcional)'),TOPT,key='p_term')
+        p_term=st.selectbox(_T.get('payment_terms', '📋 Términos de pago (opcional)'),TOPT,key='p_term')
         # PATCH 19: Full order summary before confirm
         if st.session_state.portal_carrito and email_input and nombre:
             tot_final = sum(i['total'] for i in st.session_state.portal_carrito)
@@ -3028,13 +3027,13 @@ def render_portal_pedido():
                         if _ux_base_pr and _ux_curr_pr and _ux_base_pr > _ux_curr_pr:
                             _ux_total_save += (_ux_base_pr - _ux_curr_pr) * _pfi2.get('cajas', 0)
             _ux_total_save = round(_ux_total_save, 2)
-            tipo_str = tipo_precio + (f' â {destino}' if tipo_precio == 'CIF' and destino else '')
+            tipo_str = tipo_precio + (f' → {destino}' if tipo_precio == 'CIF' and destino else '')
             # Destination currency
             _fin_mon = data.get('config',{}).get('destinos_moneda',{}).get(destino,'USD') if tipo_precio=='CIF' else 'USD'
             _fin_rate = get_exchange_rates().get(_fin_mon, 1.0)
             _fin_sym = MONEDA_SIMBOLO.get(_fin_mon, _fin_mon)
             _fin_dest_total = round(tot_final * _fin_rate, 2) if _fin_mon != 'USD' and _fin_rate != 1.0 else None
-            _fin_alt = f'<br><span style="font-size:0.88em;color:rgba(255,255,255,0.92);font-weight:500">â {_fin_sym}{_fin_dest_total:,.2f} {_fin_mon}</span>' if _fin_dest_total else ''
+            _fin_alt = f'<br><span style="font-size:0.88em;color:rgba(255,255,255,0.92);font-weight:500">≈ {_fin_sym}{_fin_dest_total:,.2f} {_fin_mon}</span>' if _fin_dest_total else ''
             # Build mobile-friendly responsive cards summary
             _prod_cards_html = ''
             _data_for_peso = load_data()
@@ -3047,11 +3046,11 @@ def render_portal_pedido():
                     _pfi_grp = _pfi_prod.get('grupo','')
                     _pfi_kg_caja = float(_grupos_for_peso.get(_pfi_grp,{}).get('kg_caja', _pfi_prod.get('kg_caja', 0)) or 0)
                     _pfi_peso = int(_pfi.get('cajas',0)) * _pfi_kg_caja
-                    _pfi_peso_lbl = f' Â· <b>{_pfi_peso:,.0f} kg</b>' if _pfi_peso > 0 else ''
+                    _pfi_peso_lbl = f' · <b>{_pfi_peso:,.0f} kg</b>' if _pfi_peso > 0 else ''
                     _prod_cards_html += (
                         f'<div class="eh-cnf-card">'
                         f'<div class="eh-cnf-prod"><b>{_pfi.get("producto","")}</b><span class="eh-cnf-cod">{_pfi.get("codigo","")}</span></div>'
-                        f'<div class="eh-cnf-row"><span>{_pfi.get("pallets",0):.2f} pal Â· {int(_pfi.get("cajas",0)):,} cj{_pfi_peso_lbl}</span><span>${_pfi.get("precio_usd",0):.2f}/cj</span><span class="eh-cnf-tot">${_pfi.get("total",0):,.2f}</span></div>'
+                        f'<div class="eh-cnf-row"><span>{_pfi.get("pallets",0):.2f} pal · {int(_pfi.get("cajas",0)):,} cj{_pfi_peso_lbl}</span><span>${_pfi.get("precio_usd",0):.2f}/cj</span><span class="eh-cnf-tot">${_pfi.get("total",0):,.2f}</span></div>'
                         f'</div>'
                     )
             _conf_html = (
@@ -3178,7 +3177,7 @@ def render_portal_pedido():
                 }
                 save_portal_clients(portal_clients); _adm = load_clients(); _adm[email_input] = {'nombre': nombre, 'email': email_input, 'empresa': empresa, 'telefono': telefono, 'pais': pais, 'fecha_registro': _adm.get(email_input, {}).get('fecha_registro', datetime.now().isoformat()), 'pedidos_ids': list(set(_adm.get(email_input, {}).get('pedidos_ids', []) + [pid])), 'origen': 'portal_cliente'}; save_clients(_adm)
                 # Log email y envio real a order@exportharet.com
-                log_email(email_input, f'ConfirmaciÃ³n pedido {pid}', 'portal_cliente')
+                log_email(email_input, f'Confirmación pedido {pid}', 'portal_cliente')
                 send_order_email(ped)
                 st.cache_data.clear()
 
@@ -3191,7 +3190,7 @@ def render_portal_pedido():
                 _msg_sent = _T['order_sent_email'].replace('<b>', '**').replace('</b>', '**')
                 st.info(_msg_sent)
 
-    # ââ Acciones post-pedido âââââââââââââââââââââââââââââââââââââââââââââââââ
+    # ── Acciones post-pedido ─────────────────────────────────────────────────
     if st.session_state.get('ultimo_pedido'):
         ped_saved = st.session_state['ultimo_pedido']
         pid_saved = ped_saved.get('id','')
@@ -3206,7 +3205,7 @@ def render_portal_pedido():
         pdf_bytes, pdf_mime, pdf_ext = build_order_pdf(ped_saved)
         # Acciones en columnas
         ac1, ac2, ac3 = st.columns(3)
-        # Descargar PDF albarÃ¡n
+        # Descargar PDF albarán
         ac1.download_button(
             label=_T['download_pdf'],
             data=pdf_bytes,
@@ -3215,14 +3214,14 @@ def render_portal_pedido():
             use_container_width=True,
             key='dl_pedido'
         )
-        # WhatsApp â professional message
+        # WhatsApp — professional message
         tot_wa = ped_saved.get('total_usd', 0)
         _nom_wa = ped_saved.get('client_name', '')
         _emp_wa = ped_saved.get('empresa', '')
         _tipo_wa = ped_saved.get('tipo_precio', 'FOB')
         _dest_wa = ped_saved.get('destino', '')
         _pais_wa = ped_saved.get('pais', '')
-        _prods_lines = '%0A'.join([' â¢ ' + str(i.get('cajas','')) + ' cajas ' + str(i.get('producto','')) + ' ($' + str(i.get('precio_usd','')) + '/caja)' for i in ped_saved.get('productos',[])])
+        _prods_lines = '%0A'.join([' • ' + str(i.get('cajas','')) + ' cajas ' + str(i.get('producto','')) + ' ($' + str(i.get('precio_usd','')) + '/caja)' for i in ped_saved.get('productos',[])])
         _emp_line = (_T['wa_msg_company'] + ' ' + _emp_wa + '%0A') if _emp_wa else ''
         _dest_line = ('Destino: ' + _dest_wa) if _tipo_wa == 'CIF' and _dest_wa else 'Precio FOB (sin flete)'
         wa_text_lines = (
@@ -3232,7 +3231,7 @@ def render_portal_pedido():
             + _T['wa_msg_client'] + f' {_nom_wa}%0A'
             + _emp_line
             + _T['wa_msg_country'] + f' {_pais_wa}%0A'
-            + f'ð¦ {_dest_line}%0A%0A'
+            + f'📦 {_dest_line}%0A%0A'
             + _T['wa_msg_details'] + '%0A'
             + _prods_lines
             + '%0A%0A' + _T['wa_msg_total'] + f': ${tot_wa:,.2f} USD*%0A%0A'
@@ -3241,8 +3240,8 @@ def render_portal_pedido():
         )
         wa_url = f'https://wa.me/34641076116?text={wa_text_lines}'
         ac2.link_button(_T['wa_confirm'], wa_url, use_container_width=True)
-        # Email â professional with albarÃ¡n note
-        subject = _T['em_subj'] + f' {pid_saved} â Export Haret'
+        # Email — professional with albarán note
+        subject = _T['em_subj'] + f' {pid_saved} — Export Haret'
         _nom_mail = ped_saved.get('client_name','')
         _emp_mail = ped_saved.get('empresa','')
         _emp_mail_line = (_T['em_body_company'] + ' ' + _emp_mail + '%0A') if _emp_mail else ''
@@ -3253,7 +3252,7 @@ def render_portal_pedido():
             + _T['em_body_data'] + '%0A'
             + _T['em_body_client'] + f' {_nom_mail}%0A'
             + _emp_mail_line
-            + _T['em_body_incoterm'] + f' {_tipo_wa}' + (f' â {_dest_wa}' if _dest_wa and _tipo_wa=='CIF' else '') + '%0A'
+            + _T['em_body_incoterm'] + f' {_tipo_wa}' + (f' — {_dest_wa}' if _dest_wa and _tipo_wa=='CIF' else '') + '%0A'
             + _T['em_body_total'] + f' ${tot_wa:,.2f} USD%0A%0A'
             + _T['em_body_products'] + '%0A'
             + _prods_mail
@@ -3280,7 +3279,7 @@ def render_portal_pedido():
         _cc1,_cc2=st.columns(2)
         _cn=_cc1.text_input(_T['quote_name_lbl'],key='cnom',placeholder=_T['quote_name_ph'])
         _ce=_cc2.text_input(_T['email_label'],value=st.session_state.get('portal_email_input',''),key='ceml')
-        _cd=_cc1.text_input(_T['dest_label'].replace('ð ', ''),key='cdst',placeholder='ej: Madrid, EspaÃ±a')
+        _cd=_cc1.text_input(_T['dest_label'].replace('🌍 ', ''),key='cdst',placeholder='ej: Madrid, España')
         _cplt=_cc2.number_input('Pallets', min_value=1,max_value=200,value=5,key='cplt')
         _cpro=st.text_area(_T['products_label'].replace(':',''),key='cpro',placeholder='ej: 3 pallets Granadilla...',height=70)
         _cmsg=st.text_area(_T['quote_msg_lbl'],key='cmsg',placeholder=_T['quote_msg_ph'],height=70)
@@ -3289,12 +3288,12 @@ def render_portal_pedido():
             else:
                 _cy=datetime.now().strftime('%Y');_cpv=[p for p in load_pedidos() if p.get('id','').startswith(f'COT-{_cy}')]
                 _cid=f'COT-{_cy}-{len(_cpv)+1:04d}'
-                _cp={'id':_cid,'tipo':'cotizacion_especial','client_name':_cn,'client_email':_ce,'destino':_cd,'pallets_aprox':_cplt,'productos_interes':_cpro,'mensaje':_cmsg,'estado':'Pendiente revisiÃ³n','fecha':datetime.now().isoformat(),'total_usd':0,'productos':[],'historial_estados':[{'estado':'Recibido','fecha':datetime.now().isoformat(),'usuario':'portal'}]}
+                _cp={'id':_cid,'tipo':'cotizacion_especial','client_name':_cn,'client_email':_ce,'destino':_cd,'pallets_aprox':_cplt,'productos_interes':_cpro,'mensaje':_cmsg,'estado':'Pendiente revisión','fecha':datetime.now().isoformat(),'total_usd':0,'productos':[],'historial_estados':[{'estado':'Recibido','fecha':datetime.now().isoformat(),'usuario':'portal'}]}
                 _ct=load_pedidos();_ct.append(_cp);save_pedidos(_ct);send_order_email(_cp)
-                st.success(f'â {_cid} - ' + _T['send_quote'])
+                st.success(f'✅ {_cid} - ' + _T['send_quote'])
     st.markdown(f'<div style="text-align:center;color:#888"><small>{LANG_TEXTS[st.session_state.get("portal_lang","es")]["footer_text"]}</small></div>', unsafe_allow_html=True)
 
-# âââ MAIN ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+# ─── MAIN ────────────────────────────────────────────────────────────────────
 def main():
     init_session()
     auto_load_excel()
@@ -3313,7 +3312,7 @@ def main():
         st.session_state.app_mode = 'admin'
         st.rerun()
 
-    # ââ MODO PORTAL (PÃBLICO) âââââââââââââââââââââââââââââââââââââââââââââââââ
+    # ── MODO PORTAL (PÚBLICO) ─────────────────────────────────────────────────
     if st.session_state.app_mode == 'portal':
         # Small admin access link in sidebar
         # Sidebar branding: logo si existe, sino texto sin emoji
@@ -3342,12 +3341,12 @@ def main():
         render_portal_pedido()
         return
 
-    # ââ MODO ADMIN (STAFF LOGIN REQUERIDO) ââââââââââââââââââââââââââââââââââââ
+    # ── MODO ADMIN (STAFF LOGIN REQUERIDO) ────────────────────────────────────
     if not st.session_state.logged_in:
         # Show back to portal button
         col_back, col_form = st.columns([1, 3])
         with col_back:
-            if st.button('â Portal Clientes', key='go_portal'):
+            if st.button('← Portal Clientes', key='go_portal'):
                 st.session_state.app_mode = 'portal'
                 st.query_params.clear()
                 st.rerun()
@@ -3362,7 +3361,7 @@ def main():
         _logoA = _ImgA.open('logo.png')
         _al1, _al2, _al3 = st.columns([2, 1, 2])
         with _al2: st.image(_logoA, width=160)
-    _app_title = load_app_config().get("app_title", "ð Export Haret â Panel de AdministraciÃ³n")
+    _app_title = load_app_config().get("app_title", "📊 Export Haret — Panel de Administración")
     st.markdown(f'<div style="background:linear-gradient(90deg,#003E8C,#0066CC);padding:16px 24px;border-radius:8px;margin-bottom:20px;"><h2 style="color:white;margin:0">{_app_title}</h2></div>', unsafe_allow_html=True)
     # Sidebar branding admin: logo si existe
     try:
@@ -3371,19 +3370,19 @@ def main():
             st.sidebar.image('logo.png', use_container_width=True)
         else:
             st.sidebar.markdown('### Export Haret')
-        st.sidebar.caption('Panel de AdministraciÃ³n')
+        st.sidebar.caption('Panel de Administración')
     except Exception:
         st.sidebar.markdown(f'# {_app_title}')
     st.sidebar.markdown(f'**{st.session_state.user_nombre}** | {st.session_state.user_rol}')
     st.sidebar.markdown('---')
     pedidos = load_pedidos()
     clients = load_clients()
-    st.sidebar.metric('ð¦ Pedidos', len(pedidos))
-    st.sidebar.metric('ðµ FacturaciÃ³n', f"${sum(p.get('total_usd',0) for p in pedidos):,.0f}")
-    st.sidebar.metric('ð¥ Clientes', len(clients))
+    st.sidebar.metric('📦 Pedidos', len(pedidos))
+    st.sidebar.metric('💵 Facturación', f"${sum(p.get('total_usd',0) for p in pedidos):,.0f}")
+    st.sidebar.metric('👥 Clientes', len(clients))
     pending = len([p for p in pedidos if p.get('estado') in ['Recibido','Confirmado','Preparando']])
     # KPI clickable - filtra Pedidos por estados pendientes
-    if st.sidebar.button(f'â³ En proceso: {pending}', use_container_width=True, key='kpi_en_proceso', help='Click para filtrar Pedidos por estados activos'):
+    if st.sidebar.button(f'⏳ En proceso: {pending}', use_container_width=True, key='kpi_en_proceso', help='Click para filtrar Pedidos por estados activos'):
         st.session_state['pedidos_filter_estado'] = ['Recibido','Confirmado','Preparando']
         st.session_state['admin_active_tab'] = 'pedidos'
         st.rerun()
@@ -3397,28 +3396,28 @@ def main():
         _msg_sh = _qsh(LANG_TEXTS[st.session_state.get('portal_lang','es')]['share_msg'] + ' ' + _portal_url)
         _c1sh, _c2sh = st.columns(2)
         with _c1sh:
-            st.link_button('ð¬ WhatsApp', f'https://wa.me/?text={_msg_sh}', use_container_width=True)
+            st.link_button('💬 WhatsApp', f'https://wa.me/?text={_msg_sh}', use_container_width=True)
         with _c2sh:
-            st.link_button('âï¸ Email', f'mailto:?subject={_qsh("Portal de Pedidos Export Haret")}&body={_msg_sh}', use_container_width=True)
-        st.caption('ð Acceso pÃºblico, sin login.')
+            st.link_button('✉️ Email', f'mailto:?subject={_qsh("Portal de Pedidos Export Haret")}&body={_msg_sh}', use_container_width=True)
+        st.caption('🔓 Acceso público, sin login.')
     st.sidebar.markdown('---')
-    if st.sidebar.button('ð Ver Portal Clientes', use_container_width=True, key='admin_go_portal'):
+    if st.sidebar.button('🌐 Ver Portal Clientes', use_container_width=True, key='admin_go_portal'):
         st.session_state.app_mode = 'portal'
         st.session_state.logged_in = False
         st.query_params.clear()
         st.rerun()
-    if st.sidebar.button('ðª Cerrar SesiÃ³n', use_container_width=True):
+    if st.sidebar.button('🚪 Cerrar Sesión', use_container_width=True):
         st.session_state.logged_in = False
         st.rerun()
     st.sidebar.caption(LANG_TEXTS[st.session_state.get('portal_lang','es')]['sidebar_footer'])
 
     tab1,tab2,tab3,tab4,tab5,tab6=st.tabs([
-        'ð Dashboard',
-        'ð CatÃ¡logo & Precios',
-        'ð Hacer Pedido',
-        'âï¸ ConfiguraciÃ³n',
-        'ð¦ Pedidos',
-        'ð¥ Clientes',
+        '📊 Dashboard',
+        '📄 Catálogo & Precios',
+        '🛒 Hacer Pedido',
+        '⚙️ Configuración',
+        '📦 Pedidos',
+        '👥 Clientes',
     ])
     with tab1: render_dashboard()
     with tab2: render_catalogo()
@@ -3427,7 +3426,7 @@ def main():
     with tab5: render_gestion_pedidos()
     with tab6: render_clientes()
     st.markdown('---')
-    st.markdown('<div style="text-align:center;color:#888;"><small>ð Export Haret Â© 2026 | Sistema Profesional de GestiÃ³n de Pedidos</small></div>',unsafe_allow_html=True)
+    st.markdown('<div style="text-align:center;color:#888;"><small>🚀 Export Haret © 2026 | Sistema Profesional de Gestión de Pedidos</small></div>',unsafe_allow_html=True)
 
 if __name__=='__main__':
     main()
