@@ -242,6 +242,7 @@ EMAIL_FILE   = "email_log.json"
 DATA_FILE    = "precios_data.json"
 APP_CONFIG_FILE = "app_config.json"
 ACCESOS_FILE   = "accesos_log.json"
+MIN_LOG_FILE   = "min_cambios_log.json"
 
 USERS = {
     "admin@exportharet.com":  {"pwd": hashlib.md5(b"admin123").hexdigest(),  "rol": "admin",  "nombre": "Administrador"},
@@ -304,6 +305,9 @@ def registrar_acceso(email, nombre, rol):
     acc.append({"fecha_hora": datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "email": email, "nombre": nombre, "rol": rol})
     save_accesos(acc)
 
+
+def load_min_log(): return _load(MIN_LOG_FILE, [])
+def save_min_log(data): _save(MIN_LOG_FILE, data)
 
 # ─── AUTH ────────────────────────────────────────────────────────────────
 def init_session():
@@ -882,6 +886,28 @@ def render_catalogo():
                 if not _base.get('grupo'): _base['grupo'] = 'A'
                 if _cod_r: _new_prods.append(_base)
             data['products'] = _new_prods
+            # ─── Registrar cambios de mínimos ──────────────────────────────────
+            _min_log = load_min_log()
+            for _np in _new_prods:
+                _cod_np = _np.get("codigo", "")
+                _old_p = _old_by_cod.get(_cod_np, {})
+                _old_mu = _old_p.get("min_unidad", "Pallets")
+                _old_mc = int(_old_p.get("min_cantidad", 0) or 0)
+                _new_mu = _np.get("min_unidad", "Pallets")
+                _new_mc = int(_np.get("min_cantidad", 0) or 0)
+                if _old_mu != _new_mu or _old_mc != _new_mc:
+                    _min_log.append({
+                        "fecha_hora": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                        "usuario": st.session_state.get("user_email", "admin"),
+                        "codigo": _cod_np,
+                        "producto": _np.get("producto", _cod_np),
+                        "min_unidad_antes": _old_mu,
+                        "min_cantidad_antes": _old_mc,
+                        "min_unidad_despues": _new_mu,
+                        "min_cantidad_despues": _new_mc,
+                    })
+            save_min_log(_min_log)
+            # ────────────────────────────────────────────────────
             save_data(data)
             st.toast('Precios guardados \u2705', icon='\u2705')
             st.session_state.price_edit_v = st.session_state.get('price_edit_v', 0) + 1
@@ -1445,6 +1471,22 @@ def render_configuracion():
         _cur_cfg["app_title"] = _new_title
         save_app_config(_cur_cfg)
         st.success('✅ Título guardado. Recarga para verlo en el header y sidebar.')
+
+    # ─── Log de Cambios de Mínimos ─────────────────────────────
+    st.markdown("---")
+    st.markdown("### 📝 Log de Cambios de Mínimos por Producto")
+    _min_changes = load_min_log()
+    if not _min_changes:
+        st.info("Aún no hay cambios de mínimos registrados.")
+    else:
+        _df_min = pd.DataFrame(_min_changes[::-1])
+        _df_min.columns = ["Fecha y Hora", "Usuario", "Código", "Producto", "Unidad Antes", "Cant. Antes", "Unidad Después", "Cant. Después"]
+        _prods_u = ["Todos"] + sorted(_df_min["Producto"].unique().tolist())
+        _filtro_m = st.selectbox("🔍 Filtrar por producto:", _prods_u, key="filtro_min_log")
+        if _filtro_m != "Todos":
+            _df_min = _df_min[_df_min["Producto"] == _filtro_m]
+        st.dataframe(_df_min, use_container_width=True, hide_index=True)
+        st.caption(f"Total de cambios registrados: {len(_min_changes)}")
 
 
     # ─── Historial de Accesos ─────────────────────────────────────────
