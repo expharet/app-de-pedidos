@@ -237,7 +237,8 @@ def sync_pedido(ped: dict) -> tuple[dict, list[str]]:
         if env:
             ped["finanzas_envio_id"] = env["envio_id"]
             ped["finanzas_codigo"] = env.get("codigo")
-            msgs.append(f"envío {env.get('codigo')} creado")
+            ya = env.get("mensaje") == "ya convertida"
+            msgs.append(f"envío {env.get('codigo')} {'ya existía' if ya else 'creado'}")
         else:
             msgs.append("⚠️ no se pudo convertir a envío")
             return ped, msgs
