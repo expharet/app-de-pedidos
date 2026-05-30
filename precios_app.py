@@ -18,6 +18,10 @@ try:
 except Exception:
     outbox = None
 try:
+    import theme  # sistema de diseño central (tema visual)
+except Exception:
+    theme = None
+try:
     from reportlab.lib.pagesizes import A4
     from reportlab.lib import colors
     from reportlab.lib.units import cm
@@ -76,34 +80,34 @@ LANG_TEXTS = {
         'step2': '### 2️⃣ Tipo de Precio y Destino',
         'step3': '### 3️⃣ Selecciona tus Productos',
         'step4': '### 4️⃣ Confirmar Pedido',
-        'email_label': '📧 Tu correo electrónico',
+        'email_label': 'Tu correo electrónico',
         'email_ph': 'tu@empresa.com',
         'no_catalog': '⚠️ Catálogo no disponible. Contacte a order@exportharet.com',
-        'enter_email': '📧 **Ingresa tu correo electrónico arriba para continuar**',
-        'welcome_back': '✅ Bienvenido de vuelta, **{name}**!',
+        'enter_email': '**Ingresa tu correo electrónico arriba para continuar**',
+        'welcome_back': 'Bienvenido de vuelta, **{name}**!',
         'not_registered': '✨ ¡Bienvenido! Eres nuevo aquí — completa tus datos para crear tu cuenta y empezar.',
-        'nombre_label': '👤 Nombre completo *',
-        'empresa_label': '🏢 Empresa',
-        'telefono_label': '📱 Teléfono / WhatsApp',
+        'nombre_label': 'Nombre completo *',
+        'empresa_label': 'Empresa',
+        'telefono_label': 'Teléfono / WhatsApp',
         'telefono_ph': '+34 600 000 000',
-        'pais_label': '🌍 País',
+        'pais_label': 'País',
         'auto_register': '🔒 Al guardar el pedido, tu cuenta quedará registrada automáticamente.',
-        'tab_datos': '👤 Mis Datos',
+        'tab_datos': 'Mis Datos',
         'tab_pedidos': '📦 Mis Pedidos ({n})',
         'no_orders': '📦 Aún no tienes pedidos. ¡Haz tu primer pedido a continuación!',
         'price_type_label': '💲 Tipo de precio',
         'price_type_help': 'FOB = Precio en origen (sin flete). CIF = Precio incluye flete al destino.',
-        'dest_label': '🌍 Destino',
+        'dest_label': 'Destino',
         'no_dest': '⚠️ No hay destinos configurados',
         'flete_caption': '🛫 Flete incluido: **${flete:.2f} USD/Kilo** | {orig} → {dest}',
         'cif_info': '📍 **Incoterm CIF** — Precio incluye costo + flete hasta **{dest}**. Embarcamos desde **{orig}**.',
         'fob_info': '📦 **FOB (Free On Board)** — El precio **no incluye flete**. Tú coordinas el transporte desde Ecuador.',
- 'price_update_notice': 'ℹ️ Los precios del catálogo se actualizan cada **martes**. Dudas: order@exportharet.com', 'btn_validate': '✅ Validar', 'btn_acceder': '✅ Validar', 'progress_step1': 'Tus Datos', 'progress_step2': 'Precio & Destino', 'progress_step3': 'Productos', 'progress_step4': 'Confirmar', 'save_data_btn': '💾 Guardar datos', 'data_saved': '✅ Datos guardados', 'header_subtitle': 'Sistema de Pedidos — Frutas Exóticas Premium | order@exportharet.com', 'admin_access': '🔒 Acceso administración', 'download_catalog': '📥 Descargar Catálogo', 'sidebar_subtitle': 'Portal de Pedidos', 'sidebar_footer': 'Export Haret © 2026 | order@exportharet.com', 'footer_text': 'Export Haret © 2026 | order@exportharet.com | Frutas Exóticas Premium', 'cart_label': '🛒 Carrito', 'cart_products': 'producto(s)', 'min_progress_zero': '📋 Pedido mínimo: 3 pallets — Añade productos para comenzar', 'min_progress_short': '⚠️ {curr:.1f}/{min} pallets — Faltan {needed:.1f} pallets para el mínimo', 'min_progress_ok': '✅ {curr:.1f}/{min} pallets', 'min_progress_next': ' | Con {n}+ pallets el precio baja aún más 🚀', 'cart_summary_label': 'Carrito', 'group_summary': '📦 Resumen por Grupo de Embalaje', 'group_full_pallets': 'pallet(s) completo(s)', 'group_partial_boxes': 'cj parciales', 'group_total_pallets': '📊 Total pallets agrupados',
+ 'price_update_notice': 'ℹ️ Los precios del catálogo se actualizan cada **martes**. Dudas: order@exportharet.com', 'btn_validate': 'Validar', 'btn_acceder': 'Validar', 'progress_step1': 'Tus Datos', 'progress_step2': 'Precio & Destino', 'progress_step3': 'Productos', 'progress_step4': 'Confirmar', 'save_data_btn': '💾 Guardar datos', 'data_saved': 'Datos guardados', 'header_subtitle': 'Sistema de Pedidos — Frutas Exóticas Premium | order@exportharet.com', 'admin_access': '🔒 Acceso administración', 'download_catalog': '📥 Descargar Catálogo', 'sidebar_subtitle': 'Portal de Pedidos', 'sidebar_footer': 'Export Haret © 2026 | order@exportharet.com', 'footer_text': 'Export Haret © 2026 | order@exportharet.com | Frutas Exóticas Premium', 'cart_label': '🛒 Carrito', 'cart_products': 'producto(s)', 'min_progress_zero': '📋 Pedido mínimo: 3 pallets — Añade productos para comenzar', 'min_progress_short': '⚠️ {curr:.1f}/{min} pallets — Faltan {needed:.1f} pallets para el mínimo', 'min_progress_ok': '{curr:.1f}/{min} pallets', 'min_progress_next': ' | Con {n}+ pallets el precio baja aún más 🚀', 'cart_summary_label': 'Carrito', 'group_summary': '📦 Resumen por Grupo de Embalaje', 'group_full_pallets': 'pallet(s) completo(s)', 'group_partial_boxes': 'cj parciales', 'group_total_pallets': '📊 Total pallets agrupados',
         'order_total_label': 'Total del pedido',
         'unit_pallets': 'pallets',
         'unit_boxes': 'cajas',
         'unit_products': 'producto(s)',
-        'unit_kg_per_box': 'kg/caja', 'group_missing': '🎁 Te faltan <b>{n} cj</b> para completar 1 pallet del Grupo {g} y mejorar el precio', 'group_complete_with': ' · Completalo con: <b>{names}</b>', 'col_product': 'Producto', 'col_price': 'Precio/cja', 'col_qty': 'Cantidad', 'col_unit': 'Unidad', 'col_boxes': 'Cajas', 'unit_pallets': 'Pallets', 'unit_boxes': 'Cajas', 'min_from': 'Desde', 'added_mark': '✓ Agregado', 'saved_per_box': '💰 Ahorras', 'min_warning': '⚠️ Mínimo: <b>{n} {u}</b> para {p}', 'calc_title': '🧮 Calculadora de costo en otra moneda (referencial)', 'calc_convert_to': '🌍 Convertir a:', 'calc_total_usd': 'Total en USD:', 'calc_total_dest': 'Total en {m}:', 'calc_rate': 'Tasa aplicada:', 'calc_per_pallet': 'Costo aprox. por pallet:', 'calc_note': 'ℹ Valor referencial. La transacción se realiza en USD.', 'order_summary_title': '📝 Resumen del Pedido', 'order_lbl_client': 'Cliente:', 'order_lbl_company': 'Empresa:', 'order_lbl_country': 'País:', 'order_lbl_mode': 'Modalidad:', 'order_lbl_payment': 'T. pago:', 'order_lbl_pending': 'Por confirmar', 'order_savings': '💰 Ahorro por volumen: ${s:,.2f} USD', 'order_total_label': '🛒 TOTAL DEL PEDIDO', 'order_n_pallets': '📦 {n:.2f} pallets', 'order_n_boxes': '📋 {n:,} cajas', 'order_weight': '⚖️ {n:,.0f} kg net.', 'order_weight_note': '* kg net. de fruta — no incluye embalaje', 'savings_per_box': '💰 Ahorras ${d:.2f}/cj', 'unlock_better_price': '🎉 ¡Desbloqueaste mejor precio! Tramo: {label}', 'min_order_alert': '⚠️ Pedido mínimo: 3 pallets. Tienes {curr:.1f} pallets — añade {miss:.1f} pallets más para poder confirmar.', 'order_sent_email': '📧 Tu pedido ha sido enviado a <b>order@exportharet.com</b> para su confirmación. Nuestro equipo te contactará en 24-48h. Sigue el estado en la pestaña <b>Mis Pedidos</b> ↑', 'post_order_h3': 'Pedido {pid} enviado', 'post_order_thanks': '✅ <b>Gracias {name}</b>, hemos recibido tu pedido correctamente.<br>📞 Nuestro equipo se pondrá en contacto contigo en <b>menos de 24 horas</b> para confirmar disponibilidad, precios finales y logística.<br>📧 También recibirás confirmación por email cuando el pedido sea procesado.', 'wa_confirm': '💬 Confirmar por WhatsApp', 'em_send': '📧 Enviar por Email', 'wa_msg_greeting': 'Estimado equipo de Export Haret,', 'wa_msg_intro': 'Acabo de realizar el siguiente pedido a través del portal:', 'wa_msg_order': '📋 *Pedido', 'wa_msg_client': '👤 Cliente:', 'wa_msg_company': 'Empresa:', 'wa_msg_country': '🌍 País:', 'wa_msg_details': '*Detalle de productos:*', 'wa_msg_total': '💰 *TOTAL', 'wa_msg_closing': 'Quedo a disposición para coordinar los detalles.', 'wa_msg_regards': 'Saludos.', 'em_subj': 'Pedido', 'em_body_intro': 'Adjunto el albarán del pedido', 'em_body_data': 'Datos del pedido:', 'em_body_client': '• Cliente:', 'em_body_company': 'Empresa:', 'em_body_incoterm': '• Incoterm:', 'em_body_total': '• Total:', 'em_body_products': 'Productos:', 'em_body_closing': 'Quedo a disposición para cualquier consulta.', 'em_body_regards': 'Saludos.', 'share_portal_title': '🔗 Compartir Portal Clientes', 'share_portal_caption': 'Envía este enlace a tus clientes:', 'share_msg': 'Hola, te invitamos a usar nuestro portal de pedidos Export Haret:', 'destination_fob': 'FOB (desde Ecuador)', 'order_status': 'Estado:', 'order_type': 'Tipo:', 'order_destination': 'Destino:', 'order_date': 'Fecha:', 'order_total_lbl': 'Total:', 'tracking_title': '📍 Seguimiento:', 'full_history': '📜 Historial completo', 'products_label': 'Productos:', 'btn_repeat': '🔄 Repetir', 'btn_repeat_help': 'Cargar en carrito', 'btn_cancel': '🗑️ Cancelar', 'order_repeat_loaded': '✅ Pedido {pid} cargado. Revisa y confirma.', 'order_no_products': 'Este pedido no tiene productos registrados.', 'confirm_cancel': '⚠️ ¿Confirmas la cancelación del pedido <b>{pid}</b>? Se notificará a nuestro equipo.', 'btn_yes_cancel': '✅ Sí, cancelar', 'btn_no': '❌ No', 'order_cancelled': '✅ Pedido {pid} cancelado. Notificación enviada a order@exportharet.com', 'enter_valid_email': '📧 Ingresa un correo electrónico válido para continuar.', 'enter_full_name': '👤 Ingresa tu nombre completo para continuar.', 'err_invalid_email': '❌ Formato de email inválido', 'fob_freight_caption': 'Flete: ${flete:.2f} USD/Kilo', 'price_in_dest': '💱 <b>Equiv. {m}</b> (ref.): <b style="color:#1a7a3c">{sym}{tot:,.2f} {m}</b> <small style="color:#888">1 USD = {rate:.4f} {m}</small>', 'rate_info': '💱 1 USD = <b>{sym}{rate:.4f} {m}</b> — {live} | Fuente: {src} | Actualizado: {ts}', 'rate_info_sub': 'Precios en {m} son de referencia. La transacción se realiza en USD.', 'rate_live': '🟢 En vivo', 'rate_approx': '⚪ Aprox.', 'btn_change_client': '🔄 Cambiar cliente', 'err_email_format': '❌ Formato de email inválido', 'msg_click_validate': '👆 Haz clic en validar para continuar', 'order_cleared': '🗑️ Carrito vaciado',       'fob_origin': '📌 Origen de embarque: **Quito o Guayaquil, Ecuador**',
+        'unit_kg_per_box': 'kg/caja', 'group_missing': '🎁 Te faltan <b>{n} cj</b> para completar 1 pallet del Grupo {g} y mejorar el precio', 'group_complete_with': ' · Completalo con: <b>{names}</b>', 'col_product': 'Producto', 'col_price': 'Precio/cja', 'col_qty': 'Cantidad', 'col_unit': 'Unidad', 'col_boxes': 'Cajas', 'unit_pallets': 'Pallets', 'unit_boxes': 'Cajas', 'min_from': 'Desde', 'added_mark': '✓ Agregado', 'saved_per_box': '💰 Ahorras', 'min_warning': '⚠️ Mínimo: <b>{n} {u}</b> para {p}', 'calc_title': '🧮 Calculadora de costo en otra moneda (referencial)', 'calc_convert_to': 'Convertir a:', 'calc_total_usd': 'Total en USD:', 'calc_total_dest': 'Total en {m}:', 'calc_rate': 'Tasa aplicada:', 'calc_per_pallet': 'Costo aprox. por pallet:', 'calc_note': 'ℹ Valor referencial. La transacción se realiza en USD.', 'order_summary_title': '📝 Resumen del Pedido', 'order_lbl_client': 'Cliente:', 'order_lbl_company': 'Empresa:', 'order_lbl_country': 'País:', 'order_lbl_mode': 'Modalidad:', 'order_lbl_payment': 'T. pago:', 'order_lbl_pending': 'Por confirmar', 'order_savings': '💰 Ahorro por volumen: ${s:,.2f} USD', 'order_total_label': '🛒 TOTAL DEL PEDIDO', 'order_n_pallets': '📦 {n:.2f} pallets', 'order_n_boxes': '📋 {n:,} cajas', 'order_weight': '⚖️ {n:,.0f} kg net.', 'order_weight_note': '* kg net. de fruta — no incluye embalaje', 'savings_per_box': '💰 Ahorras ${d:.2f}/cj', 'unlock_better_price': '🎉 ¡Desbloqueaste mejor precio! Tramo: {label}', 'min_order_alert': '⚠️ Pedido mínimo: 3 pallets. Tienes {curr:.1f} pallets — añade {miss:.1f} pallets más para poder confirmar.', 'order_sent_email': 'Tu pedido ha sido enviado a <b>order@exportharet.com</b> para su confirmación. Nuestro equipo te contactará en 24-48h. Sigue el estado en la pestaña <b>Mis Pedidos</b> ↑', 'post_order_h3': 'Pedido {pid} enviado', 'post_order_thanks': '<b>Gracias {name}</b>, hemos recibido tu pedido correctamente.<br>📞 Nuestro equipo se pondrá en contacto contigo en <b>menos de 24 horas</b> para confirmar disponibilidad, precios finales y logística.<br>También recibirás confirmación por email cuando el pedido sea procesado.', 'wa_confirm': '💬 Confirmar por WhatsApp', 'em_send': 'Enviar por Email', 'wa_msg_greeting': 'Estimado equipo de Export Haret,', 'wa_msg_intro': 'Acabo de realizar el siguiente pedido a través del portal:', 'wa_msg_order': '📋 *Pedido', 'wa_msg_client': 'Cliente:', 'wa_msg_company': 'Empresa:', 'wa_msg_country': 'País:', 'wa_msg_details': '*Detalle de productos:*', 'wa_msg_total': '💰 *TOTAL', 'wa_msg_closing': 'Quedo a disposición para coordinar los detalles.', 'wa_msg_regards': 'Saludos.', 'em_subj': 'Pedido', 'em_body_intro': 'Adjunto el albarán del pedido', 'em_body_data': 'Datos del pedido:', 'em_body_client': '• Cliente:', 'em_body_company': 'Empresa:', 'em_body_incoterm': '• Incoterm:', 'em_body_total': '• Total:', 'em_body_products': 'Productos:', 'em_body_closing': 'Quedo a disposición para cualquier consulta.', 'em_body_regards': 'Saludos.', 'share_portal_title': '🔗 Compartir Portal Clientes', 'share_portal_caption': 'Envía este enlace a tus clientes:', 'share_msg': 'Hola, te invitamos a usar nuestro portal de pedidos Export Haret:', 'destination_fob': 'FOB (desde Ecuador)', 'order_status': 'Estado:', 'order_type': 'Tipo:', 'order_destination': 'Destino:', 'order_date': 'Fecha:', 'order_total_lbl': 'Total:', 'tracking_title': '📍 Seguimiento:', 'full_history': '📜 Historial completo', 'products_label': 'Productos:', 'btn_repeat': '🔄 Repetir', 'btn_repeat_help': 'Cargar en carrito', 'btn_cancel': '🗑️ Cancelar', 'order_repeat_loaded': 'Pedido {pid} cargado. Revisa y confirma.', 'order_no_products': 'Este pedido no tiene productos registrados.', 'confirm_cancel': '⚠️ ¿Confirmas la cancelación del pedido <b>{pid}</b>? Se notificará a nuestro equipo.', 'btn_yes_cancel': 'Sí, cancelar', 'btn_no': '❌ No', 'order_cancelled': 'Pedido {pid} cancelado. Notificación enviada a order@exportharet.com', 'enter_valid_email': 'Ingresa un correo electrónico válido para continuar.', 'enter_full_name': 'Ingresa tu nombre completo para continuar.', 'err_invalid_email': '❌ Formato de email inválido', 'fob_freight_caption': 'Flete: ${flete:.2f} USD/Kilo', 'price_in_dest': '💱 <b>Equiv. {m}</b> (ref.): <b style="color:#1a7a3c">{sym}{tot:,.2f} {m}</b> <small style="color:#888">1 USD = {rate:.4f} {m}</small>', 'rate_info': '💱 1 USD = <b>{sym}{rate:.4f} {m}</b> — {live} | Fuente: {src} | Actualizado: {ts}', 'rate_info_sub': 'Precios en {m} son de referencia. La transacción se realiza en USD.', 'rate_live': '🟢 En vivo', 'rate_approx': '⚪ Aprox.', 'btn_change_client': '🔄 Cambiar cliente', 'err_email_format': '❌ Formato de email inválido', 'msg_click_validate': '👆 Haz clic en validar para continuar', 'order_cleared': '🗑️ Carrito vaciado',       'fob_origin': '📌 Origen de embarque: **Quito o Guayaquil, Ecuador**',
         'min_order_empty': '📋 <strong>Pedido mínimo: 3 pallets</strong> — Añade productos para comenzar tu pedido',
         'min_order_short': '📋 <strong>Pedido mínimo: 3 pallets</strong> — Tienes {plt:.1f} plt. Añade más productos.',
         'cart_fob': '📦 Precios FOB — El flete corre por tu cuenta desde Quito/Guayaquil, Ecuador',
@@ -116,8 +120,8 @@ LANG_TEXTS = {
         'err_nombre': '❌ Ingresa tu nombre completo',
         'err_cart': '❌ Agrega al menos un producto al carrito',
         'err_destino': '❌ Selecciona un destino para precio CIF',
-        'order_confirmed': '✅ **Pedido {pid} confirmado y enviado**',
-        'order_email_sent': '📧 Recibirás confirmación en **{email}** en 24-48h.',
+        'order_confirmed': '**Pedido {pid} confirmado y enviado**',
+        'order_email_sent': 'Recibirás confirmación en **{email}** en 24-48h.',
         'download_pdf': '⬇️ Descargar Albarán PDF',
         'new_order_btn': '🔄 Nuevo Pedido',
         'quote_expander': '💬 Solicitar cotización especial',
@@ -134,24 +138,24 @@ LANG_TEXTS = {
         'step2': '### 2️⃣ Price Type & Destination',
         'step3': '### 3️⃣ Select your Products',
         'step4': '### 4️⃣ Confirm Order',
-        'email_label': '📧 Your email address',
+        'email_label': 'Your email address',
         'email_ph': 'you@company.com',
         'no_catalog': '⚠️ Catalogue not available. Contact order@exportharet.com',
-        'enter_email': '📧 **Enter your email address above to continue**',
-        'welcome_back': '✅ Welcome back, **{name}**!',
+        'enter_email': '**Enter your email address above to continue**',
+        'welcome_back': 'Welcome back, **{name}**!',
         'not_registered': '✨ Welcome! You are new here — complete your details to create your account and get started.',
-        'nombre_label': '👤 Full name *',
-        'empresa_label': '🏢 Company',
-        'telefono_label': '📱 Phone / WhatsApp',
+        'nombre_label': 'Full name *',
+        'empresa_label': 'Company',
+        'telefono_label': 'Phone / WhatsApp',
         'telefono_ph': '+1 000 000 0000',
-        'pais_label': '🌍 Country',
+        'pais_label': 'Country',
         'auto_register': '🔒 By placing your order, your account will be registered automatically.',
-        'tab_datos': '👤 My Details',
+        'tab_datos': 'My Details',
         'tab_pedidos': '📦 My Orders ({n})',
         'no_orders': '📦 No orders yet. Place your first order below!',
         'price_type_label': '💲 Price type',
         'price_type_help': 'FOB = Ex-works price (no freight). CIF = Price includes freight to destination.',
-        'dest_label': '🌍 Destination',
+        'dest_label': 'Destination',
         'no_dest': '⚠️ No destinations configured',
         'flete_caption': '🛫 Freight included: **${flete:.2f} USD/Kilo** | {orig} → {dest}',
         'cif_info': '📍 **Incoterm CIF** — Price includes cost + freight to **{dest}**. We ship from **{orig}**.',
@@ -169,8 +173,8 @@ LANG_TEXTS = {
         'err_nombre': '❌ Please enter your full name',
         'err_cart': '❌ Please add at least one product to your cart',
         'err_destino': '❌ Please select a destination for CIF pricing',
-        'order_confirmed': '✅ **Order {pid} confirmed and sent**',
-        'order_email_sent': '📧 Confirmation will be sent to **{email}** within 24-48h.',
+        'order_confirmed': '**Order {pid} confirmed and sent**',
+        'order_email_sent': 'Confirmation will be sent to **{email}** within 24-48h.',
         'download_pdf': '⬇️ Download Order PDF',
         'new_order_btn': '🔄 New Order',
         'quote_expander': '💬 Request special quote',
@@ -180,12 +184,12 @@ LANG_TEXTS = {
         'quote_msg_lbl': 'Additional message',
         'quote_msg_ph': 'Special conditions...',
         'send_quote': '📤 Send request',
-        'price_update_notice': 'ℹ️ Catalogue prices are updated every **Tuesday**. Questions: order@exportharet.com', 'btn_validate': '✅ Validate / Access', 'btn_change_client': '🔄 Change client', 'err_email_format': '❌ Invalid email format', 'msg_click_validate': '👆 Click validate to continue', 'order_cleared': '🗑️ Cart cleared', 'btn_validate': '✅ Validate', 'btn_acceder': '✅ Validate', 'progress_step1': 'Your Details', 'progress_step2': 'Price & Destination', 'progress_step3': 'Products', 'progress_step4': 'Confirm', 'save_data_btn': '💾 Save details', 'data_saved': '✅ Details saved', 'header_subtitle': 'Order System — Premium Exotic Fruits | order@exportharet.com', 'admin_access': '🔒 Admin access', 'download_catalog': '📥 Download Catalog', 'sidebar_subtitle': 'Order Portal', 'sidebar_footer': 'Export Haret © 2026 | order@exportharet.com', 'footer_text': 'Export Haret © 2026 | order@exportharet.com | Premium Exotic Fruits', 'cart_label': '🛒 Cart', 'cart_products': 'product(s)', 'min_progress_zero': '📋 Minimum order: 3 pallets — Add products to start', 'min_progress_short': '⚠️ {curr:.1f}/{min} pallets — {needed:.1f} more pallets needed', 'min_progress_ok': '✅ {curr:.1f}/{min} pallets', 'min_progress_next': ' | With {n}+ pallets the price goes even lower 🚀', 'cart_summary_label': 'Cart', 'group_summary': '📦 Summary by Packaging Group', 'group_full_pallets': 'full pallet(s)', 'group_partial_boxes': 'partial boxes', 'group_total_pallets': '📊 Total grouped pallets',
+        'price_update_notice': 'ℹ️ Catalogue prices are updated every **Tuesday**. Questions: order@exportharet.com', 'btn_validate': 'Validate / Access', 'btn_change_client': '🔄 Change client', 'err_email_format': '❌ Invalid email format', 'msg_click_validate': '👆 Click validate to continue', 'order_cleared': '🗑️ Cart cleared', 'btn_validate': 'Validate', 'btn_acceder': 'Validate', 'progress_step1': 'Your Details', 'progress_step2': 'Price & Destination', 'progress_step3': 'Products', 'progress_step4': 'Confirm', 'save_data_btn': '💾 Save details', 'data_saved': 'Details saved', 'header_subtitle': 'Order System — Premium Exotic Fruits | order@exportharet.com', 'admin_access': '🔒 Admin access', 'download_catalog': '📥 Download Catalog', 'sidebar_subtitle': 'Order Portal', 'sidebar_footer': 'Export Haret © 2026 | order@exportharet.com', 'footer_text': 'Export Haret © 2026 | order@exportharet.com | Premium Exotic Fruits', 'cart_label': '🛒 Cart', 'cart_products': 'product(s)', 'min_progress_zero': '📋 Minimum order: 3 pallets — Add products to start', 'min_progress_short': '⚠️ {curr:.1f}/{min} pallets — {needed:.1f} more pallets needed', 'min_progress_ok': '{curr:.1f}/{min} pallets', 'min_progress_next': ' | With {n}+ pallets the price goes even lower 🚀', 'cart_summary_label': 'Cart', 'group_summary': '📦 Summary by Packaging Group', 'group_full_pallets': 'full pallet(s)', 'group_partial_boxes': 'partial boxes', 'group_total_pallets': '📊 Total grouped pallets',
         'order_total_label': 'Order Total',
         'unit_pallets': 'pallets',
         'unit_boxes': 'boxes',
         'unit_products': 'product(s)',
-        'unit_kg_per_box': 'kg/box', 'group_missing': '🎁 You need <b>{n} bx</b> more to complete 1 pallet in Group {g} and improve the price', 'group_complete_with': ' · Complete with: <b>{names}</b>', 'col_product': 'Product', 'col_price': 'Price/box', 'col_qty': 'Quantity', 'col_unit': 'Unit', 'col_boxes': 'Boxes', 'unit_pallets': 'Pallets', 'unit_boxes': 'Boxes', 'min_from': 'From', 'added_mark': '✓ Added', 'saved_per_box': '💰 You save', 'min_warning': '⚠️ Minimum: <b>{n} {u}</b> for {p}', 'calc_title': '🧮 Cost calculator in another currency (reference)', 'calc_convert_to': '🌍 Convert to:', 'calc_total_usd': 'Total in USD:', 'calc_total_dest': 'Total in {m}:', 'calc_rate': 'Applied rate:', 'calc_per_pallet': 'Approx. cost per pallet:', 'calc_note': 'ℹ Reference value. Transactions are made in USD.', 'order_summary_title': '📝 Order Summary', 'order_lbl_client': 'Customer:', 'order_lbl_company': 'Company:', 'order_lbl_country': 'Country:', 'order_lbl_mode': 'Mode:', 'order_lbl_payment': 'Payment:', 'order_lbl_pending': 'To be confirmed', 'order_savings': '💰 Volume savings: ${s:,.2f} USD', 'order_total_label': '🛒 ORDER TOTAL', 'order_n_pallets': '📦 {n:.2f} pallets', 'order_n_boxes': '📋 {n:,} boxes', 'order_weight': '⚖️ {n:,.0f} kg net', 'order_weight_note': '* kg net of fruit — does not include packaging', 'savings_per_box': '💰 You save ${d:.2f}/bx', 'unlock_better_price': '🎉 You unlocked a better price! Tier: {label}', 'min_order_alert': '⚠️ Minimum order: 3 pallets. You have {curr:.1f} pallets — add {miss:.1f} more pallets to confirm.', 'order_sent_email': '📧 Your order has been sent to <b>order@exportharet.com</b> for confirmation. Our team will contact you within 24-48h. Track the status in the <b>My Orders</b> tab ↑', 'post_order_h3': 'Order {pid} sent', 'post_order_thanks': '✅ <b>Thank you {name}</b>, we have received your order correctly.<br>📞 Our team will contact you within <b>less than 24 hours</b> to confirm availability, final prices and logistics.<br>📧 You will also receive an email confirmation when the order is processed.', 'wa_confirm': '💬 Confirm via WhatsApp', 'em_send': '📧 Send by Email', 'wa_msg_greeting': 'Dear Export Haret team,', 'wa_msg_intro': 'I have just placed the following order through the portal:', 'wa_msg_order': '📋 *Order', 'wa_msg_client': '👤 Customer:', 'wa_msg_company': 'Company:', 'wa_msg_country': '🌍 Country:', 'wa_msg_details': '*Product details:*', 'wa_msg_total': '💰 *TOTAL', 'wa_msg_closing': 'I remain available to coordinate the details.', 'wa_msg_regards': 'Best regards.', 'em_subj': 'Order', 'em_body_intro': 'Attached the delivery note for order', 'em_body_data': 'Order data:', 'em_body_client': '• Customer:', 'em_body_company': 'Company:', 'em_body_incoterm': '• Incoterm:', 'em_body_total': '• Total:', 'em_body_products': 'Products:', 'em_body_closing': 'I remain available for any question.', 'em_body_regards': 'Best regards.', 'share_portal_title': '🔗 Share Customer Portal', 'share_portal_caption': 'Send this link to your customers:', 'share_msg': 'Hello, we invite you to use our Export Haret order portal:', 'destination_fob': 'FOB (from Ecuador)', 'order_status': 'Status:', 'order_type': 'Type:', 'order_destination': 'Destination:', 'order_date': 'Date:', 'order_total_lbl': 'Total:', 'tracking_title': '📍 Tracking:', 'full_history': '📜 Full history', 'products_label': 'Products:', 'btn_repeat': '🔄 Repeat', 'btn_repeat_help': 'Load to cart', 'btn_cancel': '🗑️ Cancel', 'order_repeat_loaded': '✅ Order {pid} loaded. Review and confirm.', 'order_no_products': 'This order has no registered products.', 'confirm_cancel': '⚠️ Confirm cancellation of order <b>{pid}</b>? Our team will be notified.', 'btn_yes_cancel': '✅ Yes, cancel', 'btn_no': '❌ No', 'order_cancelled': '✅ Order {pid} cancelled. Notification sent to order@exportharet.com', 'enter_valid_email': '📧 Please enter a valid email address to continue.', 'enter_full_name': '👤 Please enter your full name to continue.', 'err_invalid_email': '❌ Invalid email format', 'fob_freight_caption': 'Freight: ${flete:.2f} USD/Kilo', 'price_in_dest': '💱 <b>Equiv. {m}</b> (ref.): <b style="color:#1a7a3c">{sym}{tot:,.2f} {m}</b> <small style="color:#888">1 USD = {rate:.4f} {m}</small>', 'rate_info': '💱 1 USD = <b>{sym}{rate:.4f} {m}</b> — {live} | Source: {src} | Updated: {ts}', 'rate_info_sub': 'Prices in {m} are for reference. Transactions are made in USD.', 'rate_live': '🟢 Live', 'rate_approx': '⚪ Approx.',
+        'unit_kg_per_box': 'kg/box', 'group_missing': '🎁 You need <b>{n} bx</b> more to complete 1 pallet in Group {g} and improve the price', 'group_complete_with': ' · Complete with: <b>{names}</b>', 'col_product': 'Product', 'col_price': 'Price/box', 'col_qty': 'Quantity', 'col_unit': 'Unit', 'col_boxes': 'Boxes', 'unit_pallets': 'Pallets', 'unit_boxes': 'Boxes', 'min_from': 'From', 'added_mark': '✓ Added', 'saved_per_box': '💰 You save', 'min_warning': '⚠️ Minimum: <b>{n} {u}</b> for {p}', 'calc_title': '🧮 Cost calculator in another currency (reference)', 'calc_convert_to': 'Convert to:', 'calc_total_usd': 'Total in USD:', 'calc_total_dest': 'Total in {m}:', 'calc_rate': 'Applied rate:', 'calc_per_pallet': 'Approx. cost per pallet:', 'calc_note': 'ℹ Reference value. Transactions are made in USD.', 'order_summary_title': '📝 Order Summary', 'order_lbl_client': 'Customer:', 'order_lbl_company': 'Company:', 'order_lbl_country': 'Country:', 'order_lbl_mode': 'Mode:', 'order_lbl_payment': 'Payment:', 'order_lbl_pending': 'To be confirmed', 'order_savings': '💰 Volume savings: ${s:,.2f} USD', 'order_total_label': '🛒 ORDER TOTAL', 'order_n_pallets': '📦 {n:.2f} pallets', 'order_n_boxes': '📋 {n:,} boxes', 'order_weight': '⚖️ {n:,.0f} kg net', 'order_weight_note': '* kg net of fruit — does not include packaging', 'savings_per_box': '💰 You save ${d:.2f}/bx', 'unlock_better_price': '🎉 You unlocked a better price! Tier: {label}', 'min_order_alert': '⚠️ Minimum order: 3 pallets. You have {curr:.1f} pallets — add {miss:.1f} more pallets to confirm.', 'order_sent_email': 'Your order has been sent to <b>order@exportharet.com</b> for confirmation. Our team will contact you within 24-48h. Track the status in the <b>My Orders</b> tab ↑', 'post_order_h3': 'Order {pid} sent', 'post_order_thanks': '<b>Thank you {name}</b>, we have received your order correctly.<br>📞 Our team will contact you within <b>less than 24 hours</b> to confirm availability, final prices and logistics.<br>You will also receive an email confirmation when the order is processed.', 'wa_confirm': '💬 Confirm via WhatsApp', 'em_send': 'Send by Email', 'wa_msg_greeting': 'Dear Export Haret team,', 'wa_msg_intro': 'I have just placed the following order through the portal:', 'wa_msg_order': '📋 *Order', 'wa_msg_client': 'Customer:', 'wa_msg_company': 'Company:', 'wa_msg_country': 'Country:', 'wa_msg_details': '*Product details:*', 'wa_msg_total': '💰 *TOTAL', 'wa_msg_closing': 'I remain available to coordinate the details.', 'wa_msg_regards': 'Best regards.', 'em_subj': 'Order', 'em_body_intro': 'Attached the delivery note for order', 'em_body_data': 'Order data:', 'em_body_client': '• Customer:', 'em_body_company': 'Company:', 'em_body_incoterm': '• Incoterm:', 'em_body_total': '• Total:', 'em_body_products': 'Products:', 'em_body_closing': 'I remain available for any question.', 'em_body_regards': 'Best regards.', 'share_portal_title': '🔗 Share Customer Portal', 'share_portal_caption': 'Send this link to your customers:', 'share_msg': 'Hello, we invite you to use our Export Haret order portal:', 'destination_fob': 'FOB (from Ecuador)', 'order_status': 'Status:', 'order_type': 'Type:', 'order_destination': 'Destination:', 'order_date': 'Date:', 'order_total_lbl': 'Total:', 'tracking_title': '📍 Tracking:', 'full_history': '📜 Full history', 'products_label': 'Products:', 'btn_repeat': '🔄 Repeat', 'btn_repeat_help': 'Load to cart', 'btn_cancel': '🗑️ Cancel', 'order_repeat_loaded': 'Order {pid} loaded. Review and confirm.', 'order_no_products': 'This order has no registered products.', 'confirm_cancel': '⚠️ Confirm cancellation of order <b>{pid}</b>? Our team will be notified.', 'btn_yes_cancel': 'Yes, cancel', 'btn_no': '❌ No', 'order_cancelled': 'Order {pid} cancelled. Notification sent to order@exportharet.com', 'enter_valid_email': 'Please enter a valid email address to continue.', 'enter_full_name': 'Please enter your full name to continue.', 'err_invalid_email': '❌ Invalid email format', 'fob_freight_caption': 'Freight: ${flete:.2f} USD/Kilo', 'price_in_dest': '💱 <b>Equiv. {m}</b> (ref.): <b style="color:#1a7a3c">{sym}{tot:,.2f} {m}</b> <small style="color:#888">1 USD = {rate:.4f} {m}</small>', 'rate_info': '💱 1 USD = <b>{sym}{rate:.4f} {m}</b> — {live} | Source: {src} | Updated: {ts}', 'rate_info_sub': 'Prices in {m} are for reference. Transactions are made in USD.', 'rate_live': '🟢 Live', 'rate_approx': '⚪ Approx.',
     }
 }
 
@@ -202,7 +206,7 @@ CUSTOM_CSS = """
 }
 /* === MINI CARRITO FLOTANTE === */
 .cart-badge {
-    background: #003E8C;
+    background: #1B7A3C;
     color: white;
     border-radius: 12px;
     padding: 2px 10px;
@@ -218,17 +222,17 @@ CUSTOM_CSS = """
 }
 .min-progress-fill {
     height: 100%;
-    background: linear-gradient(90deg, #f97316, #003E8C);
+    background: linear-gradient(90deg, #2E9E4F, #1B7A3C);
     border-radius: 4px;
     transition: width 0.3s ease;
 }
 /* === BOTONES === */
-.stButton > button[kind="primary"] { background: #003E8C !important; border-color: #003E8C !important; }
-.stButton > button[kind="primary"]:hover { background: #002d6b !important; }
+.stButton > button[kind="primary"] { background: #1B7A3C !important; border-color: #1B7A3C !important; }
+.stButton > button[kind="primary"]:hover { background: #0F4F29 !important; }
 /* === RESUMEN PEDIDO === */
 .order-summary-box {
     background: #f8faff;
-    border: 1.5px solid #003E8C;
+    border: 1.5px solid #1B7A3C;
     border-radius: 10px;
     padding: 16px;
     margin: 12px 0;
@@ -410,7 +414,7 @@ def exportar_excel(pedidos):
     except: st.error('Instalar openpyxl'); return None
     wb = Workbook()
     ws1 = wb.active; ws1.title='Resumen'
-    ws1['A1'] = 'EXPORT HARET - REPORTE'; ws1['A1'].font=Font(bold=True,color='FFFFFF'); ws1['A1'].fill=PatternFill(start_color='003E8C',end_color='003E8C',fill_type='solid')
+    ws1['A1'] = 'EXPORT HARET - REPORTE'; ws1['A1'].font=Font(bold=True,color='FFFFFF'); ws1['A1'].fill=PatternFill(start_color='1B7A3C',end_color='1B7A3C',fill_type='solid')
     estados={}
     for p in pedidos:
         e=p.get('estado','Recibido'); estados[e]=estados.get(e,{'c':0,'t':0}); estados[e]['c']+=1; estados[e]['t']+=p.get('total_usd',0)
@@ -418,12 +422,12 @@ def exportar_excel(pedidos):
     for e,d in sorted(estados.items()): ws1.append([e,d['c'],round(d['t'],2)])
     ws2=wb.create_sheet('Pedidos')
     ws2.append(['ID','CLIENTE','EMAIL','ESTADO','DESTINO','TOTAL USD','FECHA'])
-    for cell in ws2[1]: cell.font=Font(bold=True,color='FFFFFF'); cell.fill=PatternFill(start_color='003E8C',end_color='003E8C',fill_type='solid')
+    for cell in ws2[1]: cell.font=Font(bold=True,color='FFFFFF'); cell.fill=PatternFill(start_color='1B7A3C',end_color='1B7A3C',fill_type='solid')
     for p in sorted(pedidos,key=lambda x:x.get('fecha',''),reverse=True):
         ws2.append([p.get('id','').upper(),p.get('client_name',''),p.get('client_email',''),p.get('estado',''),p.get('destino',''),round(p.get('total_usd',0),2),p.get('fecha','')[:10]])
     ws3=wb.create_sheet('Productos')
     ws3.append(['CODIGO','PRODUCTO','CAJAS','PALLETS','PRECIO','TOTAL'])
-    for cell in ws3[1]: cell.font=Font(bold=True,color='FFFFFF'); cell.fill=PatternFill(start_color='003E8C',end_color='003E8C',fill_type='solid')
+    for cell in ws3[1]: cell.font=Font(bold=True,color='FFFFFF'); cell.fill=PatternFill(start_color='1B7A3C',end_color='1B7A3C',fill_type='solid')
     for p in pedidos:
         for pr in p.get('productos',[]): ws3.append([pr.get('codigo',''),pr.get('producto',''),pr.get('cajas',0),round(pr.get('pallets',0),2),round(pr.get('precio_usd',0),2),round(pr.get('cajas',0)*pr.get('precio_usd',0),2)])
     out=io.BytesIO(); wb.save(out); out.seek(0)
@@ -489,7 +493,7 @@ def render_dashboard():
     with st.expander('⏱ SLA de Procesos', expanded=False):
         _,ss=calc_sla(pedidos)
         s1,s2,s3,s4=st.columns(4)
-        s1.metric('✅ Cumplimiento',f"{ss['pct']:.1f}%",'Meta:95%')
+        s1.metric('Cumplimiento',f"{ss['pct']:.1f}%",'Meta:95%')
         s2.metric('⚠️ Críticos',ss['crit'])
         s3.metric('⏱ Prom.h',f"{ss['prom']:.1f}h")
         s4.metric('📊 Trans.',ss['tot'])
@@ -686,7 +690,7 @@ def render_catalogo():
     dests_moneda = cfg.get('destinos_moneda', {})
     flete_ref = float(cfg.get('flete_ref', 2.35) or 2.35)  # flete referencia Madrid
 
-    sub1, sub2, sub3, sub4 = st.tabs(['📊 Tabla de Precios', '🌍 Destinos & Monedas', '📂 Importar Excel', '📦 Embalaje'])
+    sub1, sub2, sub3, sub4 = st.tabs(['📊 Tabla de Precios', 'Destinos & Monedas', '📂 Importar Excel', '📦 Embalaje'])
 
     # ─── SUB-TAB 1: TABLA MAESTRA DE PRECIOS ─────────────────────────
     with sub1:
@@ -811,7 +815,7 @@ def render_catalogo():
             _ws_dl.append(_hdr_dl)
             for _cell in _ws_dl[1]:
                 _cell.font = _Font(bold=True, color='FFFFFF')
-                _cell.fill = _Fill(start_color='003E8C', end_color='003E8C', fill_type='solid')
+                _cell.fill = _Fill(start_color='1B7A3C', end_color='1B7A3C', fill_type='solid')
             for _row_d in _tbl_rows:
                 _ws_dl.append([_row_d.get('Pallets','')] + [_row_d.get(c,'') for c in df_plt.columns])
             _out_dl = io.BytesIO(); _wb_dl.save(_out_dl); _out_dl.seek(0)
@@ -1078,7 +1082,7 @@ def render_catalogo():
                 _new_grupos[_grp_k] = _upd
             _emb_data['config']['grupos'] = _new_grupos
             save_data(_emb_data)
-            st.toast('✅ Grupos guardados', icon='✅')
+            st.toast('Grupos guardados', icon='✅')
             st.rerun()
 
         st.markdown('---')
@@ -1146,7 +1150,7 @@ def render_catalogo():
                 _new_prods2.append(_pp2c)
             _emb_data['products'] = _new_prods2
             save_data(_emb_data)
-            st.toast('✅ Asignacion de productos guardada', icon='✅')
+            st.toast('Asignacion de productos guardada', icon='✅')
             st.rerun()
 
 
@@ -1160,18 +1164,18 @@ def render_hacer_pedido():
     # Paso 1: Cliente
     st.markdown('### 1️⃣ Datos del Cliente')
     cl1,cl2=st.columns(2)
-    c_email=cl1.text_input('📧 Email',placeholder='cliente@empresa.com',key='hp_email')
-    c_name=cl2.text_input('👤 Nombre',placeholder='Nombre / Empresa',key='hp_nombre')
+    c_email=cl1.text_input('Email',placeholder='cliente@empresa.com',key='hp_email')
+    c_name=cl2.text_input('Nombre',placeholder='Nombre / Empresa',key='hp_nombre')
     seg=None
     if c_email and c_email in clients:
         c=clients[c_email]; seg=segmentar(c_email,clients)
-        st.success(f'✅ Cliente: {c.get("nombre","")} | {seg["badge"]} | Desc: {seg["descuento"]*100:.0f}%')
+        st.success(f'Cliente: {c.get("nombre","")} | {seg["badge"]} | Desc: {seg["descuento"]*100:.0f}%')
         if not c_name: c_name=c.get('nombre','')
     elif c_email: st.info('🆕 Cliente nuevo - se registrará al guardar')
     # Paso 2: Destino
     st.markdown('### 2️⃣ Destino')
     dest_opts=list(dests.keys()) if dests else ['Madrid/España','París/Francia','Londres/UK','Miami/USA']
-    destino=st.selectbox('🌍 Destino',dest_opts,key='hp_dest')
+    destino=st.selectbox('Destino',dest_opts,key='hp_dest')
     dest_v=dests.get(destino,{}) if dests else {}
     moneda=dest_v.get('moneda','USD') if isinstance(dest_v,dict) else 'USD'
     dest_factor=dest_v.get('factor',1.0) if isinstance(dest_v,dict) else (float(dest_v) if isinstance(dest_v,(int,float)) else 1.0)
@@ -1222,12 +1226,12 @@ def render_hacer_pedido():
         _tot_pre = sum(i['total'] for i in st.session_state.carrito)
         _plt_pre = sum(i.get('pallets',0) for i in st.session_state.carrito)
         st.markdown(
-            f'<div style="background:#f0f7ff;border:1px solid #003E8C;border-radius:8px;padding:12px 18px;margin:8px 0">'
+            f'<div style="background:#f0f7ff;border:1px solid #1B7A3C;border-radius:8px;padding:12px 18px;margin:8px 0">'
             f'📋 <b>Resumen</b><br>'
             f'&bull; Cliente: <b>{c_name}</b> ({c_email})<br>'
             f'&bull; Destino: <b>{destino}</b><br>'
             f'&bull; Productos: <b>{len(st.session_state.carrito)}</b> &nbsp; Pallets: <b>{_plt_pre:.2f}</b><br>'
-            f'&bull; 💰 Total: <b style="color:#003E8C">${_tot_pre:,.2f} USD</b>'
+            f'&bull; 💰 Total: <b style="color:#1B7A3C">${_tot_pre:,.2f} USD</b>'
             f'</div>',
             unsafe_allow_html=True
         )
@@ -1254,12 +1258,12 @@ def render_hacer_pedido():
                 _email_status = 'fallido'
             el=load_email_log(); el.append({'id':f'EMAIL-{len(el)+1:05d}','destinatario':c_email,'asunto':f'Pedido {pid} recibido','tipo':'confirmacion','fecha':datetime.now().isoformat(),'estado':_email_status}); save_email_log(el)
             st.session_state.carrito=[]
-            st.success(f'✅ Pedido {pid} creado por ${tot:,.2f}')
+            st.success(f'Pedido {pid} creado por ${tot:,.2f}')
             st.cache_data.clear()
 
 # ─── TAB PRECIOS ─────────────────────────────────────────────────────────
 def render_destinos():
-    st.markdown('## 🌍 Todos los Destinos - Tarifas')
+    st.markdown('## Todos los Destinos - Tarifas')
     data=load_data(); dests=data.get('config',{}).get('destinos',{})
     if not dests: st.info('⚠️ Sube el Excel en Cotización para ver los destinos.'); return
     rows_d=[]
@@ -1370,7 +1374,7 @@ def render_gestion_pedidos():
                                 all_p[_i]['productos']=nw_it; all_p[_i]['total_usd']=round(sum(it['total'] for it in nw_it),2)
                                 all_p[_i].setdefault('historial_estados',[]).append({'estado':'Editado','fecha':datetime.now().isoformat(),'usuario':st.session_state.user_email,'nota':'Editado manualmente'})
                                 break
-                        save_pedidos(all_p); st.toast('✅ Pedido actualizado',icon='✅'); st.rerun()
+                        save_pedidos(all_p); st.toast('Pedido actualizado',icon='✅'); st.rerun()
             hist_g=ped.get('historial_estados',[])
             if hist_g:
                 with st.expander('📜 Historial',expanded=False):
@@ -1401,7 +1405,7 @@ def render_gestion_pedidos():
 # ─── TAB CONFIGURACION ──────────────────────────────────────────────
 def render_configuracion():
     st.markdown('## ⚙️ Configuración del Sistema')
-    st.markdown('### 👤 Usuarios del Sistema')
+    st.markdown('### Usuarios del Sistema')
     _users_file = 'users_custom.json'
     _users_data = _load(_users_file, {})
     _all_users_display = []
@@ -1409,15 +1413,15 @@ def render_configuracion():
         _all_users_display.append({'Email': _ue, 'Nombre': _uv['nombre'], 'Rol': _uv['rol'], 'Tipo': '🔒 Sistema'})
     for _ue, _uv in _users_data.items():
         if _ue not in USERS:
-            _all_users_display.append({'Email': _ue, 'Nombre': _uv.get('nombre',''), 'Rol': _uv.get('rol','ventas'), 'Tipo': '👤 Custom'})
+            _all_users_display.append({'Email': _ue, 'Nombre': _uv.get('nombre',''), 'Rol': _uv.get('rol','ventas'), 'Tipo': 'Custom'})
     if _all_users_display:
         st.dataframe(pd.DataFrame(_all_users_display), use_container_width=True, hide_index=True)
     else:
         st.info('\u2139\ufe0f No hay usuarios configurados. Usa el panel de abajo para agregar uno.')
     with st.expander('➕ Agregar / Cambiar Contraseña de Usuario', expanded=False):
         _un1, _un2 = st.columns(2)
-        _new_email = _un1.text_input('📧 Email del usuario', key='cfg_new_email', placeholder='usuario@exportharet.com')
-        _new_nombre = _un2.text_input('👤 Nombre', key='cfg_new_nombre')
+        _new_email = _un1.text_input('Email del usuario', key='cfg_new_email', placeholder='usuario@exportharet.com')
+        _new_nombre = _un2.text_input('Nombre', key='cfg_new_nombre')
         _np1, _np2, _np3 = st.columns(3)
         _new_pwd = _np1.text_input('🔑 Contraseña', type='password', key='cfg_new_pwd')
         _new_rol = _np2.selectbox('Rol', ['admin', 'ventas'], key='cfg_new_rol')
@@ -1428,7 +1432,7 @@ def render_configuracion():
             else:
                 _users_data[_new_email] = {'pwd': hashlib.md5(_new_pwd.encode()).hexdigest(), 'rol': _new_rol, 'nombre': _new_nombre or _new_email}
                 _save(_users_file, _users_data)
-                st.toast(f'✅ Usuario {_new_email} guardado', icon='✅')
+                st.toast(f'Usuario {_new_email} guardado', icon='✅')
                 st.rerun()
     if _users_data:
         with st.expander('🗑️ Eliminar Usuario Custom', expanded=False):
@@ -1436,10 +1440,10 @@ def render_configuracion():
             if st.button('🗑️ Eliminar', key='cfg_del_btn', type='secondary'):
                 del _users_data[_del_user]
                 _save(_users_file, _users_data)
-                st.toast(f'✅ Usuario {_del_user} eliminado')
+                st.toast(f'Usuario {_del_user} eliminado')
                 st.rerun()
     st.markdown('---')
-    st.markdown('### 📧 Log de Emails')
+    st.markdown('### Log de Emails')
     elog=load_email_log()
     if elog:
         df_e=pd.DataFrame(elog[-20:][::-1])
@@ -1455,16 +1459,16 @@ def render_configuracion():
         for _ue in reversed(_unsent_e[-5:]):
             st.caption(f'❌ {_ue.get("id","")} | {_ue.get("fecha","")[:16]} | {_ue.get("cliente","")} | ${_ue.get("total",0):,.2f} | {_ue.get("error","")}')
     elif _pend_e:
-        st.success(f'✅ {len([e for e in _pend_e if e.get("sent")])} email(s) enviados correctamente')
+        st.success(f'{len([e for e in _pend_e if e.get("sent")])} email(s) enviados correctamente')
     else:
         st.info('📬 Sin historial de emails aún')
     st.markdown('---')
-    st.markdown('### 📧 Estado SMTP (order@exportharet.com)')
+    st.markdown('### Estado SMTP (order@exportharet.com)')
     try:
         _smtp_cfg = st.secrets.get('email', {})
         _smtp_host = _smtp_cfg.get('smtp_host', '')
         if _smtp_host:
-            st.success(f'✅ SMTP activo: {_smtp_cfg.get("smtp_user","?")} → {_smtp_host}:{_smtp_cfg.get("smtp_port",587)} | Emails van a order@exportharet.com')
+            st.success(f'SMTP activo: {_smtp_cfg.get("smtp_user","?")} → {_smtp_host}:{_smtp_cfg.get("smtp_port",587)} | Emails van a order@exportharet.com')
         else:
             st.warning('⚠️ SMTP no configurado — agregar en Streamlit Secrets: [email] smtp_host / smtp_user / smtp_pass')
     except Exception as e:
@@ -1482,7 +1486,7 @@ def render_configuracion():
         _logo_file = st.file_uploader('Subir nuevo logo (PNG o JPG)', type=['png','jpg','jpeg'], key='cfg_logo_upload')
         if _logo_file is not None:
             with open('logo.png', 'wb') as _lf: _lf.write(_logo_file.getbuffer())
-            st.success('✅ Logo actualizado. Recarga la página para verlo.')
+            st.success('Logo actualizado. Recarga la página para verlo.')
     with _logo_col2:
         import os as _oscfg
         if _oscfg.path.exists('logo.png'):
@@ -1498,7 +1502,7 @@ def render_configuracion():
     if st.button('💾 Guardar Título', key='cfg_save_title'):
         _cur_cfg["app_title"] = _new_title
         save_app_config(_cur_cfg)
-        st.success('✅ Título guardado. Recarga para verlo en el header y sidebar.')
+        st.success('Título guardado. Recarga para verlo en el header y sidebar.')
 
     # ─── Log de Cambios de Mínimos ─────────────────────────────
     st.markdown("---")
@@ -1590,7 +1594,7 @@ def render_clientes():
         if st.button('🗑️ Eliminar Cliente', key='cli_del_btn', type='secondary'):
             if _del_cli in clients:
                 del clients[_del_cli]; save_clients(clients)
-                st.toast(f'✅ Cliente {_del_cli} eliminado'); st.rerun()
+                st.toast(f'Cliente {_del_cli} eliminado'); st.rerun()
     st.markdown('---')
     sel=st.selectbox('Detalle de cliente',['']+list(clients.keys()),key='cli_d')
     if sel:
@@ -1613,7 +1617,7 @@ def render_clientes():
             _c=clients[_sel]; _seg=segmentar(_sel,clients); _mp=[p for p in pedidos if p.get('client_email')==_sel]
             col_f1,col_f2=st.columns([3,1])
             with col_f1:
-                st.markdown(f"#### 👤 {_c.get('nombre','')} {_seg['badge']}")
+                st.markdown(f"#### {_c.get('nombre','')} {_seg['badge']}")
                 fc1,fc2=st.columns(2)
                 f_nom=fc1.text_input('Nombre',value=_c.get('nombre',''),key='f_nom')
                 f_emp=fc2.text_input('Empresa',value=_c.get('empresa',''),key='f_emp')
@@ -1627,7 +1631,7 @@ def render_clientes():
                 f_notas=st.text_area('📋 Notas internas (solo admin)',value=_c.get('notas_internas',''),height=90,key='f_notas',placeholder='Preferencias, condiciones especiales...')
                 if st.button('💾 Guardar ficha',type='primary',key='save_ficha_cl'):
                     clients[_sel].update({'nombre':f_nom,'empresa':f_emp,'telefono':f_tel,'pais':f_pais,'terminos_habituales':f_term,'proximo_seguimiento':f_seg,'notas_internas':f_notas})
-                    save_clients(clients); st.toast('✅ Ficha guardada',icon='✅'); st.rerun()
+                    save_clients(clients); st.toast('Ficha guardada',icon='✅'); st.rerun()
             with col_f2:
                 st.metric('Pedidos',len(_mp))
                 st.metric('Facturación',f"${sum(p.get('total_usd',0) for p in _mp):,.2f}")
@@ -1651,9 +1655,9 @@ def render_reportes():
     k1.metric('💰 Facturación',f'${fac:,.0f}')
     k2.metric('📦 Pedidos',len(pf))
     k3.metric('🎫 Ticket Prom.',f'${fac/len(pf):,.0f}' if pf else '$0')
-    k4.metric('✅ Entregados',len([p for p in pf if p.get('estado')=='Entregado']))
+    k4.metric('Entregados',len([p for p in pf if p.get('estado')=='Entregado']))
     st.markdown('---')
-    st.markdown('### 🌍 Por Destino')
+    st.markdown('### Por Destino')
     dd={}
     for p in pf: dd[p.get('destino','Otros')]=dd.get(p.get('destino','Otros'),0)+p.get('total_usd',0)
     if dd: st.dataframe(pd.DataFrame(sorted(dd.items(),key=lambda x:x[1],reverse=True),columns=['Destino','Total USD']),use_container_width=True,hide_index=True)
@@ -1704,7 +1708,7 @@ def build_order_html(ped):
                f'<td style="padding:7px;border:1px solid #e0e0e0;text-align:right;color:#856404">${fob_u:.4f}</td>'
                f'<td style="padding:7px;border:1px solid #e0e0e0;text-align:right;color:#888">${flete_u:.4f}</td>'
                f'<td style="padding:7px;border:1px solid #e0e0e0;text-align:center;color:#28a745">{dto*100:.0f}%</td>'
-               f'<td style="padding:7px;border:1px solid #e0e0e0;text-align:right;font-weight:bold;color:#003E8C">${precio:.4f}</td>'
+               f'<td style="padding:7px;border:1px solid #e0e0e0;text-align:right;font-weight:bold;color:#1B7A3C">${precio:.4f}</td>'
                f'<td style="padding:7px;border:1px solid #e0e0e0;text-align:right;font-weight:bold">${total:,.2f}</td></tr>')
     pid=ped.get('id',''); fecha=ped.get('fecha','')[:10]; nombre=ped.get('client_name','')
     email_c=ped.get('client_email',''); empresa=ped.get('empresa',''); telefono=ped.get('telefono','')
@@ -1715,7 +1719,7 @@ def build_order_html(ped):
     t_row=f'<tr><td colspan="2" style="padding:6px;font-weight:bold;background:#f8f9fa">T\xe9rminos de pago:</td><td colspan="7" style="padding:6px">{terminos}</td></tr>' if terminos else ''
     e_row=f'<tr><td colspan="2" style="padding:6px;font-weight:bold;background:#f8f9fa">Entrega estimada:</td><td colspan="7" style="padding:6px">{f_entrega}</td></tr>' if f_entrega else ''
     return f'''<div style="font-family:Arial,sans-serif;max-width:750px;margin:0 auto;padding:20px">
-      <div style="background:linear-gradient(135deg,#003E8C,#0066CC);color:white;padding:24px;border-radius:10px;margin-bottom:20px">
+      <div style="background:linear-gradient(135deg,#1B7A3C,#176836);color:white;padding:24px;border-radius:10px;margin-bottom:20px">
         <h1 style="margin:0;font-size:1.6em">🚀 Export Haret</h1>
         <p style="margin:4px 0 0;opacity:.85">Confirmaci\xf3n de Pedido | Frutas Ex\xf3ticas Premium</p>
       </div>
@@ -1732,9 +1736,9 @@ def build_order_html(ped):
             <td style="padding:6px;font-weight:bold">Destino:</td><td style="padding:6px">{destino}</td></tr>
         {t_row}{e_row}
       </table>
-      <h3 style="border-bottom:2px solid #003E8C;padding-bottom:6px">Detalle de Productos</h3>
+      <h3 style="border-bottom:2px solid #1B7A3C;padding-bottom:6px">Detalle de Productos</h3>
       <table style="width:100%;border-collapse:collapse;font-size:.88em">
-        <thead><tr style="background:#003E8C;color:white">
+        <thead><tr style="background:#1B7A3C;color:white">
           <th style="padding:8px">C\xf3d</th><th style="padding:8px">Producto</th>
           <th style="padding:8px">Cajas</th><th style="padding:8px">Pallets</th>
           <th style="padding:8px">FOB $/cj</th><th style="padding:8px">Flete $/cj</th>
@@ -1743,7 +1747,7 @@ def build_order_html(ped):
         </tr></thead><tbody>{rows}</tbody>
         <tfoot><tr style="background:#e8f0fe">
           <td colspan="8" style="padding:10px;text-align:right;font-weight:bold">TOTAL:</td>
-          <td style="padding:10px;font-weight:bold;font-size:1.15em;color:#003E8C">${total_usd:,.2f} USD</td>
+          <td style="padding:10px;font-weight:bold;font-size:1.15em;color:#1B7A3C">${total_usd:,.2f} USD</td>
         </tr></tfoot></table>
       {f'<p style="margin-top:14px"><b>Notas:</b> {notas}</p>' if notas else ''}
       <p style="margin-top:20px;color:#666;font-size:.83em;border-top:1px solid #eee;padding-top:10px">
@@ -1831,7 +1835,7 @@ def build_order_pdf(ped):
     story = []
 
     # Colores corporativos
-    AZUL = colors.HexColor('#003E8C')
+    AZUL = colors.HexColor('#1B7A3C')
     AZUL_LIGHT = colors.HexColor('#E8F0FA')
     GRIS = colors.HexColor('#666666')
 
@@ -2024,7 +2028,7 @@ def build_catalog_pdf(data):
     doc = SimpleDocTemplate(buf, pagesize=A4, rightMargin=1.5*cm, leftMargin=1.5*cm, topMargin=2*cm, bottomMargin=2*cm)
     styles = getSampleStyleSheet()
     story = []
-    AZUL = colors.HexColor('#003E8C')
+    AZUL = colors.HexColor('#1B7A3C')
     GRIS = colors.HexColor('#666666')
     header_style = ParagraphStyle('h', fontSize=20, textColor=AZUL, fontName='Helvetica-Bold', spaceAfter=4, alignment=TA_LEFT)
     sub_style = ParagraphStyle('s', fontSize=10, textColor=GRIS, fontName='Helvetica', spaceAfter=12, alignment=TA_LEFT)
@@ -2202,7 +2206,7 @@ def send_order_email(ped):
     dest_str = f'{tipo} \u2192 {destino}' if tipo == 'CIF' and destino else tipo
     _notas_html = f'<p><b>Notas:</b> {notas}</p>' if notas else ''
     html = (f'<html><body style="font-family:Arial,sans-serif;color:#333">'
-            f'<div style="background:#003E8C;padding:16px 24px;border-radius:8px">'
+            f'<div style="background:#1B7A3C;padding:16px 24px;border-radius:8px">'
             f'<h2 style="color:white;margin:0">🚀 Export Haret \u2014 Nueva Orden Recibida</h2>'
             f'</div><div style="padding:16px 0">'
             f'<table style="width:100%;border-collapse:collapse;font-size:14px">'
@@ -2215,14 +2219,14 @@ def send_order_email(ped):
             f'<tr><td style="padding:6px"><b>Pa\u00eds:</b></td><td>{pais or "-"}</td>'
             f'<td style="padding:6px"><b>Destino:</b></td><td>{dest_str}</td></tr>'
             f'</table>'
-            f'<h3 style="color:#003E8C;border-bottom:2px solid #003E8C;padding-bottom:6px">Productos</h3>'
+            f'<h3 style="color:#1B7A3C;border-bottom:2px solid #1B7A3C;padding-bottom:6px">Productos</h3>'
             f'<table style="width:100%;border-collapse:collapse;font-size:13px">'
-            f'<thead><tr style="background:#003E8C;color:white">'
+            f'<thead><tr style="background:#1B7A3C;color:white">'
             f'<th style="padding:8px">C\u00f3digo</th><th style="padding:8px">Producto</th>'
             f'<th style="padding:8px">Cajas</th><th style="padding:8px">Pallets</th>'
             f'<th style="padding:8px">Precio/caja</th><th style="padding:8px">Total</th>'
             f'</tr></thead><tbody>{rows_html}</tbody></table>'
-            f'<p style="text-align:right;font-size:16px;font-weight:bold;color:#003E8C">'
+            f'<p style="text-align:right;font-size:16px;font-weight:bold;color:#1B7A3C">'
             f'TOTAL: ${total_usd:,.2f} USD</p>'
             f'{_notas_html}'
             f'</div><p style="color:#888;font-size:11px">Export Haret \u00a9 2026 | order@exportharet.com</p>'
@@ -2289,9 +2293,24 @@ def send_order_email(ped):
     except Exception:
         pass
 
+def _eh_seccion(raw, num):
+    """Cabecera de sección premium: chip numerado con degradado + título.
+    Sustituye los '### 1️⃣ Título' básicos."""
+    t = (raw or '').replace('#', '').strip()
+    i = 0
+    while i < len(t) and not t[i].isalpha():
+        i += 1
+    t = t[i:].strip()
+    st.markdown(
+        f'<div class="eh-sec"><span class="eh-sec-num">{num}</span>'
+        f'<span class="eh-sec-title">{t}</span></div>', unsafe_allow_html=True)
+
+
 def render_portal_pedido():
     """Página pública para que los clientes hagan pedidos. No requiere login de staff."""
     st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
+    if theme:
+        theme.aplicar()
     data = load_data()
     prods = [p for p in data.get('products', []) if p.get('activo', True)]
     dests = data.get('config', {}).get('destinos', {})
@@ -2305,7 +2324,7 @@ def render_portal_pedido():
         with _ph2: st.image(_logo2, width=200)
         st.markdown(f'<div style="text-align:center;margin-bottom:16px"><p style="color:#666;margin:0">{LANG_TEXTS[st.session_state.get("portal_lang","es")]["header_subtitle"]}</p></div>',unsafe_allow_html=True)
     else:
-        st.markdown(f'<div style="background:linear-gradient(135deg,#003E8C,#0066CC,#0099FF);padding:20px 30px;border-radius:12px;margin-bottom:24px;text-align:center"><h1 style="color:white;margin:0;font-size:1.8em">🚀 Export Haret</h1><p style="color:rgba(255,255,255,0.85);margin:4px 0 0">{LANG_TEXTS[st.session_state.get("portal_lang","es")]["header_subtitle"].split(" | ")[0]}</p></div>',unsafe_allow_html=True)
+        st.markdown(f'<div style="background:linear-gradient(135deg,#1B7A3C,#176836,#2E9E4F);padding:20px 30px;border-radius:12px;margin-bottom:24px;text-align:center"><h1 style="color:white;margin:0;font-size:1.8em">🚀 Export Haret</h1><p style="color:rgba(255,255,255,0.85);margin:4px 0 0">{LANG_TEXTS[st.session_state.get("portal_lang","es")]["header_subtitle"].split(" | ")[0]}</p></div>',unsafe_allow_html=True)
     # Init lang EARLY so _T is available for error messages
     if 'portal_lang' not in st.session_state:
         st.session_state['portal_lang'] = 'es'
@@ -2325,16 +2344,16 @@ def render_portal_pedido():
     _cur_lang = st.session_state.get('portal_lang', 'es')
     _lbtn_c1, _lbtn_c2, _lbtn_c3 = st.columns([8, 1, 1])
     with _lbtn_c1:
-        st.markdown("<div style='text-align:right;padding-top:6px;color:#666;font-size:0.85rem;'>🌐 Idioma / Language</div>", unsafe_allow_html=True)
+        st.markdown("<div style='text-align:right;padding-top:8px;color:#9aa8a0;font-size:0.78rem;letter-spacing:.3px'>Idioma · Language</div>", unsafe_allow_html=True)
     with _lbtn_c2:
         _es_type = 'primary' if _cur_lang == 'es' else 'secondary'
-        if st.button('🇪🇸', key='btn_lang_es', help='Español', use_container_width=True, type=_es_type):
+        if st.button('🇪🇸', key='btn_lang_es', help='Español', use_container_width=False, type=_es_type):
             if _cur_lang != 'es':
                 st.session_state['portal_lang'] = 'es'
                 st.rerun()
     with _lbtn_c3:
         _en_type = 'primary' if _cur_lang == 'en' else 'secondary'
-        if st.button('🇬🇧', key='btn_lang_en', help='English', use_container_width=True, type=_en_type):
+        if st.button('🇬🇧', key='btn_lang_en', help='English', use_container_width=False, type=_en_type):
             if _cur_lang != 'en':
                 st.session_state['portal_lang'] = 'en'
                 st.rerun()
@@ -2352,27 +2371,27 @@ def render_portal_pedido():
     _step2_done = bool(st.session_state.get('portal_carrito',[]))
     _step_html = f'''<div style="display:flex;align-items:center;gap:0;margin:0 0 18px 0;background:#f8faff;border-radius:10px;padding:10px 16px">
   <div style="flex:1;text-align:center">
-    <div style="background:#003E8C;color:white;border-radius:50%;width:28px;height:28px;display:inline-flex;align-items:center;justify-content:center;font-weight:bold;font-size:0.85em">1</div>
-    <div style="font-size:0.75em;color:#003E8C;font-weight:bold;margin-top:2px">{_T["progress_step1"]}</div>
+    <div style="background:#1B7A3C;color:white;border-radius:50%;width:28px;height:28px;display:inline-flex;align-items:center;justify-content:center;font-weight:bold;font-size:0.85em">1</div>
+    <div style="font-size:0.75em;color:#1B7A3C;font-weight:bold;margin-top:2px">{_T["progress_step1"]}</div>
   </div>
-  <div style="flex:0.5;height:3px;background:#ccd9ee;border-radius:2px"></div>
+  <div style="flex:0.5;height:3px;background:#d7e3da;border-radius:2px"></div>
   <div style="flex:1;text-align:center">
-    <div style="background:#6c9fd4;color:white;border-radius:50%;width:28px;height:28px;display:inline-flex;align-items:center;justify-content:center;font-weight:bold;font-size:0.85em">2</div>
-    <div style="font-size:0.75em;color:#6c9fd4;margin-top:2px">{_T["progress_step2"]}</div>
+    <div style="background:#93A99B;color:white;border-radius:50%;width:28px;height:28px;display:inline-flex;align-items:center;justify-content:center;font-weight:bold;font-size:0.85em">2</div>
+    <div style="font-size:0.75em;color:#93A99B;margin-top:2px">{_T["progress_step2"]}</div>
   </div>
-  <div style="flex:0.5;height:3px;background:#ccd9ee;border-radius:2px"></div>
+  <div style="flex:0.5;height:3px;background:#d7e3da;border-radius:2px"></div>
   <div style="flex:1;text-align:center">
-    <div style="background:#6c9fd4;color:white;border-radius:50%;width:28px;height:28px;display:inline-flex;align-items:center;justify-content:center;font-weight:bold;font-size:0.85em">3</div>
-    <div style="font-size:0.75em;color:#6c9fd4;margin-top:2px">{_T["progress_step3"]}</div>
+    <div style="background:#93A99B;color:white;border-radius:50%;width:28px;height:28px;display:inline-flex;align-items:center;justify-content:center;font-weight:bold;font-size:0.85em">3</div>
+    <div style="font-size:0.75em;color:#93A99B;margin-top:2px">{_T["progress_step3"]}</div>
   </div>
-  <div style="flex:0.5;height:3px;background:#ccd9ee;border-radius:2px"></div>
+  <div style="flex:0.5;height:3px;background:#d7e3da;border-radius:2px"></div>
   <div style="flex:1;text-align:center">
-    <div style="background:#6c9fd4;color:white;border-radius:50%;width:28px;height:28px;display:inline-flex;align-items:center;justify-content:center;font-weight:bold;font-size:0.85em">4</div>
-    <div style="font-size:0.75em;color:#6c9fd4;margin-top:2px">{_T["progress_step4"]}</div>
+    <div style="background:#93A99B;color:white;border-radius:50%;width:28px;height:28px;display:inline-flex;align-items:center;justify-content:center;font-weight:bold;font-size:0.85em">4</div>
+    <div style="font-size:0.75em;color:#93A99B;margin-top:2px">{_T["progress_step4"]}</div>
   </div>
 </div>'''
     st.markdown(_step_html, unsafe_allow_html=True)
-    st.markdown(_T['step1'])
+    _eh_seccion(_T['step1'], 1)
     # Email form with explicit "Acceder" button
     with st.form('portal_email_form', clear_on_submit=False):
         _email_form_raw = st.text_input(_T['email_label'], placeholder=_T['email_ph'], key='portal_email_input', value=st.session_state.portal_email)
@@ -2450,7 +2469,7 @@ def render_portal_pedido():
                     _adm_sv[_eml_sv] = {'nombre': _nm_sv, 'email': _eml_sv, 'empresa': empresa, 'telefono': telefono, 'pais': pais, 'fecha_registro': _adm_sv.get(_eml_sv, {}).get('fecha_registro', _now_sv), 'pedidos_ids': _adm_sv.get(_eml_sv, {}).get('pedidos_ids', []), 'origen': _adm_sv.get(_eml_sv, {}).get('origen','portal_cliente')}
                     save_clients(_adm_sv)
                     st.cache_data.clear()
-                    st.success('✅ ' + _nm_sv)
+                    st.success('' + _nm_sv)
                     st.rerun()
 
         with tab_historial:
@@ -2487,7 +2506,7 @@ def render_portal_pedido():
                                 _is_active = _pi == _idx_act and op_estado != 'Cancelado'
                                 _is_done = _pi < _idx_act and op_estado != 'Cancelado'
                                 if _is_active:
-                                    _pc[_pi].markdown(f'<div style="text-align:center;background:#003E8C;color:white;border-radius:8px;padding:5px 2px;font-size:0.75em"><b>{_ic}<br>{_pe}</b></div>', unsafe_allow_html=True)
+                                    _pc[_pi].markdown(f'<div style="text-align:center;background:#1B7A3C;color:white;border-radius:8px;padding:5px 2px;font-size:0.75em"><b>{_ic}<br>{_pe}</b></div>', unsafe_allow_html=True)
                                 elif _is_done:
                                     _pc[_pi].markdown(f'<div style="text-align:center;background:#d4edda;color:#155724;border-radius:8px;padding:5px 2px;font-size:0.75em">{_ic}<br>{_pe}</div>', unsafe_allow_html=True)
                                 else:
@@ -2572,7 +2591,7 @@ def render_portal_pedido():
         st.warning(_T['enter_full_name'])
         return
     # ── PASO 2: Tipo de precio + Destino ─────────────────────────────────────
-    st.markdown(_T['step2'])
+    _eh_seccion(_T['step2'], 2)
     t1, t2 = st.columns([1, 2])
     tipo_precio = t1.radio(_T['price_type_label'], ['FOB', 'CIF'], key='portal_tipo', horizontal=True,
         help=_T['price_type_help'])
@@ -2595,7 +2614,7 @@ def render_portal_pedido():
 
     st.markdown('---')
     # ── PASO 3: Selección de Productos ───────────────────────────────
-    st.markdown(_T['step3'])
+    _eh_seccion(_T['step3'], 3)
     st.info(_T['price_update_notice'], icon=None)
     # PATCH STEP3: CSS for responsive cards, sticky header, bigger qty buttons, highlight
     st.markdown('''<style>
@@ -2615,12 +2634,12 @@ def render_portal_pedido():
     .eh-cat-header {
         position: sticky; top: 56px; z-index: 30;
         background: #fff; padding: 8px 0;
-        border-bottom: 2px solid #003E8C;
+        border-bottom: 2px solid #1B7A3C;
         font-weight: 700;
         display: grid; grid-template-columns: 4fr 2fr 3fr 2fr 2fr;
         gap: 8px; align-items: center;
     }
-    .eh-cat-header > div { color: #003E8C; font-size: 0.92rem; }
+    .eh-cat-header > div { color: #1B7A3C; font-size: 0.92rem; }
     /* Mobile: hide sticky header, products will stack */
     @media (max-width: 768px) {
         .eh-cat-header { display: none; }
@@ -2704,7 +2723,7 @@ def render_portal_pedido():
         _progress_icon = '⚪'
     elif _current_pallets < _min_order:
         _min_valido = False
-        _progress_color = '#f97316'
+        _progress_color = '#2E9E4F'
         _needed = _min_order - _current_pallets
         _progress_text = _T['min_progress_short'].format(curr=_current_pallets, min=_min_order, needed=_needed)
         _progress_icon = '🟡'
@@ -2736,9 +2755,9 @@ def render_portal_pedido():
         _alt_total = f'  ~  {_cart_sym}{_cart_total_dest:,.2f} {_cart_dest_mon}' if _cart_total_dest else ''
         _s_prods = 's' if _cart_items != 1 else ''
         _cart_html = (
-            f'<div style="background:#e8f0fe;border:1.5px solid #003E8C;border-radius:8px;padding:8px 14px;margin:6px 0;display:flex;justify-content:space-between;align-items:center">'
-            f'<span style="font-weight:600;color:#003E8C">{_T["cart_label"]}: {_cart_items} {_T["cart_products"]} | {_cart_total_pal:.1f} pal | {_cart_total_caj:,} cj</span>'
-            f'<span style="font-weight:700;color:#003E8C;font-size:1.1em">💰 ${_cart_total_usd:,.2f} USD{_alt_total}</span>'
+            f'<div style="background:#e8f0fe;border:1.5px solid #1B7A3C;border-radius:8px;padding:8px 14px;margin:6px 0;display:flex;justify-content:space-between;align-items:center">'
+            f'<span style="font-weight:600;color:#1B7A3C">{_T["cart_label"]}: {_cart_items} {_T["cart_products"]} | {_cart_total_pal:.1f} pal | {_cart_total_caj:,} cj</span>'
+            f'<span style="font-weight:700;color:#1B7A3C;font-size:1.1em">💰 ${_cart_total_usd:,.2f} USD{_alt_total}</span>'
             f'</div>'
         )
         st.markdown(_cart_html, unsafe_allow_html=True)
@@ -2774,7 +2793,7 @@ def render_portal_pedido():
                 _g_breakdown = f"{_g_full} " + _T['group_full_pallets'] + (f" + {_g_rem}/{_gv['cxp']} " + _T['group_partial_boxes'] if _g_rem else "")
                 _grp_html.append(
                     f'<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px dashed #e2e8f0">'
-                    f'<div><b style="color:#003E8C">Grupo {_gk}</b> <small style="color:#666">— {" · ".join(sorted(set(_gv["productos"])))}</small></div>'
+                    f'<div><b style="color:#1B7A3C">Grupo {_gk}</b> <small style="color:#666">— {" · ".join(sorted(set(_gv["productos"])))}</small></div>'
                     f'<div style="text-align:right;font-size:0.9rem">'
                     f'<b>{_gv["cajas"]:,} cj</b> / {_gv["cxp"]} cj-pal = <b style="color:#16a34a">{_g_pal_exact:.2f} pal</b>'
                     f'<br><small style="color:#888">{_g_breakdown}</small>'
@@ -2797,7 +2816,7 @@ def render_portal_pedido():
                         f'</div>'
                     )
             _grp_html.append(
-                f'<div style="display:flex;justify-content:space-between;align-items:center;padding-top:8px;font-weight:700;color:#003E8C">'
+                f'<div style="display:flex;justify-content:space-between;align-items:center;padding-top:8px;font-weight:700;color:#1B7A3C">'
                 f'<div>{_T["group_total_pallets"]}</div>'
                 f'<div>{_grp_total_pal_real:.2f} pal</div>'
                 f'</div>'
@@ -2876,9 +2895,9 @@ def render_portal_pedido():
                         _ux_base_price_1 = get_precio_con_volumen(cod, destino, tipo_precio, data, 1); _ux_save_pct = round((1 - precio_u / _ux_base_price_1) * 100, 1) if _ux_base_price_1 and _ux_base_price_1 > precio_u else 0; _ux_save_pct = max(_ux_save_pct, 10.0) if _total_pallets_now >= 3 else _ux_save_pct
                     break
         # Badge sutil de descuento por volumen (solo CIF, si hay siguiente tramo)
-        _ux_badge_html = ''; _ux_strike_html = ''; _ux_price_color = '#003E8C'
+        _ux_badge_html = ''; _ux_strike_html = ''; _ux_price_color = '#1B7A3C'
         if tipo_precio == 'CIF' and _ux_save_pct > 0 and _total_pallets_now >= 3:
-            _ux_strike_html = f'<span style="color:#9ca3af;text-decoration:line-through;font-size:0.82em;margin-right:6px">{_sym_x}{round(_ux_base_price_1 * _rate_x, 2):.2f}</span>' if (_ux_base_price_1 and _ux_base_price_1 > precio_u) else ''; _ux_badge_html = f'<div style="color:#15803d;font-size:0.72em;font-weight:600;margin-top:2px">{_T["saved_per_box"]} {_sym_x}{round((_ux_base_price_1 - precio_u) * _rate_x, 2):.2f}/cj</div>' if (_ux_base_price_1 and _ux_base_price_1 > precio_u) else ''; _ux_price_color = '#16a34a' if (_ux_base_price_1 and _ux_base_price_1 > precio_u) else '#003E8C'
+            _ux_strike_html = f'<span style="color:#9ca3af;text-decoration:line-through;font-size:0.82em;margin-right:6px">{_sym_x}{round(_ux_base_price_1 * _rate_x, 2):.2f}</span>' if (_ux_base_price_1 and _ux_base_price_1 > precio_u) else ''; _ux_badge_html = f'<div style="color:#15803d;font-size:0.72em;font-weight:600;margin-top:2px">{_T["saved_per_box"]} {_sym_x}{round((_ux_base_price_1 - precio_u) * _rate_x, 2):.2f}/cj</div>' if (_ux_base_price_1 and _ux_base_price_1 > precio_u) else ''; _ux_price_color = '#16a34a' if (_ux_base_price_1 and _ux_base_price_1 > precio_u) else '#1B7A3C'
         if _mon_x != 'USD' and tipo_precio == 'CIF' and _rate_x != 1.0:
             _lp_x = round(precio_u * _rate_x, 2)
             gc[1].markdown(f'<div style="line-height:1.15">{_ux_strike_html}<b style="color:{_ux_price_color}">{_sym_x}{_lp_x:.2f}</b>{_ux_badge_html}</div>', unsafe_allow_html=True)
@@ -2935,10 +2954,10 @@ def render_portal_pedido():
 
         st.markdown('<hr style="margin:2px 0 2px;border-color:#f0f0f0">', unsafe_allow_html=True)
 
-    # Sincronizar carrito automáticamente
-    if _new_carrito != st.session_state.portal_carrito:
-        st.session_state.portal_carrito = _new_carrito
-        st.rerun()
+    # Sincronizar carrito SIN rerun forzado: el st.rerun() hacía que la pantalla
+    # saltara al inicio al elegir la cantidad (el cliente perdía de vista el producto).
+    # El resumen y el total inferiores se calculan del carrito ya actualizado.
+    st.session_state.portal_carrito = _new_carrito
     # Carrito
     if st.session_state.portal_carrito:
         st.markdown('---')
@@ -2967,7 +2986,7 @@ def render_portal_pedido():
         _resumen_html.append('''<style>
         .eh-resumen-wrap { margin: 8px 0 14px; }
         .eh-resumen-total {
-            background: linear-gradient(135deg,#003E8C 0%,#1a4f9e 100%);
+            background: linear-gradient(135deg,#1B7A3C 0%,#1a4f9e 100%);
             color: #fff; border-radius: 12px; padding: 14px 18px;
             display: flex; justify-content: space-between; align-items: center;
             flex-wrap: wrap; gap: 10px; margin-bottom: 12px;
@@ -2983,7 +3002,7 @@ def render_portal_pedido():
             grid-template-columns: 1fr auto; gap: 4px 12px; align-items: center;
         }
         .eh-resumen-card .eh-prod { font-weight: 600; color: #1a2540; font-size: 0.98rem; }
-        .eh-resumen-card .eh-precio { color: #003E8C; font-weight: 700; text-align: right; white-space: nowrap; }
+        .eh-resumen-card .eh-precio { color: #1B7A3C; font-weight: 700; text-align: right; white-space: nowrap; }
         .eh-resumen-card .eh-meta { grid-column: 1 / -1; display: flex; justify-content: space-between; align-items: center; font-size: 0.82rem; color: #6c7a93; padding-top: 2px; border-top: 1px dashed #eef1f7; margin-top: 2px; }
         .eh-resumen-card .eh-meta b { color: #1a2540; font-weight: 600; }
         .eh-resumen-card .eh-eur { color: #1a7a3c; font-weight: 600; }
@@ -3066,7 +3085,7 @@ def render_portal_pedido():
 
     if st.session_state.portal_carrito:
         # ── PASO 4: Confirmar y Enviar Pedido ────────────────────────────────────
-        st.markdown(_T['step4'])
+        _eh_seccion(_T['step4'], 4)
         notas = st.text_area(_T.get('notes_label','📝 Notas / instrucciones especiales'), placeholder=_T.get('notes_ph','Ej: Entrega en almacén X, condiciones especiales...'), key='portal_notas')
 
         _toptES=['','Pago anticipado 100%','50% adelanto / 50% contra documentos','30% adelanto / 70% contra BL','Carta de cr\xe9dito (LC)','Pago a 30 d\xedas','Pago a 60 d\xedas','Otro']
@@ -3126,16 +3145,16 @@ def render_portal_pedido():
                     )
             _conf_html = (
                 '<style>'
-                '.eh-cnf-wrap { background:#f0f7ff; border:2px solid #003E8C; border-radius:12px; padding:14px 16px; margin:10px 0; }'
-                '.eh-cnf-wrap h4 { margin:0 0 10px 0; color:#003E8C; font-size:1.1rem; }'
+                '.eh-cnf-wrap { background:#f0f7ff; border:2px solid #1B7A3C; border-radius:12px; padding:14px 16px; margin:10px 0; }'
+                '.eh-cnf-wrap h4 { margin:0 0 10px 0; color:#1B7A3C; font-size:1.1rem; }'
                 '.eh-cnf-meta { font-size:0.92rem; line-height:1.5; color:#1a2540; margin-bottom:10px; }'
-                '.eh-cnf-meta b { color:#003E8C; }'
+                '.eh-cnf-meta b { color:#1B7A3C; }'
                 '.eh-cnf-card { background:#fff; border:1px solid #d4dff2; border-radius:8px; padding:8px 12px; margin-bottom:6px; }'
                 '.eh-cnf-prod { display:flex; justify-content:space-between; align-items:baseline; font-size:0.98rem; }'
                 '.eh-cnf-cod { font-size:0.78rem; color:#6c7a93; font-weight:normal; }'
                 '.eh-cnf-row { display:flex; justify-content:space-between; align-items:center; gap:8px; font-size:0.88rem; color:#3a4a6b; padding-top:4px; flex-wrap:wrap; }'
-                '.eh-cnf-tot { color:#003E8C; font-weight:700; font-size:0.98rem; margin-left:auto; }'
-                '.eh-cnf-total-row { display:flex; justify-content:space-between; align-items:center; background:linear-gradient(135deg,#003E8C 0%,#1a4f9e 100%); color:#fff; border-radius:10px; padding:12px 16px; margin-top:8px; flex-wrap:wrap; gap:8px; }'
+                '.eh-cnf-tot { color:#1B7A3C; font-weight:700; font-size:0.98rem; margin-left:auto; }'
+                '.eh-cnf-total-row { display:flex; justify-content:space-between; align-items:center; background:linear-gradient(135deg,#1B7A3C 0%,#1a4f9e 100%); color:#fff; border-radius:10px; padding:12px 16px; margin-top:8px; flex-wrap:wrap; gap:8px; }'
                 '.eh-cnf-total-row .eh-cnf-tl { font-size:0.82rem; opacity:0.88; }'
                 '.eh-cnf-total-row .eh-cnf-tv { font-size:1.35rem; font-weight:700; line-height:1.1; }'
                 '.eh-cnf-total-row .eh-cnf-tx { font-size:0.92rem; opacity:0.92; }'
@@ -3351,7 +3370,7 @@ def render_portal_pedido():
         _cc1,_cc2=st.columns(2)
         _cn=_cc1.text_input(_T['quote_name_lbl'],key='cnom',placeholder=_T['quote_name_ph'])
         _ce=_cc2.text_input(_T['email_label'],value=st.session_state.get('portal_email_input',''),key='ceml')
-        _cd=_cc1.text_input(_T['dest_label'].replace('🌍 ', ''),key='cdst',placeholder='ej: Madrid, España')
+        _cd=_cc1.text_input(_T['dest_label'].replace('', ''),key='cdst',placeholder='ej: Madrid, España')
         _cplt=_cc2.number_input('Pallets', min_value=1,max_value=200,value=5,key='cplt')
         _cpro=st.text_area(_T['products_label'].replace(':',''),key='cpro',placeholder='ej: 3 pallets Granadilla...',height=70)
         _cmsg=st.text_area(_T['quote_msg_lbl'],key='cmsg',placeholder=_T['quote_msg_ph'],height=70)
@@ -3362,13 +3381,15 @@ def render_portal_pedido():
                 _cid=f'COT-{_cy}-{len(_cpv)+1:04d}'
                 _cp={'id':_cid,'tipo':'cotizacion_especial','client_name':_cn,'client_email':_ce,'destino':_cd,'pallets_aprox':_cplt,'productos_interes':_cpro,'mensaje':_cmsg,'estado':'Pendiente revisión','fecha':datetime.now().isoformat(),'total_usd':0,'productos':[],'historial_estados':[{'estado':'Recibido','fecha':datetime.now().isoformat(),'usuario':'portal'}]}
                 _ct=load_pedidos();_ct.append(_cp);save_pedidos(_ct);send_order_email(_cp)
-                st.success(f'✅ {_cid} - ' + _T['send_quote'])
+                st.success(f'{_cid} - ' + _T['send_quote'])
     st.markdown(f'<div style="text-align:center;color:#888"><small>{LANG_TEXTS[st.session_state.get("portal_lang","es")]["footer_text"]}</small></div>', unsafe_allow_html=True)
 
 # ─── MAIN ────────────────────────────────────────────────────────────────────
 def main():
     init_session()
     auto_load_excel()
+    if theme:
+        theme.aplicar()
 
     # Determine mode: 'portal' (public) or 'admin' (staff)
     # Support ?view=cliente URL param to always show portal
@@ -3434,7 +3455,7 @@ def main():
         _al1, _al2, _al3 = st.columns([2, 1, 2])
         with _al2: st.image(_logoA, width=160)
     _app_title = load_app_config().get("app_title", "📊 Export Haret — Panel de Administración")
-    st.markdown(f'<div style="background:linear-gradient(90deg,#003E8C,#0066CC);padding:16px 24px;border-radius:8px;margin-bottom:20px;"><h2 style="color:white;margin:0">{_app_title}</h2></div>', unsafe_allow_html=True)
+    st.markdown(f'<div style="background:linear-gradient(90deg,#1B7A3C,#176836);padding:16px 24px;border-radius:8px;margin-bottom:20px;"><h2 style="color:white;margin:0">{_app_title}</h2></div>', unsafe_allow_html=True)
     # Sidebar branding admin: logo si existe
     try:
         import os as _osSB
