@@ -3057,24 +3057,31 @@ def render_portal_pedido():
         _fb_msg = 'Precio FOB fijo · embarcas desde Ecuador'
     else:
         _fb_left = f'📦 <b>{_fp:.1f}</b> pallets'
-        # Descuento TOTAL (vs precio a 1 pallet) que tendrías con 1 pallet más
+        # Ahorro YA acumulado por volumen (vs precio a 1 pallet) + empujón del siguiente pallet
         _next_p = int(_fp) + 1
-        _base_sum = 0.0; _disc_next = 0.0; _ah_next = 0.0
+        _base_sum = 0.0; _ah_total = 0.0; _ah_next = 0.0
         for _it in _new_carrito:
             _cod = _it.get('codigo', ''); _cj = _it.get('cajas', 0)
+            _pcur = _it.get('precio_usd', 0)
             _p1 = get_precio_con_volumen(_cod, destino, tipo_precio, data, 1)
             _pn = get_precio_con_volumen(_cod, destino, tipo_precio, data, _next_p)
-            if _p1 and _pn:
+            if _p1:
                 _base_sum += _cj * _p1
-                _disc_next += _cj * (_p1 - _pn)
-                _ah_next += _cj * (_it.get('precio_usd', 0) - _pn)  # ahorro extra del siguiente pallet
-        _pct_total = (_disc_next / _base_sum * 100) if _base_sum > 0 else 0
-        _fb_pct = min(100, int(_pct_total / 13 * 100))  # 13% ≈ descuento máx
-        if _ah_next >= 1:
-            _fb_msg = (f'Con 1 pallet más tienes <b>−{_pct_total:.1f}%</b> de descuento '
-                       f'en todo el pedido')
-        else:
-            _fb_msg = f'✓ Tienes <b>−{_pct_total:.1f}%</b> de descuento por volumen'
+                _ah_total += _cj * (_p1 - _pcur)            # ahorro ya conseguido
+            if _pn and _pn < _pcur:
+                _ah_next += _cj * (_pcur - _pn)             # ahorro extra con 1 pallet más
+        _pct_now = (_ah_total / _base_sum * 100) if _base_sum > 0 else 0
+        _fb_pct = min(100, int(_pct_now / 13 * 100))         # 13% ≈ descuento máx
+        _ah_t_d = _ah_total * _brate
+        _ah_n_d = _ah_next * _brate
+        if _ah_total < 1:  # recién empieza (~1 pallet): solo el empujón
+            _fb_msg = (f'➕ Añade 1 pallet y ahorras <b>{_bsym}{_ah_n_d:,.0f}</b> en todo el pedido')
+        elif _ah_next >= 20:  # el siguiente pallet aún aporta de verdad
+            _fb_msg = (f'💰 Ya ahorras <b>{_bsym}{_ah_t_d:,.0f}</b> por volumen · '
+                       f'➕ con 1 pallet más, <b>+{_bsym}{_ah_n_d:,.0f}</b>')
+        else:  # mucho volumen: refuerza el gran ahorro acumulado
+            _fb_msg = (f'💰 Ya ahorras <b>{_bsym}{_ah_t_d:,.0f}</b> en este pedido '
+                       f'(<b>−{_pct_now:.1f}%</b> por volumen)')
     st.markdown(
         '<div style="position:fixed;left:0;right:0;bottom:0;z-index:60;'
         'background:rgba(255,255,255,.93);backdrop-filter:blur(6px);'
