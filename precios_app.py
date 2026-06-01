@@ -2676,7 +2676,7 @@ def render_portal_pedido():
         background: #fff; padding: 8px 0;
         border-bottom: 2px solid #1B7A3C;
         font-weight: 700;
-        display: grid; grid-template-columns: 4fr 2fr 3fr 2fr 2fr;
+        display: grid; grid-template-columns: 3fr 2.4fr 2.6fr 2.2fr 2fr;
         gap: 8px; align-items: center;
     }
     .eh-cat-header > div { color: #1B7A3C; font-size: 0.92rem; }
@@ -2903,7 +2903,7 @@ def render_portal_pedido():
         else:
             _ex_qty = 0
 
-        gc = st.columns([4, 2, 3, 2, 2])
+        gc = st.columns([3, 2.4, 2.6, 2.2, 2])
         # Col 0: Nombre + specs del producto
         _kg_lbl = f'{_kg_x:.1f} {_T["unit_kg_per_box"]}'.replace('.',',') if _kg_x else ''
         _min_cant_p = int(p.get('min_cantidad', 0) or 0)
@@ -2934,15 +2934,21 @@ def render_portal_pedido():
                     if _ux_next_price and precio_u and _ux_next_price < precio_u:
                         _ux_base_price_1 = get_precio_con_volumen(cod, destino, tipo_precio, data, 1); _ux_save_pct = round((1 - precio_u / _ux_base_price_1) * 100, 1) if _ux_base_price_1 and _ux_base_price_1 > precio_u else 0; _ux_save_pct = max(_ux_save_pct, 10.0) if _total_pallets_now >= 3 else _ux_save_pct
                     break
-        # Badge sutil de descuento por volumen (solo CIF, si hay siguiente tramo)
+        # Precio limpio: tachado pequeño + precio bold (en una sola línea) + ahorro discreto
         _ux_badge_html = ''; _ux_strike_html = ''; _ux_price_color = '#1B7A3C'
-        if tipo_precio == 'CIF' and _ux_save_pct > 0 and _total_pallets_now >= 3:
-            _ux_strike_html = f'<span style="color:#9ca3af;text-decoration:line-through;font-size:0.82em;margin-right:6px">{_sym_x}{round(_ux_base_price_1 * _rate_x, 2):.2f}</span>' if (_ux_base_price_1 and _ux_base_price_1 > precio_u) else ''; _ux_badge_html = f'<div style="color:#15803d;font-size:0.72em;font-weight:600;margin-top:2px">{_T["saved_per_box"]} {_sym_x}{round((_ux_base_price_1 - precio_u) * _rate_x, 2):.2f}/cj</div>' if (_ux_base_price_1 and _ux_base_price_1 > precio_u) else ''; _ux_price_color = '#16a34a' if (_ux_base_price_1 and _ux_base_price_1 > precio_u) else '#1B7A3C'
-        if _mon_x != 'USD' and tipo_precio == 'CIF' and _rate_x != 1.0:
-            _lp_x = round(precio_u * _rate_x, 2)
-            gc[1].markdown(f'<div style="line-height:1.15">{_ux_strike_html}<b style="color:{_ux_price_color}">{_sym_x}{_lp_x:.2f}</b>{_ux_badge_html}</div>', unsafe_allow_html=True)
-        else:
-            gc[1].markdown(f'<div style="line-height:1.15">{_ux_strike_html}<b style="color:{_ux_price_color}">${precio_u:.2f}</b>{_ux_badge_html}</div>', unsafe_allow_html=True)
+        if (tipo_precio == 'CIF' and _ux_save_pct > 0 and _total_pallets_now >= 3
+                and _ux_base_price_1 and _ux_base_price_1 > precio_u):
+            _ux_strike_html = (f'<span style="color:#9ca3af;text-decoration:line-through;'
+                               f'font-size:0.74em;margin-right:5px">{_sym_x}{round(_ux_base_price_1 * _rate_x, 2):.2f}</span>')
+            _ux_badge_html = (f'<div style="color:#15803d;font-size:0.74em;font-weight:600;'
+                              f'margin-top:1px;white-space:nowrap">−{_sym_x}{round((_ux_base_price_1 - precio_u) * _rate_x, 2):.2f}/caja</div>')
+            _ux_price_color = '#16a34a'
+        _precio_show = round(precio_u * _rate_x, 2) if (_mon_x != 'USD' and tipo_precio == 'CIF' and _rate_x != 1.0) else precio_u
+        _sym_show = _sym_x if (_mon_x != 'USD' and tipo_precio == 'CIF' and _rate_x != 1.0) else '$'
+        gc[1].markdown(
+            f'<div style="line-height:1.25;white-space:nowrap">{_ux_strike_html}'
+            f'<b style="color:{_ux_price_color};font-size:1.05em">{_sym_show}{_precio_show:.2f}</b>'
+            f'{_ux_badge_html}</div>', unsafe_allow_html=True)
         # Col 2: Cantidad con +/- nativo
         qty_val = gc[2].number_input(
             _T['col_qty'], min_value=0, value=_ex_qty, step=1,
