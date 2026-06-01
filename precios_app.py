@@ -2391,6 +2391,28 @@ def render_portal_pedido():
   </div>
 </div>'''
     st.markdown(_step_html, unsafe_allow_html=True)
+
+    # Banner comercial: invita al cliente a simular su pedido y ver precios por volumen
+    _promo = {
+        'es': ('Precios por volumen', 'Descubre tu precio en 1 minuto',
+               'Aquí tienes todos nuestros precios. Arma tu pedido de prueba y verás el precio exacto según tu volumen: a más pallets, menor precio por caja. Sin compromiso.'),
+        'en': ('Volume pricing', 'See your price in 1 minute',
+               'All our prices are right here. Build a sample order and see your exact price by volume: more pallets, the lower the price per box. No commitment.'),
+    }.get(st.session_state.get('portal_lang', 'es'),
+          ('Precios por volumen', 'Descubre tu precio en 1 minuto',
+           'Arma tu pedido de prueba y verás el precio exacto según tu volumen.'))
+    st.markdown(
+        '<div style="background:linear-gradient(135deg,#EAF3EC 0%,#ffffff 72%);'
+        'border:1px solid #dce8df;border-radius:16px;padding:16px 18px;margin:2px 0 18px;'
+        'box-shadow:0 6px 18px rgba(20,60,40,.07)">'
+        f'<span style="display:inline-block;background:#CE7A32;color:#fff;font-size:.66rem;'
+        'font-weight:700;letter-spacing:.6px;padding:3px 10px;border-radius:20px;'
+        f'text-transform:uppercase">{_promo[0]}</span>'
+        f'<div style="font-weight:700;color:#0F4F29;font-size:1.08rem;margin:8px 0 3px;'
+        f'letter-spacing:-.2px">{_promo[1]}</div>'
+        f'<div style="color:#46564d;font-size:.9rem;line-height:1.5">{_promo[2]}</div>'
+        '</div>', unsafe_allow_html=True)
+
     _eh_seccion(_T['step1'], 1)
     # Email form with explicit "Acceder" button
     with st.form('portal_email_form', clear_on_submit=False):
