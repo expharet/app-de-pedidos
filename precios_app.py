@@ -3040,7 +3040,7 @@ def render_portal_pedido():
     # El resumen y el total inferiores se calculan del carrito ya actualizado.
     st.session_state.portal_carrito = _new_carrito
 
-    # ── Nube flotante sutil: progreso al siguiente tramo + cuánto ahorras (siempre visible) ──
+    # ── Nube flotante sutil: descuento total por volumen + incentivo del siguiente pallet ──
     _fp = sum(i.get('pallets', 0) for i in _new_carrito)
     _bmon = _mon_dest if (tipo_precio == 'CIF' and not _ver_usd) else 'USD'
     if _bmon != 'USD':
@@ -3051,30 +3051,30 @@ def render_portal_pedido():
         _fb_pct = 0
         _fb_msg = 'Empieza tu pedido · a más pallets, mejor precio por caja'
         _fb_left = '📦 0 pallets'
-    else:
-        _cur_d = get_descuento_volumen(max(_fp, 1))
-        _nt = None; _need = 0
-        for _t in TRAMOS_VOLUMEN:
-            if _t['descuento'] > _cur_d:
-                _nt = _t; _need = max(1, int(round(_t['min'] - _fp))); break
-        _ah_n = 0.0
-        if _nt:
-            for _it in _new_carrito:
-                _pn = _it.get('precio_usd', 0)
-                _pt = get_precio_con_volumen(_it.get('codigo', ''), destino, tipo_precio, data, int(_nt['min']))
-                if _pt and _pt < _pn:
-                    _ah_n += _it.get('cajas', 0) * (_pn - _pt)
+    elif tipo_precio != 'CIF':
+        _fb_pct = 100
         _fb_left = f'📦 <b>{_fp:.1f}</b> pallets'
-        _tot_usd_fb = sum(i.get('total', 0) for i in _new_carrito)
-        if _nt and _ah_n >= 1 and _tot_usd_fb > 0:
-            _fb_pct = min(100, int(_fp / _nt['min'] * 100))
-            _pct_save = _ah_n / _tot_usd_fb * 100
-            _palw = 'pallet' if _need == 1 else 'pallets'
-            _fb_msg = (f'Con <b>{_need}</b> {_palw} más ahorras <b>{_pct_save:.1f}%</b> '
-                       f'en todo el pedido (~{_bsym}{_ah_n * _brate:,.0f})')
+        _fb_msg = 'Precio FOB fijo · embarcas desde Ecuador'
+    else:
+        _fb_left = f'📦 <b>{_fp:.1f}</b> pallets'
+        # Descuento TOTAL (vs precio a 1 pallet) que tendrías con 1 pallet más
+        _next_p = int(_fp) + 1
+        _base_sum = 0.0; _disc_next = 0.0; _ah_next = 0.0
+        for _it in _new_carrito:
+            _cod = _it.get('codigo', ''); _cj = _it.get('cajas', 0)
+            _p1 = get_precio_con_volumen(_cod, destino, tipo_precio, data, 1)
+            _pn = get_precio_con_volumen(_cod, destino, tipo_precio, data, _next_p)
+            if _p1 and _pn:
+                _base_sum += _cj * _p1
+                _disc_next += _cj * (_p1 - _pn)
+                _ah_next += _cj * (_it.get('precio_usd', 0) - _pn)  # ahorro extra del siguiente pallet
+        _pct_total = (_disc_next / _base_sum * 100) if _base_sum > 0 else 0
+        _fb_pct = min(100, int(_pct_total / 13 * 100))  # 13% ≈ descuento máx
+        if _ah_next >= 1:
+            _fb_msg = (f'Con 1 pallet más tienes <b>−{_pct_total:.1f}%</b> de descuento '
+                       f'en todo el pedido')
         else:
-            _fb_pct = 100
-            _fb_msg = '✓ Tienes el mejor precio por volumen'
+            _fb_msg = f'✓ Tienes <b>−{_pct_total:.1f}%</b> de descuento por volumen'
     st.markdown(
         '<div style="position:fixed;left:0;right:0;bottom:0;z-index:60;'
         'background:rgba(255,255,255,.93);backdrop-filter:blur(6px);'
