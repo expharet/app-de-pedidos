@@ -2401,22 +2401,24 @@ def render_portal_pedido():
     }.get(st.session_state.get('portal_lang', 'es'),
           ('Precios por volumen', 'Descubre tu precio en 1 minuto',
            'Arma tu pedido de prueba y verás el precio exacto según tu volumen.'))
-    # Ahorro medio por caja al pasar de 1 a 3 pallets (calculado de los precios reales)
-    _drops = [(_pp.get('precios_plt') or [None, None, None])[0] - (_pp.get('precios_plt') or [None, None, None])[2]
-              for _pp in data.get('products', [])
-              if len(_pp.get('precios_plt') or []) >= 3
-              and (_pp.get('precios_plt') or [0, 0, 0])[0] and (_pp.get('precios_plt') or [0, 0, 0])[2]
-              and (_pp.get('precios_plt') or [0, 0, 0])[0] > (_pp.get('precios_plt') or [0, 0, 0])[2]]
-    _ahorro3 = round(sum(_drops) / len(_drops), 2) if _drops else 0
+    # Ahorro MÁXIMO por caja a mayor volumen (1 pallet -> precio más barato de la tabla)
+    _ahmax = []
+    for _pp in data.get('products', []):
+        _plt = _pp.get('precios_plt') or []
+        _vals = [v for v in _plt if v]
+        if len(_plt) >= 4 and _plt[0] and _vals and _plt[0] > min(_vals):
+            _ahmax.append(_plt[0] - min(_vals))
+    _ahorro_max = round(sum(_ahmax) / len(_ahmax), 2) if _ahmax else 0
     _en = st.session_state.get('portal_lang', 'es') == 'en'
     _strip = ''
-    if _ahorro3 > 0:
-        _txt = (f'when ordering <b>3 pallets</b>' if _en else f'al pedir <b>3 pallets</b>')
+    if _ahorro_max > 0:
+        _txt = ('from 4 pallets' if _en else 'a partir de 4 pallets')
+        _pill = (f'up to −${_ahorro_max:.2f}/box' if _en else f'hasta −${_ahorro_max:.2f}/caja')
         _strip = (
             '<div style="margin-top:11px;display:inline-flex;align-items:center;gap:9px;'
             'background:#fff;border:1px solid #ecd9c5;border-radius:12px;padding:7px 12px">'
             f'<span style="background:#CE7A32;color:#fff;font-weight:800;border-radius:8px;'
-            f'padding:3px 9px;font-size:.92rem">−${_ahorro3:.2f}/{"box" if _en else "caja"}</span>'
+            f'padding:3px 10px;font-size:.92rem;white-space:nowrap">{_pill}</span>'
             f'<span style="color:#46564d;font-size:.86rem">{_txt}</span></div>')
     st.markdown(
         '<div style="background:linear-gradient(135deg,#EAF3EC 0%,#ffffff 72%);'
@@ -2676,7 +2678,7 @@ def render_portal_pedido():
         background: #fff; padding: 8px 0;
         border-bottom: 2px solid #1B7A3C;
         font-weight: 700;
-        display: grid; grid-template-columns: 3fr 2.4fr 2.6fr 2.2fr 2fr;
+        display: grid; grid-template-columns: 2.6fr 2.4fr 3fr 2.2fr 1.8fr;
         gap: 8px; align-items: center;
     }
     .eh-cat-header > div { color: #1B7A3C; font-size: 0.92rem; }
@@ -2903,7 +2905,7 @@ def render_portal_pedido():
         else:
             _ex_qty = 0
 
-        gc = st.columns([3, 2.4, 2.6, 2.2, 2])
+        gc = st.columns([2.6, 2.4, 3, 2.2, 1.8])
         # Col 0: Nombre + specs del producto
         _kg_lbl = f'{_kg_x:.1f} {_T["unit_kg_per_box"]}'.replace('.',',') if _kg_x else ''
         _min_cant_p = int(p.get('min_cantidad', 0) or 0)
@@ -2934,17 +2936,28 @@ def render_portal_pedido():
                     if _ux_next_price and precio_u and _ux_next_price < precio_u:
                         _ux_base_price_1 = get_precio_con_volumen(cod, destino, tipo_precio, data, 1); _ux_save_pct = round((1 - precio_u / _ux_base_price_1) * 100, 1) if _ux_base_price_1 and _ux_base_price_1 > precio_u else 0; _ux_save_pct = max(_ux_save_pct, 10.0) if _total_pallets_now >= 3 else _ux_save_pct
                     break
-        # Precio limpio: tachado pequeño + precio bold (en una sola línea) + ahorro discreto
+        # Precio + incentivo de volumen (móvil y escritorio igual):
+        #  · si ya tiene descuento por volumen → precio a 1 pallet TACHADO + ahorro real
+        #  · si aún no → gancho: "−X/caja a 3+ pallets" para incentivar
         _ux_badge_html = ''; _ux_strike_html = ''; _ux_price_color = '#1B7A3C'
-        if (tipo_precio == 'CIF' and _ux_save_pct > 0 and _total_pallets_now >= 3
-                and _ux_base_price_1 and _ux_base_price_1 > precio_u):
-            _ux_strike_html = (f'<span style="color:#9ca3af;text-decoration:line-through;'
-                               f'font-size:0.74em;margin-right:5px">{_sym_x}{round(_ux_base_price_1 * _rate_x, 2):.2f}</span>')
-            _ux_badge_html = (f'<div style="color:#15803d;font-size:0.74em;font-weight:600;'
-                              f'margin-top:1px;white-space:nowrap">−{_sym_x}{round((_ux_base_price_1 - precio_u) * _rate_x, 2):.2f}/caja</div>')
-            _ux_price_color = '#16a34a'
-        _precio_show = round(precio_u * _rate_x, 2) if (_mon_x != 'USD' and tipo_precio == 'CIF' and _rate_x != 1.0) else precio_u
-        _sym_show = _sym_x if (_mon_x != 'USD' and tipo_precio == 'CIF' and _rate_x != 1.0) else '$'
+        _conv = (_mon_x != 'USD' and tipo_precio == 'CIF' and _rate_x != 1.0)
+        _sym_show = _sym_x if _conv else '$'
+        if tipo_precio == 'CIF' and _ux_base_price_1:
+            _p1 = round(_ux_base_price_1 * (_rate_x if _conv else 1.0), 2)   # ancla: 1 pallet
+            _pu = round(precio_u * (_rate_x if _conv else 1.0), 2)           # precio actual
+            if precio_u < _ux_base_price_1:  # YA con descuento por volumen
+                _ux_strike_html = (f'<span style="color:#9ca3af;text-decoration:line-through;'
+                                   f'font-size:0.74em;margin-right:5px">{_sym_show}{_p1:.2f}</span>')
+                _ux_badge_html = (f'<div style="color:#15803d;font-size:0.74em;font-weight:600;'
+                                  f'margin-top:1px;white-space:nowrap">−{_sym_show}{_p1 - _pu:.2f}/caja</div>')
+                _ux_price_color = '#16a34a'
+            else:  # aún sin descuento → gancho hacia 3+ pallets
+                _p3 = get_precio_con_volumen(cod, destino, tipo_precio, data, 3)
+                if _p3 and _p3 < _ux_base_price_1:
+                    _p3d = round((_ux_base_price_1 - _p3) * (_rate_x if _conv else 1.0), 2)
+                    _ux_badge_html = (f'<div style="color:#b5641f;font-size:0.72em;font-weight:600;'
+                                      f'margin-top:1px;white-space:nowrap">−{_sym_show}{_p3d:.2f}/caja a 3+ pallets</div>')
+        _precio_show = round(precio_u * _rate_x, 2) if _conv else precio_u
         gc[1].markdown(
             f'<div style="line-height:1.25;white-space:nowrap">{_ux_strike_html}'
             f'<b style="color:{_ux_price_color};font-size:1.05em">{_sym_show}{_precio_show:.2f}</b>'
