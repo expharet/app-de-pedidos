@@ -102,7 +102,7 @@ LANG_TEXTS = {
         'flete_caption': '🛫 Flete incluido: **${flete:.2f} USD/Kilo** | {orig} → {dest}',
         'cif_info': '📍 **Incoterm CIF** — Precio incluye costo + flete hasta **{dest}**. Embarcamos desde **{orig}**.',
         'fob_info': '📦 **FOB (Free On Board)** — El precio **no incluye flete**. Tú coordinas el transporte desde Ecuador.',
- 'price_update_notice': 'ℹ️ Los precios del catálogo se actualizan cada **martes**. Dudas: order@exportharet.com', 'btn_validate': 'Validar', 'btn_acceder': 'Validar', 'progress_step1': 'Tus Datos', 'progress_step2': 'Precio & Destino', 'progress_step3': 'Productos', 'progress_step4': 'Confirmar', 'save_data_btn': '💾 Guardar datos', 'data_saved': 'Datos guardados', 'header_subtitle': 'Sistema de Pedidos — Frutas Exóticas Premium | order@exportharet.com', 'admin_access': '🔒 Acceso administración', 'download_catalog': '📥 Descargar Catálogo', 'sidebar_subtitle': 'Portal de Pedidos', 'sidebar_footer': 'Export Haret © 2026 | order@exportharet.com', 'footer_text': 'Export Haret © 2026 | order@exportharet.com | Frutas Exóticas Premium', 'cart_label': '🛒 Carrito', 'cart_products': 'producto(s)', 'min_progress_zero': '📋 Pedido mínimo: 3 pallets — Añade productos para comenzar', 'min_progress_short': '⚠️ {curr:.1f}/{min} pallets — Faltan {needed:.1f} pallets para el mínimo', 'min_progress_ok': '{curr:.1f}/{min} pallets', 'min_progress_next': ' | Con {n}+ pallets el precio baja aún más 🚀', 'cart_summary_label': 'Carrito', 'group_summary': '📦 Resumen por Grupo de Embalaje', 'group_full_pallets': 'pallet(s) completo(s)', 'group_partial_boxes': 'cj parciales', 'group_total_pallets': '📊 Total pallets agrupados',
+ 'price_update_notice': 'ℹ️ Los precios del catálogo se actualizan cada **martes**. Dudas: order@exportharet.com', 'btn_validate': 'Validar', 'btn_acceder': 'Validar', 'progress_step1': 'Tus Datos', 'progress_step2': 'Precio & Destino', 'progress_step3': 'Productos', 'progress_step4': 'Confirmar', 'save_data_btn': '💾 Guardar datos', 'data_saved': 'Datos guardados', 'header_subtitle': 'Sistema de Pedidos — Frutas Exóticas Premium | order@exportharet.com', 'admin_access': '🔒 Acceso administración', 'download_catalog': '📥 Descargar Catálogo', 'sidebar_subtitle': 'Portal de Pedidos', 'sidebar_footer': 'Export Haret © 2026 | order@exportharet.com', 'footer_text': 'Export Haret © 2026 | order@exportharet.com | Frutas Exóticas Premium', 'cart_label': '🛒 Carrito', 'cart_products': 'producto(s)', 'min_progress_zero': '📋 Pedido mínimo: 3 pallets — Añade productos para comenzar', 'min_progress_short': '⚠️ {curr:.1f}/{min} pallets — Faltan {needed:.1f} pallets para el mínimo', 'min_progress_ok': '{curr:.0f} pallets ✓ (mín. {min})', 'min_progress_next': ' | Con {n}+ pallets el precio baja aún más 🚀', 'cart_summary_label': 'Carrito', 'group_summary': '📦 Resumen por Grupo de Embalaje', 'group_full_pallets': 'pallet(s) completo(s)', 'group_partial_boxes': 'cj parciales', 'group_total_pallets': '📊 Total pallets agrupados',
         'order_total_label': 'Total del pedido',
         'unit_pallets': 'pallets',
         'unit_boxes': 'cajas',
@@ -184,7 +184,7 @@ LANG_TEXTS = {
         'quote_msg_lbl': 'Additional message',
         'quote_msg_ph': 'Special conditions...',
         'send_quote': '📤 Send request',
-        'price_update_notice': 'ℹ️ Catalogue prices are updated every **Tuesday**. Questions: order@exportharet.com', 'btn_validate': 'Validate / Access', 'btn_change_client': '🔄 Change client', 'err_email_format': '❌ Invalid email format', 'msg_click_validate': '👆 Click validate to continue', 'order_cleared': '🗑️ Cart cleared', 'btn_validate': 'Validate', 'btn_acceder': 'Validate', 'progress_step1': 'Your Details', 'progress_step2': 'Price & Destination', 'progress_step3': 'Products', 'progress_step4': 'Confirm', 'save_data_btn': '💾 Save details', 'data_saved': 'Details saved', 'header_subtitle': 'Order System — Premium Exotic Fruits | order@exportharet.com', 'admin_access': '🔒 Admin access', 'download_catalog': '📥 Download Catalog', 'sidebar_subtitle': 'Order Portal', 'sidebar_footer': 'Export Haret © 2026 | order@exportharet.com', 'footer_text': 'Export Haret © 2026 | order@exportharet.com | Premium Exotic Fruits', 'cart_label': '🛒 Cart', 'cart_products': 'product(s)', 'min_progress_zero': '📋 Minimum order: 3 pallets — Add products to start', 'min_progress_short': '⚠️ {curr:.1f}/{min} pallets — {needed:.1f} more pallets needed', 'min_progress_ok': '{curr:.1f}/{min} pallets', 'min_progress_next': ' | With {n}+ pallets the price goes even lower 🚀', 'cart_summary_label': 'Cart', 'group_summary': '📦 Summary by Packaging Group', 'group_full_pallets': 'full pallet(s)', 'group_partial_boxes': 'partial boxes', 'group_total_pallets': '📊 Total grouped pallets',
+        'price_update_notice': 'ℹ️ Catalogue prices are updated every **Tuesday**. Questions: order@exportharet.com', 'btn_validate': 'Validate / Access', 'btn_change_client': '🔄 Change client', 'err_email_format': '❌ Invalid email format', 'msg_click_validate': '👆 Click validate to continue', 'order_cleared': '🗑️ Cart cleared', 'btn_validate': 'Validate', 'btn_acceder': 'Validate', 'progress_step1': 'Your Details', 'progress_step2': 'Price & Destination', 'progress_step3': 'Products', 'progress_step4': 'Confirm', 'save_data_btn': '💾 Save details', 'data_saved': 'Details saved', 'header_subtitle': 'Order System — Premium Exotic Fruits | order@exportharet.com', 'admin_access': '🔒 Admin access', 'download_catalog': '📥 Download Catalog', 'sidebar_subtitle': 'Order Portal', 'sidebar_footer': 'Export Haret © 2026 | order@exportharet.com', 'footer_text': 'Export Haret © 2026 | order@exportharet.com | Premium Exotic Fruits', 'cart_label': '🛒 Cart', 'cart_products': 'product(s)', 'min_progress_zero': '📋 Minimum order: 3 pallets — Add products to start', 'min_progress_short': '⚠️ {curr:.1f}/{min} pallets — {needed:.1f} more pallets needed', 'min_progress_ok': '{curr:.0f} pallets ✓ (mín. {min})', 'min_progress_next': ' | With {n}+ pallets the price goes even lower 🚀', 'cart_summary_label': 'Cart', 'group_summary': '📦 Summary by Packaging Group', 'group_full_pallets': 'full pallet(s)', 'group_partial_boxes': 'partial boxes', 'group_total_pallets': '📊 Total grouped pallets',
         'order_total_label': 'Order Total',
         'unit_pallets': 'pallets',
         'unit_boxes': 'boxes',
@@ -2808,12 +2808,20 @@ def render_portal_pedido():
         _cart_rate = get_exchange_rates().get(_cart_dest_mon, 1.0)
         _cart_sym = MONEDA_SIMBOLO.get(_cart_dest_mon, _cart_dest_mon)
         _cart_total_dest = round(_cart_total_usd * _cart_rate, 2) if _cart_dest_mon != 'USD' and _cart_rate != 1.0 else None
-        _alt_total = f'  ~  {_cart_sym}{_cart_total_dest:,.2f} {_cart_dest_mon}' if _cart_total_dest else ''
         _s_prods = 's' if _cart_items != 1 else ''
+        # Mostrar primero la moneda elegida en el toggle (transparencia)
+        _alt_css = 'font-weight:500;font-size:.82em;opacity:.8'
+        if (not _ver_usd) and _cart_total_dest:
+            _total_disp = (f'💰 {_cart_sym}{_cart_total_dest:,.2f} {_cart_dest_mon}'
+                           f'<span style="{_alt_css}"> ~ ${_cart_total_usd:,.2f} USD</span>')
+        else:
+            _total_disp = (f'💰 ${_cart_total_usd:,.2f} USD'
+                           + (f'<span style="{_alt_css}"> ~ {_cart_sym}{_cart_total_dest:,.2f} {_cart_dest_mon}</span>'
+                              if _cart_total_dest else ''))
         _cart_html = (
             f'<div style="background:#e8f0fe;border:1.5px solid #1B7A3C;border-radius:8px;padding:8px 14px;margin:6px 0;display:flex;justify-content:space-between;align-items:center">'
             f'<span style="font-weight:600;color:#1B7A3C">{_T["cart_label"]}: {_cart_items} {_T["cart_products"]} | {_cart_total_pal:.1f} pal | {_cart_total_caj:,} cj</span>'
-            f'<span style="font-weight:700;color:#1B7A3C;font-size:1.1em">💰 ${_cart_total_usd:,.2f} USD{_alt_total}</span>'
+            f'<span style="font-weight:700;color:#1B7A3C;font-size:1.1em">{_total_disp}</span>'
             f'</div>'
         )
         st.markdown(_cart_html, unsafe_allow_html=True)
@@ -3031,6 +3039,51 @@ def render_portal_pedido():
     # saltara al inicio al elegir la cantidad (el cliente perdía de vista el producto).
     # El resumen y el total inferiores se calculan del carrito ya actualizado.
     st.session_state.portal_carrito = _new_carrito
+
+    # ── Nube flotante sutil: progreso al siguiente tramo + cuánto ahorras (siempre visible) ──
+    _fp = sum(i.get('pallets', 0) for i in _new_carrito)
+    _bmon = _mon_dest if (tipo_precio == 'CIF' and not _ver_usd) else 'USD'
+    if _bmon != 'USD':
+        _brate = get_exchange_rates().get(_bmon, 1.0); _bsym = MONEDA_SIMBOLO.get(_bmon, _bmon)
+    else:
+        _brate = 1.0; _bsym = '$'
+    if _fp <= 0:
+        _fb_pct = 0
+        _fb_msg = 'Empieza tu pedido · a más pallets, mejor precio por caja'
+        _fb_left = '📦 0 pallets'
+    else:
+        _cur_d = get_descuento_volumen(max(_fp, 1))
+        _nt = None; _need = 0
+        for _t in TRAMOS_VOLUMEN:
+            if _t['descuento'] > _cur_d:
+                _nt = _t; _need = max(1, int(round(_t['min'] - _fp))); break
+        _ah_n = 0.0
+        if _nt:
+            for _it in _new_carrito:
+                _pn = _it.get('precio_usd', 0)
+                _pt = get_precio_con_volumen(_it.get('codigo', ''), destino, tipo_precio, data, int(_nt['min']))
+                if _pt and _pt < _pn:
+                    _ah_n += _it.get('cajas', 0) * (_pn - _pt)
+        _fb_left = f'📦 <b>{_fp:.1f}</b> pallets'
+        if _nt and _ah_n >= 1:
+            _fb_pct = min(100, int(_fp / _nt['min'] * 100))
+            _fb_msg = f'Añade <b>{_need}</b> pallet(s) y ahorras ~<b>{_bsym}{_ah_n * _brate:,.0f}</b> más'
+        else:
+            _fb_pct = 100
+            _fb_msg = '✓ Tienes el mejor precio por volumen'
+    st.markdown(
+        '<div style="position:fixed;left:0;right:0;bottom:0;z-index:60;'
+        'background:rgba(255,255,255,.93);backdrop-filter:blur(6px);'
+        'border-top:1px solid #e0eae3;box-shadow:0 -4px 18px rgba(20,60,40,.08);padding:8px 14px">'
+        '<div style="max-width:780px;margin:0 auto;display:flex;align-items:center;gap:12px;'
+        'flex-wrap:wrap;font-size:.84rem;color:#1B2620">'
+        f'<span style="white-space:nowrap">{_fb_left}</span>'
+        '<div style="flex:1;min-width:90px;height:7px;background:#e3ede6;border-radius:6px;overflow:hidden">'
+        f'<div style="height:100%;width:{_fb_pct}%;background:linear-gradient(90deg,#2E9E4F,#1B7A3C);'
+        'transition:width .4s ease"></div></div>'
+        f'<span style="color:#15803d;font-weight:600;white-space:nowrap">{_fb_msg}</span>'
+        '</div></div>', unsafe_allow_html=True)
+
     # Carrito
     if st.session_state.portal_carrito:
         st.markdown('---')

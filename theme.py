@@ -31,7 +31,7 @@ html, body, [class*="css"], .stApp, button, input, textarea, select{
   font-family:'Inter',-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
 }
 .stApp{ background:var(--bg); color:var(--ink); }
-.block-container{ max-width:780px; padding-top:1.1rem; }
+.block-container{ max-width:780px; padding-top:1.1rem; padding-bottom:72px; }
 h1,h2,h3,h4{ color:var(--brand-dark); letter-spacing:-.2px; font-weight:700; }
 a{ color:var(--brand); text-decoration:none; }
 a:hover{ text-decoration:underline; }
