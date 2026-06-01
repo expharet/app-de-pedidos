@@ -2845,8 +2845,7 @@ def render_portal_pedido():
             _grp_agg[_ci_grp]['cajas'] += int(_ci.get('cajas',0))
             _grp_agg[_ci_grp]['productos'].append(_ci.get('producto', _ci_cod))
         if _grp_agg:
-            _grp_html = ['<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:12px 16px;margin:8px 0 14px">']
-            _grp_html.append(f'<div style="font-weight:700;color:#1e293b;margin-bottom:8px;font-size:0.95rem">{_T["group_summary"]}</div>')
+            _grp_html = ['<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:12px 16px;margin:4px 0 8px">']
             _grp_total_pal_real = 0.0
             for _gk, _gv in sorted(_grp_agg.items()):
                 _g_pal_exact = _gv['cajas'] / _gv['cxp'] if _gv['cxp'] > 0 else 0
@@ -2886,7 +2885,8 @@ def render_portal_pedido():
                 f'</div>'
             )
             _grp_html.append('</div>')
-            st.markdown(''.join(line.lstrip() for line in '\n'.join(_grp_html).split('\n')), unsafe_allow_html=True)
+            with st.expander('📦 ' + _T['group_summary'], expanded=False):
+                st.markdown(''.join(line.lstrip() for line in '\n'.join(_grp_html).split('\n')), unsafe_allow_html=True)
     # PATCH P11: Sticky header
     st.markdown(
         f'<div class="eh-cat-header">'
@@ -3065,9 +3065,13 @@ def render_portal_pedido():
                 if _pt and _pt < _pn:
                     _ah_n += _it.get('cajas', 0) * (_pn - _pt)
         _fb_left = f'📦 <b>{_fp:.1f}</b> pallets'
-        if _nt and _ah_n >= 1:
+        _tot_usd_fb = sum(i.get('total', 0) for i in _new_carrito)
+        if _nt and _ah_n >= 1 and _tot_usd_fb > 0:
             _fb_pct = min(100, int(_fp / _nt['min'] * 100))
-            _fb_msg = f'Añade <b>{_need}</b> pallet(s) y ahorras ~<b>{_bsym}{_ah_n * _brate:,.0f}</b> más'
+            _pct_save = _ah_n / _tot_usd_fb * 100
+            _palw = 'pallet' if _need == 1 else 'pallets'
+            _fb_msg = (f'Con <b>{_need}</b> {_palw} más ahorras <b>{_pct_save:.1f}%</b> '
+                       f'en todo el pedido (~{_bsym}{_ah_n * _brate:,.0f})')
         else:
             _fb_pct = 100
             _fb_msg = '✓ Tienes el mejor precio por volumen'
