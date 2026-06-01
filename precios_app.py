@@ -2401,6 +2401,23 @@ def render_portal_pedido():
     }.get(st.session_state.get('portal_lang', 'es'),
           ('Precios por volumen', 'Descubre tu precio en 1 minuto',
            'Arma tu pedido de prueba y verás el precio exacto según tu volumen.'))
+    # Ahorro medio por caja al pasar de 1 a 3 pallets (calculado de los precios reales)
+    _drops = [(_pp.get('precios_plt') or [None, None, None])[0] - (_pp.get('precios_plt') or [None, None, None])[2]
+              for _pp in data.get('products', [])
+              if len(_pp.get('precios_plt') or []) >= 3
+              and (_pp.get('precios_plt') or [0, 0, 0])[0] and (_pp.get('precios_plt') or [0, 0, 0])[2]
+              and (_pp.get('precios_plt') or [0, 0, 0])[0] > (_pp.get('precios_plt') or [0, 0, 0])[2]]
+    _ahorro3 = round(sum(_drops) / len(_drops), 2) if _drops else 0
+    _en = st.session_state.get('portal_lang', 'es') == 'en'
+    _strip = ''
+    if _ahorro3 > 0:
+        _txt = (f'when ordering <b>3 pallets</b>' if _en else f'al pedir <b>3 pallets</b>')
+        _strip = (
+            '<div style="margin-top:11px;display:inline-flex;align-items:center;gap:9px;'
+            'background:#fff;border:1px solid #ecd9c5;border-radius:12px;padding:7px 12px">'
+            f'<span style="background:#CE7A32;color:#fff;font-weight:800;border-radius:8px;'
+            f'padding:3px 9px;font-size:.92rem">−${_ahorro3:.2f}/{"box" if _en else "caja"}</span>'
+            f'<span style="color:#46564d;font-size:.86rem">{_txt}</span></div>')
     st.markdown(
         '<div style="background:linear-gradient(135deg,#EAF3EC 0%,#ffffff 72%);'
         'border:1px solid #dce8df;border-radius:16px;padding:16px 18px;margin:2px 0 18px;'
@@ -2411,6 +2428,7 @@ def render_portal_pedido():
         f'<div style="font-weight:700;color:#0F4F29;font-size:1.08rem;margin:8px 0 3px;'
         f'letter-spacing:-.2px">{_promo[1]}</div>'
         f'<div style="color:#46564d;font-size:.9rem;line-height:1.5">{_promo[2]}</div>'
+        f'{_strip}'
         '</div>', unsafe_allow_html=True)
 
     _eh_seccion(_T['step1'], 1)
