@@ -2658,6 +2658,20 @@ def render_portal_pedido():
     # ── PASO 3: Selección de Productos ───────────────────────────────
     _eh_seccion(_T['step3'], 3)
     st.info(_T['price_update_notice'], icon=None)
+    # Toggle de moneda: ver precios en la moneda del destino (CIF) o en USD — transparencia total
+    _mon_dest = data.get('config', {}).get('destinos_moneda', {}).get(destino, 'USD') if tipo_precio == 'CIF' else 'USD'
+    _ver_usd = False
+    if tipo_precio == 'CIF' and _mon_dest != 'USD':
+        _sym_dest = MONEDA_SIMBOLO.get(_mon_dest, _mon_dest)
+        _cur_opts = [f'{_sym_dest} Ver en {_mon_dest}', '$ Ver en USD']
+        _mc1, _mc2 = st.columns([1.4, 2])
+        with _mc1:
+            _msel = st.radio('Moneda', _cur_opts, key='portal_ver_moneda',
+                             horizontal=True, label_visibility='collapsed')
+        _ver_usd = _msel.endswith('USD')
+        with _mc2:
+            st.caption('💱 Total transparencia: cambia entre tu moneda y USD. '
+                       'La transacción se realiza en USD.')
     # PATCH STEP3: CSS for responsive cards, sticky header, bigger qty buttons, highlight
     st.markdown('''<style>
     /* Bigger +/- buttons on number_input (P8) */
@@ -2678,7 +2692,7 @@ def render_portal_pedido():
         background: #fff; padding: 8px 0;
         border-bottom: 2px solid #1B7A3C;
         font-weight: 700;
-        display: grid; grid-template-columns: 2.6fr 2.4fr 3fr 2.2fr 1.8fr;
+        display: grid; grid-template-columns: 2.4fr 2.3fr 3.5fr 2fr 1.6fr;
         gap: 8px; align-items: center;
     }
     .eh-cat-header > div { color: #1B7A3C; font-size: 0.92rem; }
@@ -2905,7 +2919,7 @@ def render_portal_pedido():
         else:
             _ex_qty = 0
 
-        gc = st.columns([2.6, 2.4, 3, 2.2, 1.8])
+        gc = st.columns([2.4, 2.3, 3.5, 2, 1.6])
         # Col 0: Nombre + specs del producto
         _kg_lbl = f'{_kg_x:.1f} {_T["unit_kg_per_box"]}'.replace('.',',') if _kg_x else ''
         _min_cant_p = int(p.get('min_cantidad', 0) or 0)
@@ -2940,7 +2954,7 @@ def render_portal_pedido():
         #  · si ya tiene descuento por volumen → precio a 1 pallet TACHADO + ahorro real
         #  · si aún no → gancho: "−X/caja a 3+ pallets" para incentivar
         _ux_badge_html = ''; _ux_strike_html = ''; _ux_price_color = '#1B7A3C'
-        _conv = (_mon_x != 'USD' and tipo_precio == 'CIF' and _rate_x != 1.0)
+        _conv = (_mon_x != 'USD' and tipo_precio == 'CIF' and _rate_x != 1.0 and not _ver_usd)
         _sym_show = _sym_x if _conv else '$'
         if tipo_precio == 'CIF' and _ux_base_price_1:
             _p1 = round(_ux_base_price_1 * (_rate_x if _conv else 1.0), 2)   # ancla: 1 pallet

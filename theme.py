@@ -77,12 +77,8 @@ a:hover{ text-decoration:underline; }
 .stTextInput input:focus, .stNumberInput input:focus, .stTextArea textarea:focus{
   border-color:var(--brand) !important; box-shadow:0 0 0 3px rgba(27,122,60,.14) !important;
 }
-/* contador: botones +/- SIEMPRE visibles y claros */
+/* contador: botones +/- visibles, con color de marca (sin forzar tamaño que recorte) */
 .stNumberInput button{ border-radius:10px; transition:background .15s ease;
-  opacity:1 !important; visibility:visible !important; min-width:40px; }
-.stNumberInput button[data-testid="stNumberInputStepUp"],
-.stNumberInput button[data-testid="stNumberInputStepDown"]{
-  display:flex !important; align-items:center; justify-content:center;
   background:var(--brand-soft); color:var(--brand); font-weight:700; }
 .stNumberInput button:hover{ background:#dcebe0; }
 
