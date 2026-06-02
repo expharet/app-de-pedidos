@@ -1513,6 +1513,44 @@ def render_configuracion():
         logger.debug(f'SMTP secrets not accessible: {e}')
         st.info('ℹ️ Configura SMTP en Streamlit Cloud → App settings → Secrets.')
     st.markdown('---')
+    st.markdown('### 🔑 Copia de seguridad (Gist) y token de GitHub')
+    if outbox and outbox.configurado():
+        try:
+            import requests as _rq
+            _r = _rq.get('https://api.github.com/user',
+                         headers={'Authorization': f'token {outbox._token()}'}, timeout=6)
+            _exp = _r.headers.get('github-authentication-token-expiration', '')
+            _scopes = _r.headers.get('x-oauth-scopes', '')
+            if _r.status_code != 200:
+                st.error('🔴 El token de GitHub **no funciona** (HTTP %d). Los pedidos/clientes '
+                         'NO se están guardando en el Gist. Crea uno nuevo con permiso `gist` y '
+                         'actualiza Secrets `[github] token`.' % _r.status_code)
+            elif _exp:
+                try:
+                    _expd = datetime.strptime(_exp[:10], '%Y-%m-%d')
+                    _dias = (_expd - datetime.now()).days
+                    if _dias < 0:
+                        st.error(f'🔴 El token **CADUCÓ** el {_exp[:10]}. Los pedidos/clientes nuevos '
+                                 'NO se guardan. Crea uno nuevo (permiso `gist`) y actualiza Secrets '
+                                 '`[github] token`.')
+                    elif _dias <= 14:
+                        st.warning(f'🟠 El token **caduca en {_dias} días** ({_exp[:10]}). Renuévalo '
+                                   'pronto: nuevo token con permiso `gist` → Secrets `[github] token`, '
+                                   'o te quedarás sin copia de seguridad.')
+                    else:
+                        st.success(f'✅ Copia de seguridad activa. Token (`{_scopes}`) caduca el '
+                                   f'{_exp[:10]} — faltan **{_dias} días**.')
+                except Exception:
+                    st.info(f'Token activo. Caducidad: {_exp}')
+            else:
+                st.success('✅ Copia de seguridad activa. Token sin fecha de caducidad.')
+        except Exception as _e:
+            st.info(f'No se pudo verificar el token ahora: {_e}')
+    else:
+        st.warning('⚠️ Gist **no configurado**: los pedidos/clientes no se guardan de forma '
+                   'durable (se pierden al reiniciarse la app). Configura `[github] token` + '
+                   '`gist_id` en Secrets.')
+    st.markdown('---')
     st.markdown('### 🗃️ Archivos de Datos')
     for fname in [DATA_FILE,CLIENTS_FILE,PEDIDOS_FILE,HIST_FILE,EMAIL_FILE]:
         exists=os.path.exists(fname)
