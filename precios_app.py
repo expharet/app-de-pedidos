@@ -328,13 +328,11 @@ def sync_finanzas(ped, todos=None):
 def hidratar_pedidos_gist():
     """#3: tras un reinicio de Streamlit Cloud (disco efímero) recupera los pedidos
     desde el Gist, para que el cliente vuelva a ver 'Mis Pedidos'. Una vez por sesión."""
-    if not outbox or not getattr(outbox, 'configurado', lambda: False)():
-        return
-    if st.session_state.get('_hidratado_gist'):
+    if not outbox or st.session_state.get('_hidratado_gist'):
         return
     st.session_state['_hidratado_gist'] = True
     try:
-        remoto = outbox.fetch()
+        remoto = outbox.fetch()  # None si no hay gist configurado; basta el gist_id para leer
         if not remoto:
             return
         local = load_pedidos()
