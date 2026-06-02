@@ -332,17 +332,26 @@ def hidratar_pedidos_gist():
         return
     st.session_state['_hidratado_gist'] = True
     try:
+        # 1) Pedidos
         remoto = outbox.fetch()  # None si no hay gist configurado; basta el gist_id para leer
-        if not remoto:
-            return
-        local = load_pedidos()
-        ids = {p.get('id') for p in local}
-        nuevos = [p for p in remoto if p.get('id') and p.get('id') not in ids]
-        if nuevos:
-            local.extend(nuevos)
-            _save(PEDIDOS_FILE, local)
-            st.cache_data.clear()
-            logger.info(f'hidratados {len(nuevos)} pedidos desde el Gist')
+        if remoto:
+            local = load_pedidos()
+            ids = {p.get('id') for p in local}
+            nuevos = [p for p in remoto if p.get('id') and p.get('id') not in ids]
+            if nuevos:
+                local.extend(nuevos)
+                _save(PEDIDOS_FILE, local)
+                st.cache_data.clear()
+                logger.info(f'hidratados {len(nuevos)} pedidos desde el Gist')
+        # 2) Padrón de clientes del portal (incluye los pre-registrados por el admin)
+        remoto_cli = outbox.fetch_clients()
+        if remoto_cli:
+            local_cli = load_portal_clients()
+            faltan = {e: v for e, v in remoto_cli.items() if e not in local_cli}
+            if faltan:
+                local_cli.update(faltan)
+                _save(PORTAL_CLIENTS_FILE, local_cli)
+                logger.info(f'hidratados {len(faltan)} clientes desde el Gist')
     except Exception as e:
         logger.warning(f'hidratar gist falló: {e}')
 def _esc(s):
@@ -1595,6 +1604,48 @@ def render_clientes():
     st.markdown('## 👥 Clientes')
     clients=load_clients()
     clients=_migrate_clients_swap(clients)
+
+    # ➕ Pre-registrar un cliente: al entrar al portal con su email ya estará reconocido
+    with st.expander('➕ Agregar / pre-registrar cliente', expanded=False):
+        st.caption('Crea la cuenta del cliente. Cuando entre al portal con su email, '
+                   'ya aparecerá registrado y con sus datos cargados.')
+        _ac1, _ac2 = st.columns(2)
+        _ac_email = _ac1.text_input('📧 Email *', key='ac_email', placeholder='cliente@empresa.com')
+        _ac_nombre = _ac2.text_input('👤 Nombre / contacto *', key='ac_nombre')
+        _ac3, _ac4 = st.columns(2)
+        _ac_empresa = _ac3.text_input('🏢 Empresa', key='ac_empresa')
+        _ac_tel = _ac4.text_input('📱 Teléfono / WhatsApp', key='ac_tel')
+        _ac_pais = st.text_input('🌍 País', value='Spain', key='ac_pais')
+        if st.button('💾 Crear cliente', type='primary', key='ac_save'):
+            import re as _re_ac
+            _em = (_ac_email or '').strip().lower()
+            _nm = (_ac_nombre or '').strip()
+            if not _re_ac.match(r'^[^@\s]+@[^@\s]+\.[^@\s]+$', _em):
+                st.error('❌ Email inválido')
+            elif not _nm:
+                st.error('❌ El nombre es obligatorio')
+            else:
+                _now = datetime.now().isoformat()
+                _pc = load_portal_clients()
+                _ya = _em in _pc
+                _pc[_em] = {'nombre': _nm, 'empresa': (_ac_empresa or '').strip(),
+                            'telefono': (_ac_tel or '').strip(), 'pais': (_ac_pais or '').strip(),
+                            'email': _em,
+                            'fecha_registro': _pc.get(_em, {}).get('fecha_registro', _now),
+                            'pedidos': _pc.get(_em, {}).get('pedidos', [])}
+                save_portal_clients(_pc)  # local + Gist (sobrevive a reinicios)
+                _adm = load_clients()
+                _adm[_em] = {'nombre': _nm, 'email': _em, 'empresa': (_ac_empresa or '').strip(),
+                             'telefono': (_ac_tel or '').strip(), 'pais': (_ac_pais or '').strip(),
+                             'fecha_registro': _adm.get(_em, {}).get('fecha_registro', _now),
+                             'pedidos_ids': _adm.get(_em, {}).get('pedidos_ids', []),
+                             'origen': 'admin_prereg'}
+                save_clients(_adm)
+                st.cache_data.clear()
+                st.success(f'✅ Cliente {_nm} ({_em}) {"actualizado" if _ya else "creado"}. '
+                           'Ya puede entrar al portal y estará registrado.')
+                st.rerun()
+
     # Merge portal-registered clients so admin can see all
     try:
         _pc = load_portal_clients()
@@ -1712,6 +1763,11 @@ def load_portal_clients():
 
 def save_portal_clients(c):
     _save(PORTAL_CLIENTS_FILE, c)
+    if outbox:
+        try:
+            outbox.publish_clients(c)  # persistir el padrón en el Gist (sobrevive a reinicios)
+        except Exception as e:
+            logger.warning(f'publish_clients falló: {e}')
 
 def get_fob_price(codigo, data):
     for p in data.get('products', []):

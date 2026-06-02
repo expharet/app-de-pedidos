@@ -93,8 +93,8 @@ def fetch() -> list | None:
     return None
 
 
-def publish(pedidos: list) -> bool:
-    """Vuelca la lista completa de pedidos al Gist. No rompe nunca la app."""
+def _patch_file(filename: str, payload) -> bool:
+    """Escribe (PATCH) un archivo dentro del Gist. No rompe nunca la app."""
     token, gist_id = _token(), _gist_id()
     if not (token and gist_id):
         return False
@@ -103,9 +103,41 @@ def publish(pedidos: list) -> bool:
             f"https://api.github.com/gists/{gist_id}",
             headers={"Authorization": f"token {token}",
                      "Accept": "application/vnd.github+json"},
-            json={"files": {"pedidos_outbox.json": {
-                "content": json.dumps(pedidos, ensure_ascii=False, indent=0)}}},
+            json={"files": {filename: {
+                "content": json.dumps(payload, ensure_ascii=False, indent=0)}}},
             timeout=10)
         return r.status_code in (200, 201)
     except requests.RequestException:
         return False
+
+
+def publish(pedidos: list) -> bool:
+    """Vuelca la lista completa de pedidos al Gist."""
+    return _patch_file("pedidos_outbox.json", pedidos)
+
+
+def publish_clients(clients: dict) -> bool:
+    """Vuelca el padrón de clientes del portal al Gist (para que los clientes
+    pre-registrados por el admin sobrevivan a los reinicios de Streamlit Cloud)."""
+    return _patch_file("portal_clientes.json", clients)
+
+
+def fetch_clients() -> dict | None:
+    """Lee el padrón de clientes del portal desde el Gist (None si no hay/ falla)."""
+    gist_id = _gist_id()
+    if not gist_id:
+        return None
+    token = _token()
+    headers = {"Accept": "application/vnd.github+json"}
+    if token:
+        headers["Authorization"] = f"token {token}"
+    try:
+        r = requests.get(f"https://api.github.com/gists/{gist_id}",
+                         headers=headers, timeout=10)
+        if r.status_code == 200:
+            content = (r.json().get("files", {})
+                       .get("portal_clientes.json", {}).get("content"))
+            return json.loads(content) if content else {}
+    except (requests.RequestException, ValueError):
+        pass
+    return None
