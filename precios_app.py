@@ -3,6 +3,7 @@ import pandas as pd
 import json
 import os
 import io
+import html
 import hashlib
 import uuid
 import logging
@@ -72,7 +73,7 @@ def get_descuento_volumen(total_pallets):
     return 0.0
 
 MONEDAS = ["USD", "EUR", "GBP", "CHF", "AED", "CAD", "MXN", "BRL", "COP"]
-MONEDA_SIMBOLO = {"USD": "$", "EUR": "€", "GBP": "£", "CHF": "Fr", "AED": "د.إ", "CAD": "CA$", "MXN": "MX$", "BRL": "R$", "COP": "COP$"}
+MONEDA_SIMBOLO = {"USD": "$", "EUR": "€", "GBP": "£", "CHF": "Fr", "AED": "د.إ", "CAD": "CA$", "MXN": "MX$", "BRL": "R$", "COP": "COP$", "PEN": "S/", "CLP": "CLP$", "ARS": "AR$"}
 # -- IDIOMA / LANGUAGE TRANSLATIONS --
 LANG_TEXTS = {
     'es': {
@@ -324,6 +325,31 @@ def sync_finanzas(ped, todos=None):
             save_pedidos(todos)  # re-persistir con los ids de Finanzas
     except Exception as e:
         logger.warning(f'sync Finanzas falló: {e}')
+def hidratar_pedidos_gist():
+    """#3: tras un reinicio de Streamlit Cloud (disco efímero) recupera los pedidos
+    desde el Gist, para que el cliente vuelva a ver 'Mis Pedidos'. Una vez por sesión."""
+    if not outbox or not getattr(outbox, 'configurado', lambda: False)():
+        return
+    if st.session_state.get('_hidratado_gist'):
+        return
+    st.session_state['_hidratado_gist'] = True
+    try:
+        remoto = outbox.fetch()
+        if not remoto:
+            return
+        local = load_pedidos()
+        ids = {p.get('id') for p in local}
+        nuevos = [p for p in remoto if p.get('id') and p.get('id') not in ids]
+        if nuevos:
+            local.extend(nuevos)
+            _save(PEDIDOS_FILE, local)
+            st.cache_data.clear()
+            logger.info(f'hidratados {len(nuevos)} pedidos desde el Gist')
+    except Exception as e:
+        logger.warning(f'hidratar gist falló: {e}')
+def _esc(s):
+    """#5: escapa texto del usuario antes de meterlo en HTML/email (evita XSS)."""
+    return html.escape(str(s if s is not None else ''))
 def save_historial(h2): _save(HIST_FILE,h2)
 def save_email_log(e): _save(EMAIL_FILE,e)
 def load_accesos(): return _load(ACCESOS_FILE, [])
@@ -375,7 +401,12 @@ def segmentar(email, clients):
     peds = [p for p in load_pedidos() if p.get('client_email') == email]
     if not peds: return {'segmento':'Nuevo','descuento':0.0,'credito':10000,'badge':'🆕 Nuevo'}
     hoy = datetime.now()
-    p30 = [p for p in peds if (hoy-datetime.fromisoformat(p.get('fecha',hoy.isoformat()))).days<=30]
+    def _dias(p):
+        try:
+            return (hoy - datetime.fromisoformat(p.get('fecha') or hoy.isoformat())).days
+        except (ValueError, TypeError):
+            return 9999  # fecha inválida → no cuenta como reciente, pero no rompe
+    p30 = [p for p in peds if _dias(p) <= 30]
     fac = sum(p.get('total_usd',0) for p in p30)
     if fac>=5000 or len(p30)>=10: return {'segmento':'VIP','descuento':0.05,'credito':50000,'badge':'⭐ VIP'}
     if len(peds)>=2: return {'segmento':'Regular','descuento':0.02,'credito':25000,'badge':'⚫ Regular'}
@@ -506,7 +537,7 @@ def render_dashboard():
         _col_alerta = 'background:#fff3cd;border-left:4px solid #ffc107;border-radius:6px;padding:10px 14px;margin:4px 0'
         for _np in sorted(_nuevos, key=lambda x: x.get('fecha',''), reverse=True)[:5]:
             _np_id = _np.get('id','').upper()
-            _np_cliente = _np.get('client_name','')
+            _np_cliente = _esc(_np.get('client_name',''))
             _np_total = _np.get('total_usd',0)
             _np_fecha = _np.get('fecha','')[:16].replace('T',' ')
             _np_dest = _np.get('destino','')
@@ -1066,7 +1097,7 @@ def render_catalogo():
             height=min(80 + 40 * (len(_emb_rows) + 2), 500),
         )
 
-        if st.button('U0001f4be Guardar Grupos', type='primary', use_container_width=True, key='btn_save_embalaje'):
+        if st.button('\U0001f4be Guardar Grupos', type='primary', use_container_width=True, key='btn_save_embalaje'):
             _new_grupos = {}
             for _, _er in _edited_emb.iterrows():
                 _grp_k = str(_er.get('Grupo', '')).strip().upper()
@@ -1130,7 +1161,7 @@ def render_catalogo():
                 )
                 _new_assignments[_grp_k] = [_label_cod_map[lbl] for lbl in _sel if lbl in _label_cod_map]
 
-        if st.button('U0001f4be Guardar Asignacion de Productos', type='primary', use_container_width=True, key='btn_save_prod_grp'):
+        if st.button('\U0001f4be Guardar Asignacion de Productos', type='primary', use_container_width=True, key='btn_save_prod_grp'):
             _new_cod_grp = {}
             for _grp_k2, _cods2 in _new_assignments.items():
                 for _c2 in _cods2:
@@ -2102,11 +2133,24 @@ def get_precio_por_pallets(codigo, total_pallets, data, tipo_precio='CIF'):
 
 
 def get_precio_cif_por_pallets(codigo, total_pallets, destino, data):
-    """Precio CIF para un destino: los precios_plt YA incluyen flete (precio cerrado).
-    El flete de referencia (2.35 USD/Kilo) es solo informacion para el cliente.
-    NO se recalcula nada - el precio base ya es el precio final CIF.
+    """Precio CIF para un destino. precios_plt incluye el flete de referencia (Madrid);
+    se ajusta al flete del destino igual que el panel admin:
+        precio_destino = precio_base - flete_ref + flete_destino
+    Así cada destino cobra su flete real (no todos el de Madrid).
     """
-    return get_precio_por_pallets(codigo, total_pallets, data)
+    base = get_precio_por_pallets(codigo, total_pallets, data)  # incluye flete ref Madrid
+    if base <= 0:
+        return base
+    cfg = data.get('config', {})
+    flete_ref = float(cfg.get('flete_ref', 2.35) or 2.35)
+    dest_val = cfg.get('destinos', {}).get(destino, flete_ref)
+    if isinstance(dest_val, dict):
+        dest_flete = float(dest_val.get('factor', flete_ref) or flete_ref)
+    elif isinstance(dest_val, (int, float)):
+        dest_flete = float(dest_val)
+    else:
+        dest_flete = flete_ref
+    return round(base - flete_ref + dest_flete, 4)
 
 
 def get_precio_con_volumen(codigo, destino, tipo_precio, data, pallets):
@@ -2197,14 +2241,17 @@ def send_order_email(ped):
     notas = ped.get('notas','')
     rows_html = ''
     for item in ped.get('productos', []):
-        rows_html += (f'<tr><td style="padding:6px 10px;border:1px solid #ddd">{item.get("codigo","")}</td>'
-                      f'<td style="padding:6px 10px;border:1px solid #ddd">{item.get("producto","")}</td>'
+        rows_html += (f'<tr><td style="padding:6px 10px;border:1px solid #ddd">{_esc(item.get("codigo",""))}</td>'
+                      f'<td style="padding:6px 10px;border:1px solid #ddd">{_esc(item.get("producto",""))}</td>'
                       f'<td style="padding:6px 10px;border:1px solid #ddd;text-align:center">{item.get("cajas",0)}</td>'
                       f'<td style="padding:6px 10px;border:1px solid #ddd;text-align:center">{item.get("pallets",0)}</td>'
                       f'<td style="padding:6px 10px;border:1px solid #ddd;text-align:right">${item.get("precio_usd",0):.2f}</td>'
                       f'<td style="padding:6px 10px;border:1px solid #ddd;text-align:right;font-weight:bold">${item.get("total",0):,.2f}</td></tr>')
-    dest_str = f'{tipo} \u2192 {destino}' if tipo == 'CIF' and destino else tipo
-    _notas_html = f'<p><b>Notas:</b> {notas}</p>' if notas else ''
+    dest_str = f'{_esc(tipo)} \u2192 {_esc(destino)}' if tipo == 'CIF' and destino else _esc(tipo)
+    # Escapados para HTML (evita XSS contra el staff que lee el email)
+    nombre_h, empresa_h, email_h = _esc(nombre), _esc(empresa), _esc(email_c)
+    telefono_h, pais_h = _esc(telefono), _esc(pais)
+    _notas_html = f'<p><b>Notas:</b> {_esc(notas)}</p>' if notas else ''
     html = (f'<html><body style="font-family:Arial,sans-serif;color:#333">'
             f'<div style="background:#1B7A3C;padding:16px 24px;border-radius:8px">'
             f'<h2 style="color:white;margin:0">🚀 Export Haret \u2014 Nueva Orden Recibida</h2>'
@@ -2212,11 +2259,11 @@ def send_order_email(ped):
             f'<table style="width:100%;border-collapse:collapse;font-size:14px">'
             f'<tr><td style="padding:6px"><b>N\u00ba Pedido:</b></td><td>{pid}</td>'
             f'<td style="padding:6px"><b>Fecha:</b></td><td>{fecha}</td></tr>'
-            f'<tr><td style="padding:6px"><b>Cliente:</b></td><td>{nombre}</td>'
-            f'<td style="padding:6px"><b>Empresa:</b></td><td>{empresa or "-"}</td></tr>'
-            f'<tr><td style="padding:6px"><b>Email:</b></td><td>{email_c}</td>'
-            f'<td style="padding:6px"><b>Tel\u00e9fono:</b></td><td>{telefono or "-"}</td></tr>'
-            f'<tr><td style="padding:6px"><b>Pa\u00eds:</b></td><td>{pais or "-"}</td>'
+            f'<tr><td style="padding:6px"><b>Cliente:</b></td><td>{nombre_h}</td>'
+            f'<td style="padding:6px"><b>Empresa:</b></td><td>{empresa_h or "-"}</td></tr>'
+            f'<tr><td style="padding:6px"><b>Email:</b></td><td>{email_h}</td>'
+            f'<td style="padding:6px"><b>Tel\u00e9fono:</b></td><td>{telefono_h or "-"}</td></tr>'
+            f'<tr><td style="padding:6px"><b>Pa\u00eds:</b></td><td>{pais_h or "-"}</td>'
             f'<td style="padding:6px"><b>Destino:</b></td><td>{dest_str}</td></tr>'
             f'</table>'
             f'<h3 style="color:#1B7A3C;border-bottom:2px solid #1B7A3C;padding-bottom:6px">Productos</h3>'
@@ -2292,6 +2339,7 @@ def send_order_email(ped):
         _save(_pf, _pe)
     except Exception:
         pass
+    return sent  # #6: el llamador puede reflejar si el email salió de verdad
 
 def _eh_seccion(raw, num):
     """Cabecera de sección premium: chip numerado con degradado + título.
@@ -2900,6 +2948,19 @@ def render_portal_pedido():
     )
     st.markdown('<hr style="margin:4px 0 6px;border-color:#e0e0e0">', unsafe_allow_html=True)
 
+    # #1 fix: total de pallets FRESCO leído de los inputs actuales (no del carrito del
+    # run anterior) → el precio por volumen es correcto en el mismo run, sin desfase.
+    _total_pallets_fresh = 0.0
+    for _pi, _pp in enumerate(prods):
+        _cod_p = _pp.get('codigo', '')
+        _qv = st.session_state.get(f'portal_qty_{_cod_p}_{_pi}', 0) or 0
+        if _qv <= 0:
+            continue
+        _gi_p = data.get('config', {}).get('grupos', {}).get(_pp.get('grupo', ''), {})
+        _cxp_p = int(_gi_p.get('cajas_pallet', _pp.get('cajas_pallet', 160))) if isinstance(_gi_p, dict) else 160
+        _uv = st.session_state.get(f'portal_unit_{_cod_p}_{_pi}', _T['unit_pallets'])
+        _total_pallets_fresh += float(_qv) if _uv == _T['unit_pallets'] else (float(_qv) / max(_cxp_p, 1))
+
     # Reconstruir carrito basado en los valores actuales de los inputs
     _new_carrito = []
     for idx, p in enumerate(prods):
@@ -2909,7 +2970,7 @@ def render_portal_pedido():
         _gi_x = data.get('config',{}).get('grupos',{}).get(_grp_x,{})
         cxp = int(_gi_x.get('cajas_pallet',p.get('cajas_pallet',160))) if isinstance(_gi_x,dict) else 160
         _kg_x = float(p.get('kg_caja',0) or 0)
-        _total_pallets_now = sum(i.get('pallets',0) for i in st.session_state.portal_carrito)
+        _total_pallets_now = _total_pallets_fresh  # #1 fix: total fresco (mismo run)
         precio_u = get_precio_con_volumen(cod, destino, tipo_precio, data, max(_total_pallets_now, 1))
         _dv_x = data.get('config',{}).get('destinos',{}).get(destino,0)
         _fl_x = float(_dv_x.get('factor',_dv_x) if isinstance(_dv_x,dict) else _dv_x if isinstance(_dv_x,(int,float)) else 0)
@@ -3028,7 +3089,7 @@ def render_portal_pedido():
                 'unidad': unit_sel,
                 'fob_usd': _fob_x,
                 'flete_usd': _fl_x,
-                'descuento_vol': get_descuento_volumen(max(_total_pallets_now,1))
+                'descuento_vol': (lambda _b: round((_b - precio_u) / _b, 4) if _b and _b > precio_u else 0)(get_precio_con_volumen(cod, destino, tipo_precio, data, 1))
             })
         else:
             gc[4].markdown('<span style="color:#ccc;font-size:0.85rem">—</span>', unsafe_allow_html=True)
@@ -3299,8 +3360,8 @@ def render_portal_pedido():
                 '</style>'
                 '<div class="eh-cnf-wrap">'
                 f'<h4>{_T["order_summary_title"]}</h4>'
-                f'<div class="eh-cnf-meta"><b>{_T["order_lbl_client"]}</b> {nombre} ({email_input})<br>'
-                f'<b>{_T["order_lbl_company"]}</b> {empresa or "N/A"} &nbsp;|&nbsp; <b>{_T["order_lbl_country"]}</b> {pais or "N/A"}<br>'
+                f'<div class="eh-cnf-meta"><b>{_T["order_lbl_client"]}</b> {_esc(nombre)} ({_esc(email_input)})<br>'
+                f'<b>{_T["order_lbl_company"]}</b> {_esc(empresa) or "N/A"} &nbsp;|&nbsp; <b>{_T["order_lbl_country"]}</b> {_esc(pais) or "N/A"}<br>'
                 f'<b>{_T["order_lbl_mode"]}</b> {tipo_str} &nbsp;|&nbsp; <b>{_T["order_lbl_payment"]}</b> {p_term or _T["order_lbl_pending"]}'
                 + (f'<br><span style="color:#16a34a;font-weight:600">{_T["order_savings"].format(s=_ux_total_save)}</span>' if (tipo_precio == 'CIF' and _ux_total_save > 0) else '')
                 + '</div>'
@@ -3406,7 +3467,7 @@ def render_portal_pedido():
                 save_portal_clients(portal_clients); _adm = load_clients(); _adm[email_input] = {'nombre': nombre, 'email': email_input, 'empresa': empresa, 'telefono': telefono, 'pais': pais, 'fecha_registro': _adm.get(email_input, {}).get('fecha_registro', datetime.now().isoformat()), 'pedidos_ids': list(set(_adm.get(email_input, {}).get('pedidos_ids', []) + [pid])), 'origen': 'portal_cliente'}; save_clients(_adm)
                 # Log email y envio real a order@exportharet.com
                 log_email(email_input, f'Confirmación pedido {pid}', 'portal_cliente')
-                send_order_email(ped)
+                _email_ok = send_order_email(ped)  # #6: refleja si el email salió de verdad
                 st.cache_data.clear()
 
                 # Guardar pedido en session para acciones post-guardado
@@ -3415,14 +3476,17 @@ def render_portal_pedido():
                 # Clear step-4 fields so next order starts clean
                 for _k in ['portal_notas','p_term']: st.session_state.pop(_k, None)
                 st.success(_T['order_confirmed'].format(pid=pid))
-                _msg_sent = _T['order_sent_email'].replace('<b>', '**').replace('</b>', '**')
-                st.info(_msg_sent)
+                if _email_ok:
+                    st.info(_T['order_sent_email'].replace('<b>', '**').replace('</b>', '**'))
+                else:
+                    st.info('✅ Pedido recibido correctamente. Nuestro equipo te '
+                            'contactará en 24-48h para confirmar. Síguelo en **Mis Pedidos** ↑')
 
     # ── Acciones post-pedido ─────────────────────────────────────────────────
     if st.session_state.get('ultimo_pedido'):
         ped_saved = st.session_state['ultimo_pedido']
         pid_saved = ped_saved.get('id','')
-        _nom_post = ped_saved.get('client_name','')
+        _nom_post = _esc(ped_saved.get('client_name',''))
         st.markdown('---')
         # Professional post-order confirmation banner
         st.markdown(f'''<div style="background:linear-gradient(135deg,#1a6b8a,#0d4d6b);padding:20px 24px;border-radius:12px;margin:12px 0;">
@@ -3525,6 +3589,7 @@ def render_portal_pedido():
 def main():
     init_session()
     auto_load_excel()
+    hidratar_pedidos_gist()  # #3: recupera 'Mis Pedidos' tras reinicio (disco efímero)
     if theme:
         theme.aplicar()
 

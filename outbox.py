@@ -71,6 +71,28 @@ def configurado() -> bool:
     return bool(_token() and _gist_id())
 
 
+def fetch() -> list | None:
+    """Lee la lista de pedidos desde el Gist (cola durable). Sirve para recuperar
+    'Mis Pedidos' tras un reinicio de Streamlit Cloud (disco efímero).
+    Devuelve la lista, [] si el gist está vacío, o None si no hay config/falla."""
+    token, gist_id = _token(), _gist_id()
+    if not gist_id:
+        return None
+    headers = {"Accept": "application/vnd.github+json"}
+    if token:
+        headers["Authorization"] = f"token {token}"
+    try:
+        r = requests.get(f"https://api.github.com/gists/{gist_id}",
+                         headers=headers, timeout=10)
+        if r.status_code == 200:
+            content = (r.json().get("files", {})
+                       .get("pedidos_outbox.json", {}).get("content"))
+            return json.loads(content) if content else []
+    except (requests.RequestException, ValueError):
+        pass
+    return None
+
+
 def publish(pedidos: list) -> bool:
     """Vuelca la lista completa de pedidos al Gist. No rompe nunca la app."""
     token, gist_id = _token(), _gist_id()
