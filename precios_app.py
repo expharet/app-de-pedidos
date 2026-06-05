@@ -2593,27 +2593,42 @@ def render_portal_pedido():
 
     if email_input:
         st.session_state.portal_email = email_input
-        if email_input in portal_clients:
+        _eml_lc = email_input.strip().lower()
+        # Reconocer al cliente de forma robusta: 1) padrón (case-insensitive),
+        # 2) si no está, recuperar sus datos del último pedido. Así un cliente que
+        # vuelve NO tiene que reescribir nada aunque solo hubiera pedido una vez.
+        _rec = None
+        for _k, _v in portal_clients.items():
+            if (_k or '').strip().lower() == _eml_lc and isinstance(_v, dict):
+                _rec = _v
+                break
+        if not _rec:
+            _prev_ords = [p for p in load_pedidos()
+                          if (p.get('client_email', '') or '').strip().lower() == _eml_lc]
+            if _prev_ords:
+                _last_ord = sorted(_prev_ords, key=lambda x: x.get('fecha', ''))[-1]
+                _rec = {'nombre': _last_ord.get('client_name', ''), 'empresa': _last_ord.get('empresa', ''),
+                        'telefono': _last_ord.get('telefono', ''), 'pais': _last_ord.get('pais', '')}
+
+        if _rec:
             is_registered = True
-            client_data = dict(portal_clients[email_input])
+            client_data = dict(_rec)
+            # Prerellenar SOLO al cambiar de email (no pisar lo que el usuario edite después)
             if st.session_state.get('portal_last_email') != email_input:
-                st.session_state['portal_nombre'] = client_data.get('nombre', '')
-                st.session_state['portal_empresa'] = client_data.get('empresa', '')
-                st.session_state['portal_telefono'] = client_data.get('telefono', '')
-                st.session_state['portal_pais'] = client_data.get('pais', '')
+                st.session_state['portal_nombre'] = client_data.get('nombre', '') or ''
+                st.session_state['portal_empresa'] = client_data.get('empresa', '') or ''
+                st.session_state['portal_telefono'] = client_data.get('telefono', '') or ''
+                st.session_state['portal_pais'] = (client_data.get('pais', '') or 'Spain')
                 st.session_state['portal_last_email'] = email_input
-            st.success(_T['welcome_back'].format(name=client_data.get('nombre',email_input)))
+            st.success(_T['welcome_back'].format(name=client_data.get('nombre') or email_input))
         else:
+            # Email nuevo/no reconocido: limpiar datos de un cliente anterior
             if st.session_state.get('portal_last_email') != email_input:
+                st.session_state['portal_nombre'] = ''
+                st.session_state['portal_empresa'] = ''
+                st.session_state['portal_telefono'] = ''
+                st.session_state['portal_pais'] = 'Spain'
                 st.session_state['portal_last_email'] = email_input
-                # Pre-rellenar nombre/empresa desde pedidos anteriores
-                _prev_ords = [p for p in load_pedidos() if p.get('client_email','').lower() == email_input.lower()]
-                if _prev_ords:
-                    _last_ord = sorted(_prev_ords, key=lambda x: x.get('fecha',''))[-1]
-                    if not st.session_state.get('portal_nombre'):
-                        st.session_state['portal_nombre'] = _last_ord.get('client_name','')
-                    if not st.session_state.get('portal_empresa'):
-                        st.session_state['portal_empresa'] = _last_ord.get('empresa','')
             st.info(_T['not_registered'])
             show_register = True
 
@@ -2624,14 +2639,16 @@ def render_portal_pedido():
 
         with tab_datos:
             c1, c2 = st.columns(2)
-            nombre = c1.text_input(_T['nombre_label'], key='portal_nombre', value=st.session_state.get('portal_nombre',''))
-            empresa = c2.text_input(_T['empresa_label'], key='portal_empresa', value=st.session_state.get('portal_empresa',''))
+            nombre = c1.text_input(_T['nombre_label'], key='portal_nombre')
+            empresa = c2.text_input(_T['empresa_label'], key='portal_empresa')
             c3, c4 = st.columns(2)
-            telefono = c3.text_input(_T['telefono_label'], placeholder=_T['telefono_ph'], key='portal_telefono', value=st.session_state.get('portal_telefono',''))
+            telefono = c3.text_input(_T['telefono_label'], placeholder=_T['telefono_ph'], key='portal_telefono')
             _paises_opts = ['Afghanistan','Albania','Algeria','Andorra','Angola','Argentina','Armenia','Australia','Austria','Azerbaijan','Bahrain','Bangladesh','Belarus','Belgium','Belize','Benin','Bolivia','Bosnia and Herzegovina','Botswana','Brazil','Bulgaria','Burkina Faso','Cambodia','Cameroon','Canada','Chile','China','Colombia','Congo','Costa Rica','Croatia','Cuba','Czech Republic','Denmark','Dominican Republic','Ecuador','Egypt','El Salvador','Estonia','Ethiopia','Finland','France','Georgia','Germany','Ghana','Greece','Guatemala','Haiti','Honduras','Hungary','India','Indonesia','Iran','Iraq','Ireland','Israel','Italy','Jamaica','Japan','Jordan','Kazakhstan','Kenya','Kuwait','Latvia','Lebanon','Libya','Lithuania','Luxembourg','Madagascar','Malaysia','Mali','Malta','Mexico','Moldova','Mongolia','Morocco','Mozambique','Myanmar','Netherlands','New Zealand','Nicaragua','Nigeria','Norway','Oman','Pakistan','Panama','Paraguay','Peru','Philippines','Poland','Portugal','Qatar','Romania','Russia','Rwanda','Saudi Arabia','Senegal','Serbia','Singapore','Slovakia','Slovenia','Somalia','South Africa','South Korea','Spain','Sri Lanka','Sudan','Sweden','Switzerland','Syria','Taiwan','Tanzania','Thailand','Tunisia','Turkey','Uganda','Ukraine','United Arab Emirates','United Kingdom','United States','Uruguay','Uzbekistan','Venezuela','Vietnam','Yemen','Zambia','Zimbabwe']
-            _pais_cur = st.session_state.get('portal_pais','Spain')
-            _pais_idx = _paises_opts.index(_pais_cur) if _pais_cur in _paises_opts else _paises_opts.index('Spain')
-            pais = c4.selectbox(_T['pais_label'], options=_paises_opts, index=_pais_idx, key='portal_pais')
+            # Sanear el país guardado: si no está en la lista (p.ej. "España" en vez de
+            # "Spain"), caer en Spain — evita que el selectbox (key) reviente.
+            if st.session_state.get('portal_pais') not in _paises_opts:
+                st.session_state['portal_pais'] = 'Spain'
+            pais = c4.selectbox(_T['pais_label'], options=_paises_opts, key='portal_pais')
             if show_register:
                 st.caption(_T['auto_register'])
             _sv_c1, _sv_c2 = st.columns([1,3])
