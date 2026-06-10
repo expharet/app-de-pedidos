@@ -1614,25 +1614,55 @@ def render_configuracion():
         st.caption(f"Total de accesos registrados: {len(_accesos)}")
 # ─── TAB CLIENTES ──────────────────────────────────────────────
 def _migrate_clients_swap(clients):
-    """Corrige clientes legacy con swap nombre<->email."""
+    """Normaliza el padrón del admin: re-clava cada ficha por su EMAIL, corrige el swap
+    nombre<->email y COLAPSA duplicados del mismo cliente SIN perder pedidos."""
     import re as _re
     _email_re = _re.compile(r'^[^@\s]+@[^@\s]+\.[^@\s]+$')
+
+    def _fusionar(dst, src):
+        out = dict(dst)
+        for f in ('empresa', 'telefono', 'pais', 'razon_social', 'fecha_registro',
+                  'primer_pedido', 'ultimo_pedido', 'origen'):
+            if not out.get(f) and src.get(f):
+                out[f] = src.get(f)
+        # nombre legible: si el de dst parece email y el de src no, usar el de src
+        if _email_re.match(out.get('nombre', '') or '') and src.get('nombre') and not _email_re.match(src['nombre']):
+            out['nombre'] = src['nombre']
+        # unir pedidos por id (sin perder ninguno)
+        _ped = {}
+        for ped in (dst.get('pedidos') or []) + (src.get('pedidos') or []):
+            _ped[ped.get('id') if isinstance(ped, dict) else ped] = ped
+        if _ped:
+            out['pedidos'] = list(_ped.values())
+        _pi = set(dst.get('pedidos_ids', []) or []) | set(src.get('pedidos_ids', []) or [])
+        if _pi:
+            out['pedidos_ids'] = sorted(_pi)
+        return out
+
     _changed = False
     _new = {}
     for _k, _v in (clients or {}).items():
+        _v = dict(_v)
         _nom = (_v.get('nombre') or '').strip()
-        _eml = (_v.get('email') or _k or '').strip()
-        if _email_re.match(_nom) and _eml and not _email_re.match(_eml):
-            _v = dict(_v); _v['nombre'] = _eml; _v['email'] = _nom
-            _changed = True
-            _new[_nom] = _v
-        elif _email_re.match(_nom) and (not _eml or _eml == _k):
-            _v = dict(_v); _v['email'] = _nom
-            _v['nombre'] = _v.get('empresa','') or _nom.split('@')[0]
-            _changed = True
-            _new[_nom] = _v
+        _eml = (_v.get('email') or '').strip()
+        # email real: del campo email, de la clave, o del nombre (swap)
+        real = None
+        for cand in (_eml, _k or '', _nom):
+            if _email_re.match(cand or ''):
+                real = cand.lower()
+                break
+        if real:
+            if (_v.get('email', '') or '').lower() != real:
+                _v['email'] = real; _changed = True
+            if _email_re.match(_v.get('nombre', '') or ''):   # nombre era un email → recuperar uno legible
+                _v['nombre'] = (_k if (_k and not _email_re.match(_k)) else
+                                (_v.get('razon_social') or _v.get('empresa') or real.split('@')[0]))
+                _changed = True
+            if _k != real:
+                _changed = True
+            _new[real] = _fusionar(_new[real], _v) if real in _new else _v
         else:
-            _new[_k] = _v
+            _new[_k] = _fusionar(_new[_k], _v) if _k in _new else _v
     if _changed:
         try: save_clients(_new)
         except Exception: pass
