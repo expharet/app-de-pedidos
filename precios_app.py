@@ -77,10 +77,10 @@ MONEDA_SIMBOLO = {"USD": "$", "EUR": "€", "GBP": "£", "CHF": "Fr", "AED": "د
 # -- IDIOMA / LANGUAGE TRANSLATIONS --
 LANG_TEXTS = {
     'es': {
-        'step1': '### 1️⃣ Tus Datos',
-        'step2': '### 2️⃣ Tipo de Precio y Destino',
-        'step3': '### 3️⃣ Selecciona tus Productos',
-        'step4': '### 4️⃣ Confirmar Pedido',
+        'step1': '### 1️⃣ Tus datos de contacto',
+        'step2': '### 2️⃣ ¿Cómo y a dónde lo enviamos?',
+        'step3': '### 3️⃣ Elige tus frutas y cantidades',
+        'step4': '### 4️⃣ Revisa y envía tu pedido',
         'email_label': 'Tu correo electrónico',
         'email_ph': 'tu@empresa.com',
         'no_catalog': '⚠️ Catálogo no disponible. Contacte a order@exportharet.com',
@@ -88,22 +88,22 @@ LANG_TEXTS = {
         'welcome_back': 'Bienvenido de vuelta, **{name}**!',
         'not_registered': '✨ ¡Bienvenido! Eres nuevo aquí — completa tus datos para crear tu cuenta y empezar.',
         'nombre_label': 'Nombre completo *',
-        'empresa_label': 'Empresa',
-        'telefono_label': 'Teléfono / WhatsApp',
+        'empresa_label': 'Empresa (opcional)',
+        'telefono_label': 'Teléfono / WhatsApp (opcional)',
         'telefono_ph': '+34 600 000 000',
         'pais_label': 'País',
         'auto_register': '🔒 Al guardar el pedido, tu cuenta quedará registrada automáticamente.',
         'tab_datos': 'Mis Datos',
         'tab_pedidos': '📦 Mis Pedidos ({n})',
         'no_orders': '📦 Aún no tienes pedidos. ¡Haz tu primer pedido a continuación!',
-        'price_type_label': '💲 Tipo de precio',
-        'price_type_help': 'FOB = Precio en origen (sin flete). CIF = Precio incluye flete al destino.',
-        'dest_label': 'Destino',
+        'price_type_label': '¿Cómo quieres el precio?',
+        'price_type_help': '«Puesto en tu ciudad» incluye el flete hasta tu destino (lo más común). «En Ecuador» es más barato pero tú organizas el transporte.',
+        'dest_label': '¿A qué ciudad o país?',
         'no_dest': '⚠️ No hay destinos configurados',
-        'flete_caption': '🛫 Flete incluido: **${flete:.2f} USD/Kilo** | {orig} → {dest}',
-        'cif_info': '📍 **Incoterm CIF** — Precio incluye costo + flete hasta **{dest}**. Embarcamos desde **{orig}**.',
-        'fob_info': '📦 **FOB (Free On Board)** — El precio **no incluye flete**. Tú coordinas el transporte desde Ecuador.',
- 'price_update_notice': 'ℹ️ Los precios del catálogo se actualizan cada **martes**. Dudas: order@exportharet.com', 'btn_validate': 'Validar', 'btn_acceder': 'Validar', 'progress_step1': 'Tus Datos', 'progress_step2': 'Precio & Destino', 'progress_step3': 'Productos', 'progress_step4': 'Confirmar', 'save_data_btn': '💾 Guardar datos', 'data_saved': 'Datos guardados', 'header_subtitle': 'Sistema de Pedidos — Frutas Exóticas Premium | order@exportharet.com', 'admin_access': '🔒 Acceso administración', 'download_catalog': '📥 Descargar Catálogo', 'sidebar_subtitle': 'Portal de Pedidos', 'sidebar_footer': 'Export Haret © 2026 | order@exportharet.com', 'footer_text': 'Export Haret © 2026 | order@exportharet.com | Frutas Exóticas Premium', 'cart_label': '🛒 Carrito', 'cart_products': 'producto(s)', 'min_progress_zero': '📋 Pedido mínimo: 3 pallets — Añade productos para comenzar', 'min_progress_short': '⚠️ {curr:.1f}/{min} pallets — Faltan {needed:.1f} pallets para el mínimo', 'min_progress_ok': '{curr:.0f} pallets ✓ (mín. {min})', 'min_progress_next': ' | Con {n}+ pallets el precio baja aún más 🚀', 'cart_summary_label': 'Carrito', 'group_summary': '📦 Resumen por Grupo de Embalaje', 'group_full_pallets': 'pallet(s) completo(s)', 'group_partial_boxes': 'cj parciales', 'group_total_pallets': '📊 Total pallets agrupados',
+        'flete_caption': '🛫 Flete ya incluido: **${flete:.2f} USD/Kilo** | {orig} → {dest}',
+        'cif_info': '✅ El precio que ves **ya incluye el flete** hasta **{dest}**. Embarcamos desde **{orig}**.',
+        'fob_info': '📦 **Precio en Ecuador** — no incluye el flete; tú coordinas el transporte desde Ecuador (sale más económico).',
+ 'price_update_notice': 'ℹ️ Los precios del catálogo se actualizan cada **martes**. Dudas: order@exportharet.com', 'btn_validate': 'Continuar →', 'btn_acceder': 'Continuar →', 'progress_step1': 'Tus datos', 'progress_step2': 'Entrega', 'progress_step3': 'Productos', 'progress_step4': 'Enviar', 'save_data_btn': '💾 Guardar datos', 'data_saved': 'Datos guardados', 'header_subtitle': 'Sistema de Pedidos — Frutas Exóticas Premium | order@exportharet.com', 'admin_access': '🔒 Acceso administración', 'download_catalog': '📥 Descargar Catálogo', 'sidebar_subtitle': 'Portal de Pedidos', 'sidebar_footer': 'Export Haret © 2026 | order@exportharet.com', 'footer_text': 'Export Haret © 2026 | order@exportharet.com | Frutas Exóticas Premium', 'cart_label': '🛒 Carrito', 'cart_products': 'producto(s)', 'min_progress_zero': '📋 Pedido mínimo: 3 pallets — Añade productos para comenzar', 'min_progress_short': '⚠️ {curr:.1f}/{min} pallets — Faltan {needed:.1f} pallets para el mínimo', 'min_progress_ok': '{curr:.0f} pallets ✓ (mín. {min})', 'min_progress_next': ' | Con {n}+ pallets el precio baja aún más 🚀', 'cart_summary_label': 'Carrito', 'group_summary': '📦 Resumen por Grupo de Embalaje', 'group_full_pallets': 'pallet(s) completo(s)', 'group_partial_boxes': 'cj parciales', 'group_total_pallets': '📊 Total pallets agrupados',
         'order_total_label': 'Total del pedido',
         'unit_pallets': 'pallets',
         'unit_boxes': 'cajas',
@@ -2564,13 +2564,13 @@ def render_portal_pedido():
 
     # Banner comercial: invita al cliente a simular su pedido y ver precios por volumen
     _promo = {
-        'es': ('Precios por volumen', 'Descubre tu precio en 1 minuto',
-               'Aquí tienes todos nuestros precios. Arma tu pedido de prueba y verás el precio exacto según tu volumen: a más pallets, menor precio por caja. Sin compromiso.'),
-        'en': ('Volume pricing', 'See your price in 1 minute',
-               'All our prices are right here. Build a sample order and see your exact price by volume: more pallets, the lower the price per box. No commitment.'),
+        'es': ('Precio por volumen en tiempo real', 'Tu precio exacto, al instante',
+               'Arma tu pedido y mira el precio cambiar en vivo: a más pallets, menos por caja. Transparente y sin compromiso — son 3 pasos.'),
+        'en': ('Real-time volume pricing', 'Your exact price, instantly',
+               'Build your order and watch the price update live: more pallets, less per box. Transparent and no commitment — just 3 steps.'),
     }.get(st.session_state.get('portal_lang', 'es'),
-          ('Precios por volumen', 'Descubre tu precio en 1 minuto',
-           'Arma tu pedido de prueba y verás el precio exacto según tu volumen.'))
+          ('Precio por volumen en tiempo real', 'Tu precio exacto, al instante',
+           'Arma tu pedido y mira el precio cambiar en vivo: a más pallets, menos por caja.'))
     # Ahorro MÁXIMO por caja a mayor volumen (1 pallet -> precio más barato de la tabla)
     _ahmax = []
     for _pp in data.get('products', []):
@@ -2605,8 +2605,12 @@ def render_portal_pedido():
 
     _eh_seccion(_T['step1'], 1)
     # Email form with explicit "Acceder" button
+    _eml_benef = ('We use it to save your order and follow up — no spam, no commitment.'
+                  if st.session_state.get('portal_lang') == 'en'
+                  else 'Lo usamos para guardar tu pedido y darte seguimiento — sin spam ni compromiso.')
     with st.form('portal_email_form', clear_on_submit=False):
         _email_form_raw = st.text_input(_T['email_label'], placeholder=_T['email_ph'], key='portal_email_input', value=st.session_state.portal_email)
+        st.caption('🔒 ' + _eml_benef)
         _acceder_clicked = st.form_submit_button(_T.get('btn_acceder', '🔓 Acceder'), type='primary', use_container_width=True)
     if _acceder_clicked:
         _eml_trim = (_email_form_raw or '').strip()
@@ -2822,8 +2826,13 @@ def render_portal_pedido():
     # ── PASO 2: Tipo de precio + Destino ─────────────────────────────────────
     _eh_seccion(_T['step2'], 2)
     t1, t2 = st.columns([1, 2])
-    tipo_precio = t1.radio(_T['price_type_label'], ['FOB', 'CIF'], key='portal_tipo', horizontal=True,
-        help=_T['price_type_help'])
+    _lang_en = st.session_state.get('portal_lang') == 'en'
+    _tp_labels = ({'FOB': '🇪🇨 Price in Ecuador (you arrange transport)',
+                   'CIF': '📍 Delivered to your city (freight included)'} if _lang_en
+                  else {'FOB': '🇪🇨 Precio en Ecuador (tú recoges)',
+                        'CIF': '📍 Puesto en tu ciudad (flete incluido)'})
+    tipo_precio = t1.radio(_T['price_type_label'], ['FOB', 'CIF'], key='portal_tipo', horizontal=False,
+        format_func=lambda x: _tp_labels.get(x, x), help=_T['price_type_help'])
     destino = ''
     dest_flete = 0.0
     if tipo_precio == 'CIF':
