@@ -3156,23 +3156,25 @@ def render_portal_pedido():
             _grp_html.append('</div>')
             with st.expander('📦 ' + _T['group_summary'], expanded=False):
                 st.markdown(''.join(line.lstrip() for line in '\n'.join(_grp_html).split('\n')), unsafe_allow_html=True)
-    # ── Tienda visual: cabecera + estilos de tarjeta ──
+    # ── PRO: lista de frutas limpia (fila por fruta) ──
     st.markdown('''<style>
-    .eh-card-top{height:92px;border-radius:13px;display:flex;align-items:center;justify-content:center;position:relative;margin-bottom:9px}
-    .eh-card-top svg{width:54px;height:54px}
-    .eh-card-star{position:absolute;top:8px;left:8px;background:#C66A2E;color:#fff;font-size:10px;font-weight:800;padding:2px 9px;border-radius:20px}
-    .eh-card-nm{font-weight:800;font-size:1.02rem;color:#1b2420;line-height:1.2}
-    .eh-card-chip{background:#dcfce7;color:#15803d;font-size:.64rem;font-weight:800;padding:2px 7px;border-radius:8px;margin-left:5px;white-space:nowrap}
-    .eh-card-pr{margin:3px 0 0;line-height:1.15;white-space:nowrap}
-    .eh-card-pr b{font-size:1.34rem}
-    .eh-card-u{font-size:.72rem;color:#8a948c;margin-left:3px}
-    .eh-card-kg{display:block;font-size:.7rem;color:#a3aaa3;margin-top:2px}
-    .eh-card-cj{font-size:.74rem;color:#15803d;font-weight:700;margin-top:5px}
-    .eh-shop-h{font-size:1.18rem;font-weight:800;color:#0F4F29;margin:8px 0 4px}
-    .eh-shop-h span{font-weight:500;font-size:.85rem;color:#7c847a}
-    div[data-testid="stVerticalBlockBorderWrapper"]{border-radius:16px}
+    .eh-row-ic{width:38px;height:38px;border-radius:10px;background:#f3f7f4;display:flex;align-items:center;justify-content:center}
+    .eh-row-ic svg{width:23px;height:23px}
+    .eh-row-nm{font-weight:600;font-size:1rem;color:#16201b;line-height:1.25}
+    .eh-row-sp{font-size:.78rem;color:#737d77;margin-top:1px}
+    .eh-row-added{background:#e3f2e7;color:#15803d;font-size:.66rem;font-weight:700;padding:2px 8px;border-radius:20px;margin-left:7px;white-space:nowrap}
+    .eh-card-pr{line-height:1.15;white-space:nowrap;text-align:right}
+    .eh-card-pr b{font-size:1.06rem}
+    .eh-card-u{font-size:.7rem;color:#8a948c;margin-left:2px}
+    .eh-card-kg{display:none}
+    .eh-card-cj{font-size:.72rem;color:#15803d;font-weight:600;margin-top:3px}
+    .eh-shop-h{font-size:1.05rem;font-weight:700;color:#16201b;margin:6px 0 2px;display:flex;justify-content:space-between;align-items:baseline}
+    .eh-shop-h span{font-weight:500;font-size:.82rem;color:#737d77}
+    .eh-row-div{border:none;border-top:1px solid #ebefec;margin:.45rem 0}
     </style>''', unsafe_allow_html=True)
-    st.markdown('<div class="eh-shop-h">Selecciona tus frutas <span>· indica las cantidades; el precio por caja baja con el volumen</span></div>', unsafe_allow_html=True)
+    _shop_sub = (f'Puesto en {destino} · flete incluido' if (tipo_precio == 'CIF' and destino) else 'Precio en Ecuador (FOB)')
+    st.markdown(f'<div class="eh-shop-h">Frutas disponibles <span>{_shop_sub}</span></div>', unsafe_allow_html=True)
+    st.markdown('<hr class="eh-row-div" style="margin-top:0">', unsafe_allow_html=True)
 
     # #1 fix: total de pallets FRESCO leído de los inputs actuales (no del carrito del
     # run anterior) → el precio por volumen es correcto en el mismo run, sin desfase.
@@ -3214,27 +3216,21 @@ def render_portal_pedido():
         else:
             _ex_qty = 0
 
-        # TIENDA VISUAL: rejilla de 3 tarjetas; las 5 "columnas" rinden dentro de la tarjeta
-        if idx % 3 == 0:
-            _row_cols = st.columns(3, gap='medium')
+        # PRO: cada fruta es una FILA limpia — icono · nombre + ficha · precio · cantidad
         _svg_html, _bg_card = _fruit_art(nombre_prod)
-        _star_html = '<span class="eh-card-star">★ Top</span>' if _grp_x in ('A', 'B') else ''
-        _cc = _row_cols[idx % 3].container(border=True)
-        _cc.markdown(
-            f'<div class="eh-card-top" style="background:{_bg_card}">{_star_html}{_svg_html}</div>',
-            unsafe_allow_html=True)
-        gc = [_cc, _cc, _cc, _cc, _cc]
-        # Col 0: Nombre + specs del producto
-        _kg_lbl = f'{_kg_x:.1f} {_T["unit_kg_per_box"]}'.replace('.',',') if _kg_x else ''
+        _kg_lbl = f'{_kg_x:.1f} {_T["unit_kg_per_box"]}'.replace('.', ',') if _kg_x else ''
         _min_cant_p = int(p.get('min_cantidad', 0) or 0)
         _min_unit_p = str(p.get('min_unidad', 'Pallets') or 'Pallets')
-        _min_lbl = f'  \n<small style="color:#999;font-size:0.78em">{_T["min_from"]} {_min_cant_p} {_min_unit_p.lower()}</small>' if _min_cant_p > 0 else ''
-        # PATCH P7: Highlight visual cuando producto agregado
-        _added_mark = ' <span style="color:#16a34a;font-weight:700;background:#dcfce7;border-radius:8px;padding:2px 7px;font-size:0.78em;margin-left:6px">' + _T['added_mark'] + '</span>' if _ex_qty > 0 else ''
-        gc[0].markdown(
-            f'**{nombre_prod}**{_added_mark}' + (f'  \n<small style="color:#888">{_kg_lbl}</small>' if _kg_lbl else '') + _min_lbl,
-            unsafe_allow_html=True
-        )
+        _specs = ' · '.join([s for s in [_kg_lbl, (f'{cxp} cj/pallet' if cxp else ''),
+                             (f'Grupo {_grp_x}' if _grp_x else '')] if s])
+        _added_mark = ' <span class="eh-row-added">✓ en tu pedido</span>' if _ex_qty > 0 else ''
+        _r = st.columns([0.5, 3.3, 2.2, 2.0], gap='small', vertical_alignment='center')
+        _r[0].markdown(f'<div class="eh-row-ic">{_svg_html}</div>', unsafe_allow_html=True)
+        _r[1].markdown(
+            f'<div class="eh-row-nm">{_esc(nombre_prod)}{_added_mark}</div>'
+            f'<div class="eh-row-sp">{_specs}</div>', unsafe_allow_html=True)
+        # Reusar el resto del render: precio→col2, cantidad+unidad→col3, cajas→col1
+        gc = [_r[1], _r[2], _r[3], _r[3], _r[1]]
         # Col 1: Precio por caja
         _mon_x = data.get('config',{}).get('destinos_moneda',{}).get(destino,'USD') if tipo_precio=='CIF' else 'USD'
         _rate_x = get_exchange_rates().get(_mon_x,1.0)
@@ -3326,8 +3322,9 @@ def render_portal_pedido():
                 'flete_usd': _fl_x,
                 'descuento_vol': (lambda _b: round((_b - precio_u) / _b, 4) if _b and _b > precio_u else 0)(get_precio_con_volumen(cod, destino, tipo_precio, data, 1))
             })
-        else:
-            gc[4].markdown('<span style="color:#cfd6cf;font-size:0.82rem">·</span>', unsafe_allow_html=True)
+        # divisor fino entre filas (lista limpia "Pro")
+        if idx < len(prods) - 1:
+            st.markdown('<hr class="eh-row-div">', unsafe_allow_html=True)
 
     # Sincronizar carrito SIN rerun forzado: el st.rerun() hacía que la pantalla
     # saltara al inicio al elegir la cantidad (el cliente perdía de vista el producto).
