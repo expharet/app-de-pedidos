@@ -2597,8 +2597,13 @@ def render_portal_pedido():
         from PIL import Image as _Img2
         _logo2 = _Img2.open('logo.png')
         _ph1, _ph2, _ph3 = st.columns([1, 2, 1])
-        with _ph2: st.image(_logo2, width=200)
-        st.markdown(f'<div style="text-align:center;margin-bottom:16px"><p style="color:#666;margin:0">{LANG_TEXTS[st.session_state.get("portal_lang","es")]["header_subtitle"]}</p></div>',unsafe_allow_html=True)
+        with _ph2: st.image(_logo2, width=190)
+        _tagline = ('Premium exotic fruits · Ecuador' if st.session_state.get('portal_lang','es') == 'en'
+                    else 'Frutas exóticas premium · Ecuador')
+        st.markdown(
+            '<div style="text-align:center;margin:-2px 0 18px">'
+            f'<span style="color:#8a978f;font-size:.74rem;font-weight:600;letter-spacing:2.4px;'
+            f'text-transform:uppercase">{_tagline}</span></div>', unsafe_allow_html=True)
     else:
         st.markdown(f'<div style="background:linear-gradient(135deg,#1B7A3C,#176836,#2E9E4F);padding:20px 30px;border-radius:12px;margin-bottom:24px;text-align:center"><h1 style="color:white;margin:0;font-size:1.8em">🚀 Export Haret</h1><p style="color:rgba(255,255,255,0.85);margin:4px 0 0">{LANG_TEXTS[st.session_state.get("portal_lang","es")]["header_subtitle"].split(" | ")[0]}</p></div>',unsafe_allow_html=True)
     # Init lang EARLY so _T is available for error messages
@@ -2618,9 +2623,22 @@ def render_portal_pedido():
         st.session_state['portal_lang'] = 'es'
     # PATCH 5: Language selector as flag buttons (with label)
     _cur_lang = st.session_state.get('portal_lang', 'es')
-    _lbtn_c1, _lbtn_c2, _lbtn_c3 = st.columns([8, 1, 1])
+    # Toggle de idioma compacto y elegante (píldoras pequeñas, sin caja tosca)
+    st.markdown('''<style>
+      .st-key-btn_lang_es, .st-key-btn_lang_en { display:inline-block; }
+      .st-key-btn_lang_es button, .st-key-btn_lang_en button {
+        min-height:34px !important; height:34px !important; min-width:42px !important;
+        padding:0 8px !important; border-radius:9px !important; font-size:1.05rem !important;
+        box-shadow:none !important; transition:all .15s ease; }
+      .st-key-btn_lang_es button:hover, .st-key-btn_lang_en button:hover { transform:none !important; }
+      .st-key-btn_lang_es button[kind="secondary"], .st-key-btn_lang_en button[kind="secondary"] {
+        background:#fff !important; border-color:#e6ece8 !important; opacity:.55; }
+      .st-key-btn_lang_es button[kind="primary"], .st-key-btn_lang_en button[kind="primary"] {
+        background:#eef5f0 !important; border:1px solid #cfe0d4 !important; opacity:1; }
+    </style>''', unsafe_allow_html=True)
+    _lbtn_c1, _lbtn_c2, _lbtn_c3 = st.columns([9, 1, 1])
     with _lbtn_c1:
-        st.markdown("<div style='text-align:right;padding-top:8px;color:#9aa8a0;font-size:0.78rem;letter-spacing:.3px'>Idioma · Language</div>", unsafe_allow_html=True)
+        st.markdown("<div style='text-align:right;padding-top:9px;color:#aab5ad;font-size:0.72rem;letter-spacing:.4px;text-transform:uppercase'>Idioma · Language</div>", unsafe_allow_html=True)
     with _lbtn_c2:
         _es_type = 'primary' if _cur_lang == 'es' else 'secondary'
         if st.button('🇪🇸', key='btn_lang_es', help='Español', use_container_width=False, type=_es_type):
@@ -2682,23 +2700,36 @@ def render_portal_pedido():
             _ahmax.append(_plt[0] - min(_vals))
     _ahorro_max = round(sum(_ahmax) / len(_ahmax), 2) if _ahmax else 0
     _en = st.session_state.get('portal_lang', 'es') == 'en'
-    _strip = ''
+    # Chips de confianza (sobrios, premium) — sustituyen la caja naranja ruidosa.
+    # Uno de ellos resalta el ahorro real por volumen.
+    def _chip(_txt, _accent=False):
+        _bd = '#cfe0d4' if not _accent else '#e7d4bf'
+        _bg = '#f6faf7' if not _accent else '#fcf5ee'
+        _cc = '#1B7A3C' if not _accent else '#C66A2E'
+        _tc = '#3c4b42' if not _accent else '#8a4e22'
+        return (f'<span style="display:inline-flex;align-items:center;gap:6px;background:{_bg};'
+                f'border:1px solid {_bd};border-radius:999px;padding:6px 13px;font-size:.82rem;'
+                f'font-weight:600;color:{_tc};white-space:nowrap">'
+                f'<span style="color:{_cc};font-weight:800">✓</span>{_esc(_txt)}</span>')
+    _chips = [
+        _chip('Confirmación en 24 h' if not _en else 'Confirmed in 24 h'),
+        _chip('Sin compromiso' if not _en else 'No commitment'),
+    ]
     if _ahorro_max > 0:
-        _txt = ('from 4 pallets' if _en else 'a partir de 4 pallets')
-        _pill = (f'up to −${_ahorro_max:.2f}/box' if _en else f'hasta −${_ahorro_max:.2f}/caja')
-        _strip = (
-            '<div style="margin-top:11px;display:inline-flex;align-items:center;gap:9px;'
-            'background:#fff;border:1px solid #ecd9c5;border-radius:12px;padding:7px 12px">'
-            f'<span style="background:#CE7A32;color:#fff;font-weight:800;border-radius:8px;'
-            f'padding:3px 10px;font-size:.92rem;white-space:nowrap">{_pill}</span>'
-            f'<span style="color:#46564d;font-size:.86rem">{_txt}</span></div>')
+        _sv = (f'Hasta −${_ahorro_max:.2f}/caja por volumen' if not _en
+               else f'Up to −${_ahorro_max:.2f}/box by volume')
+        _chips.append(_chip(_sv, _accent=True))
+    _strip = ('<div style="margin-top:15px;display:flex;flex-wrap:wrap;gap:8px">'
+              + ''.join(_chips) + '</div>')
     st.markdown(
-        '<div style="margin:6px 0 20px">'
-        f'<div style="font-size:.72rem;letter-spacing:1.6px;text-transform:uppercase;'
-        f'color:#1B7A3C;font-weight:700">{_promo[0]}</div>'
-        f'<div style="font-weight:800;color:#16201b;font-size:1.7rem;letter-spacing:-.6px;'
-        f'margin:5px 0 4px;line-height:1.1">{_promo[1]}</div>'
-        f'<div style="color:#65726b;font-size:.95rem;line-height:1.5;max-width:580px">{_promo[2]}</div>'
+        '<div style="margin:8px 0 22px">'
+        '<div style="display:flex;align-items:center;gap:9px;margin-bottom:7px">'
+        '<span style="width:26px;height:2px;background:#1B7A3C;border-radius:2px"></span>'
+        f'<span style="font-size:.72rem;letter-spacing:1.8px;text-transform:uppercase;'
+        f'color:#1B7A3C;font-weight:700">{_promo[0]}</span></div>'
+        f'<div style="font-weight:800;color:#14201a;font-size:2rem;letter-spacing:-.8px;'
+        f'margin:0 0 6px;line-height:1.05">{_promo[1]}</div>'
+        f'<div style="color:#65726b;font-size:1rem;line-height:1.55;max-width:560px">{_promo[2]}</div>'
         f'{_strip}'
         '</div>', unsafe_allow_html=True)
 

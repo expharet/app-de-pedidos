@@ -53,16 +53,18 @@ a:hover{ text-decoration:underline; }
 .stButton>button:active, .stDownloadButton>button:active, .stFormSubmitButton>button:active{
   transform:translateY(0) scale(.99); box-shadow:0 2px 6px rgba(20,60,40,.10);
 }
-/* primario = verde marca */
+/* primario = verde marca (degradado sutil premium) */
 .stButton>button[kind="primary"], .stDownloadButton>button,
 .stFormSubmitButton>button[kind="primary"], .stFormSubmitButton>button[kind="primaryFormSubmit"]{
-  background:var(--brand); border-color:var(--brand); color:#fff;
-  box-shadow:0 6px 16px rgba(20,80,45,.22);
+  background:linear-gradient(180deg, #228A47 0%, var(--brand) 55%, var(--brand-700) 100%);
+  border-color:var(--brand); color:#fff; letter-spacing:.2px;
+  box-shadow:0 8px 20px rgba(20,80,45,.24), inset 0 1px 0 rgba(255,255,255,.14);
 }
 .stButton>button[kind="primary"]:hover, .stDownloadButton>button:hover,
 .stFormSubmitButton>button[kind="primary"]:hover, .stFormSubmitButton>button[kind="primaryFormSubmit"]:hover{
-  background:var(--brand-700); border-color:var(--brand-700);
-  box-shadow:0 12px 26px rgba(20,80,45,.30);
+  background:linear-gradient(180deg, #1F8042 0%, var(--brand-700) 60%, #135A2C 100%);
+  border-color:var(--brand-700);
+  box-shadow:0 14px 30px rgba(20,80,45,.32), inset 0 1px 0 rgba(255,255,255,.14);
 }
 /* secundario = contorno verde */
 .stButton>button[kind="secondary"], .stFormSubmitButton>button[kind="secondaryFormSubmit"]{
