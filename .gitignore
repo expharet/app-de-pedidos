@@ -1,7 +1,14 @@
 .venv/
+.venv_run/
 __pycache__/
+.pytest_cache/
 *.pyc
 *.pyo
 .DS_Store
 *.log
 .streamlit/secrets.toml
+# Datos de runtime del portal (no versionar; son estado local/Gist)
+portal_carritos.json
+pedidos_data.json
+email_log.json
+pending_emails.json

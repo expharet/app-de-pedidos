@@ -72,6 +72,28 @@ def get_descuento_volumen(total_pallets):
             return float(_t.get('descuento', 0.0) or 0.0)
     return 0.0
 
+def cajas_y_pallets(qty, unidad, cxp):
+    """Fuente ÚNICA de la conversión cantidad↔(cajas, pallets).
+    La usan el pre-pass, el bucle de productos y los tests, para que las tres
+    cuenten exactamente igual (evita desfases). `unidad` es el valor canónico
+    'Pallets' o 'Cajas'; `cxp` = cajas por pallet del grupo.
+    Devuelve (cajas:int, pallets:float).
+    """
+    try:
+        _cxp = max(int(cxp or 1), 1)
+    except (TypeError, ValueError):
+        _cxp = 1
+    try:
+        _q = float(qty or 0)
+    except (TypeError, ValueError):
+        _q = 0.0
+    if _q <= 0:
+        return 0, 0.0
+    if unidad == 'Pallets':
+        return int(_q * _cxp), float(_q)
+    _cj = int(_q)
+    return _cj, round(_cj / _cxp, 2)
+
 MONEDAS = ["USD", "EUR", "GBP", "CHF", "AED", "CAD", "MXN", "BRL", "COP"]
 MONEDA_SIMBOLO = {"USD": "$", "EUR": "€", "GBP": "£", "CHF": "Fr", "AED": "د.إ", "CAD": "CA$", "MXN": "MX$", "BRL": "R$", "COP": "COP$", "PEN": "S/", "CLP": "CLP$", "ARS": "AR$"}
 # -- IDIOMA / LANGUAGE TRANSLATIONS --
@@ -3209,8 +3231,7 @@ def render_portal_pedido():
         _cxp_p = int(_gi_p.get('cajas_pallet', _pp.get('cajas_pallet', 160))) if isinstance(_gi_p, dict) else 160
         _uv = st.session_state.get(f'portal_unit_{_cod_p}_{_pi}', _T['unit_pallets'])
         _is_pal_p = (_uv == _T['unit_pallets'])
-        _cj_p = int(_qv * _cxp_p) if _is_pal_p else int(_qv)
-        _pal_p = float(_qv) if _is_pal_p else round(_cj_p / max(_cxp_p, 1), 2)
+        _cj_p, _pal_p = cajas_y_pallets(_qv, 'Pallets' if _is_pal_p else 'Cajas', _cxp_p)
         _fresh_pal_total += _pal_p
         _fresh_rows.append({'codigo': _cod_p,
                             'producto': _pp.get('descripcion', '') or _pp.get('producto', '') or _cod_p,
@@ -3500,14 +3521,11 @@ def render_portal_pedido():
         unit_sel = 'Pallets' if unit_sel_raw == _T['unit_pallets'] else 'Cajas'
         # Col 4: Cajas calculadas (solo informacion) — PATCH 8
         if qty_val > 0:
+            _n_cajas, _n_pallets = cajas_y_pallets(qty_val, unit_sel, cxp)  # fuente única
             if unit_sel == 'Pallets':
-                _n_cajas = int(qty_val * cxp)
-                _n_pallets = float(qty_val)
                 _cajas_label = f'**{_n_cajas:,}** cj'
                 _cajas_sub = f'<small style="color:#666">{int(qty_val)} pal \u00d7 {cxp} cj/pal</small>'
             else:
-                _n_cajas = int(qty_val)
-                _n_pallets = round(_n_cajas / cxp, 2)
                 _cajas_label = f'**{_n_cajas:,}** cj'
                 _cajas_sub = f'<small style="color:#666">≈ {_n_pallets:.2f} pal ({cxp} cj/pal)</small>'
             gc[4].markdown(f'{_cajas_label}\n{_cajas_sub}', unsafe_allow_html=True)
