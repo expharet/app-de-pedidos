@@ -87,6 +87,8 @@ LANG_TEXTS = {
         'enter_email': '**Ingresa tu correo electrónico arriba para continuar**',
         'welcome_back': 'Bienvenido de vuelta, **{name}**!',
         'not_registered': '✨ ¡Bienvenido! Eres nuevo aquí — completa tus datos para crear tu cuenta y empezar.',
+        'edit_data': 'Editar mis datos',
+        'client_ready': 'Listo para pedir',
         'nombre_label': 'Nombre completo *',
         'empresa_label': 'Empresa (opcional)',
         'telefono_label': 'Teléfono / WhatsApp (opcional)',
@@ -145,6 +147,8 @@ LANG_TEXTS = {
         'enter_email': '**Enter your email address above to continue**',
         'welcome_back': 'Welcome back, **{name}**!',
         'not_registered': '✨ Welcome! You are new here — complete your details to create your account and get started.',
+        'edit_data': 'Edit my details',
+        'client_ready': 'Ready to order',
         'nombre_label': 'Full name *',
         'empresa_label': 'Company',
         'telefono_label': 'Phone / WhatsApp',
@@ -2738,38 +2742,58 @@ def render_portal_pedido():
         tab_datos, tab_historial = st.tabs([_T['tab_datos'], _T['tab_pedidos'].format(n=_n_orders)])
 
         with tab_datos:
-            c1, c2 = st.columns(2)
-            nombre = c1.text_input(_T['nombre_label'], key='portal_nombre')
-            empresa = c2.text_input(_T['empresa_label'], key='portal_empresa')
-            c3, c4 = st.columns(2)
-            telefono = c3.text_input(_T['telefono_label'], placeholder=_T['telefono_ph'], key='portal_telefono')
-            _paises_opts = ['Afghanistan','Albania','Algeria','Andorra','Angola','Argentina','Armenia','Australia','Austria','Azerbaijan','Bahrain','Bangladesh','Belarus','Belgium','Belize','Benin','Bolivia','Bosnia and Herzegovina','Botswana','Brazil','Bulgaria','Burkina Faso','Cambodia','Cameroon','Canada','Chile','China','Colombia','Congo','Costa Rica','Croatia','Cuba','Czech Republic','Denmark','Dominican Republic','Ecuador','Egypt','El Salvador','Estonia','Ethiopia','Finland','France','Georgia','Germany','Ghana','Greece','Guatemala','Haiti','Honduras','Hungary','India','Indonesia','Iran','Iraq','Ireland','Israel','Italy','Jamaica','Japan','Jordan','Kazakhstan','Kenya','Kuwait','Latvia','Lebanon','Libya','Lithuania','Luxembourg','Madagascar','Malaysia','Mali','Malta','Mexico','Moldova','Mongolia','Morocco','Mozambique','Myanmar','Netherlands','New Zealand','Nicaragua','Nigeria','Norway','Oman','Pakistan','Panama','Paraguay','Peru','Philippines','Poland','Portugal','Qatar','Romania','Russia','Rwanda','Saudi Arabia','Senegal','Serbia','Singapore','Slovakia','Slovenia','Somalia','South Africa','South Korea','Spain','Sri Lanka','Sudan','Sweden','Switzerland','Syria','Taiwan','Tanzania','Thailand','Tunisia','Turkey','Uganda','Ukraine','United Arab Emirates','United Kingdom','United States','Uruguay','Uzbekistan','Venezuela','Vietnam','Yemen','Zambia','Zimbabwe']
-            # Sanear el país guardado: si no está en la lista (p.ej. "España" en vez de
-            # "Spain"), caer en Spain — evita que el selectbox (key) reviente.
-            if st.session_state.get('portal_pais') not in _paises_opts:
-                st.session_state['portal_pais'] = 'Spain'
-            pais = c4.selectbox(_T['pais_label'], options=_paises_opts, key='portal_pais')
-            if show_register:
-                st.caption(_T['auto_register'])
-            _sv_c1, _sv_c2 = st.columns([1,3])
-            if _sv_c1.button(_T.get('save_data_btn','💾 Guardar datos'), key='portal_save_client_btn', type='primary', use_container_width=True):
-                import re as _re_sv
-                _eml_sv = (email_input or '').strip().lower()
-                _nm_sv = (nombre or '').strip()
-                if not _re_sv.match(r'^[^@\s]+@[^@\s]+\.[^@\s]+$', _eml_sv):
-                    st.error(_T.get('err_email_format','Formato de email inválido'))
-                elif not _nm_sv:
-                    st.error('✏️ ' + _T.get('nombre_label','Nombre'))
-                else:
-                    _now_sv = datetime.now().isoformat()
-                    portal_clients[_eml_sv] = {'nombre': _nm_sv, 'empresa': empresa, 'telefono': telefono, 'pais': pais, 'email': _eml_sv, 'fecha_registro': portal_clients.get(_eml_sv, {}).get('fecha_registro', _now_sv), 'pedidos': portal_clients.get(_eml_sv, {}).get('pedidos', [])}
-                    save_portal_clients(portal_clients)
-                    _adm_sv = load_clients()
-                    _adm_sv[_eml_sv] = {'nombre': _nm_sv, 'email': _eml_sv, 'empresa': empresa, 'telefono': telefono, 'pais': pais, 'fecha_registro': _adm_sv.get(_eml_sv, {}).get('fecha_registro', _now_sv), 'pedidos_ids': _adm_sv.get(_eml_sv, {}).get('pedidos_ids', []), 'origen': _adm_sv.get(_eml_sv, {}).get('origen','portal_cliente')}
-                    save_clients(_adm_sv)
-                    st.cache_data.clear()
-                    st.success('' + _nm_sv)
-                    st.rerun()
+            # Cliente reconocido: mostrar resumen limpio y plegar el formulario.
+            # Solo se despliega si quiere editar — así llega antes a los productos.
+            if is_registered and not show_register:
+                _ini = (client_data.get('nombre') or email_input or '·').strip()[:1].upper()
+                _sub = ' · '.join([x for x in [client_data.get('empresa',''), client_data.get('pais',''), email_input] if x])
+                st.markdown(
+                    '<div style="display:flex;align-items:center;gap:13px;padding:13px 15px;border:1px solid #e2eae4;'
+                    'background:#f6faf7;border-radius:14px;margin:2px 0 4px">'
+                    f'<div style="width:42px;height:42px;border-radius:50%;background:#1B7A3C;color:#fff;font-weight:800;'
+                    f'font-size:1.05rem;display:flex;align-items:center;justify-content:center;flex:0 0 auto">{_esc(_ini)}</div>'
+                    '<div style="min-width:0;line-height:1.3">'
+                    f'<div style="font-weight:700;color:#16201b;font-size:1.02rem">{_esc(client_data.get("nombre") or email_input)}</div>'
+                    f'<div style="color:#65726b;font-size:.85rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{_esc(_sub)}</div></div>'
+                    '<div style="margin-left:auto;flex:0 0 auto;background:#e3f2e7;color:#15803d;font-size:.72rem;font-weight:700;'
+                    f'padding:5px 11px;border-radius:20px;white-space:nowrap">✓ {_esc(_T.get("client_ready","Listo para pedir"))}</div>'
+                    '</div>', unsafe_allow_html=True)
+                _form_host = st.expander('✏️ ' + _T.get('edit_data', 'Editar mis datos'), expanded=False)
+            else:
+                _form_host = st.container()
+            with _form_host:
+              c1, c2 = st.columns(2)
+              nombre = c1.text_input(_T['nombre_label'], key='portal_nombre')
+              empresa = c2.text_input(_T['empresa_label'], key='portal_empresa')
+              c3, c4 = st.columns(2)
+              telefono = c3.text_input(_T['telefono_label'], placeholder=_T['telefono_ph'], key='portal_telefono')
+              _paises_opts = ['Afghanistan','Albania','Algeria','Andorra','Angola','Argentina','Armenia','Australia','Austria','Azerbaijan','Bahrain','Bangladesh','Belarus','Belgium','Belize','Benin','Bolivia','Bosnia and Herzegovina','Botswana','Brazil','Bulgaria','Burkina Faso','Cambodia','Cameroon','Canada','Chile','China','Colombia','Congo','Costa Rica','Croatia','Cuba','Czech Republic','Denmark','Dominican Republic','Ecuador','Egypt','El Salvador','Estonia','Ethiopia','Finland','France','Georgia','Germany','Ghana','Greece','Guatemala','Haiti','Honduras','Hungary','India','Indonesia','Iran','Iraq','Ireland','Israel','Italy','Jamaica','Japan','Jordan','Kazakhstan','Kenya','Kuwait','Latvia','Lebanon','Libya','Lithuania','Luxembourg','Madagascar','Malaysia','Mali','Malta','Mexico','Moldova','Mongolia','Morocco','Mozambique','Myanmar','Netherlands','New Zealand','Nicaragua','Nigeria','Norway','Oman','Pakistan','Panama','Paraguay','Peru','Philippines','Poland','Portugal','Qatar','Romania','Russia','Rwanda','Saudi Arabia','Senegal','Serbia','Singapore','Slovakia','Slovenia','Somalia','South Africa','South Korea','Spain','Sri Lanka','Sudan','Sweden','Switzerland','Syria','Taiwan','Tanzania','Thailand','Tunisia','Turkey','Uganda','Ukraine','United Arab Emirates','United Kingdom','United States','Uruguay','Uzbekistan','Venezuela','Vietnam','Yemen','Zambia','Zimbabwe']
+              # Sanear el país guardado: si no está en la lista (p.ej. "España" en vez de
+              # "Spain"), caer en Spain — evita que el selectbox (key) reviente.
+              if st.session_state.get('portal_pais') not in _paises_opts:
+                  st.session_state['portal_pais'] = 'Spain'
+              pais = c4.selectbox(_T['pais_label'], options=_paises_opts, key='portal_pais')
+              if show_register:
+                  st.caption(_T['auto_register'])
+              _sv_c1, _sv_c2 = st.columns([1,3])
+              if _sv_c1.button(_T.get('save_data_btn','💾 Guardar datos'), key='portal_save_client_btn', type='primary', use_container_width=True):
+                  import re as _re_sv
+                  _eml_sv = (email_input or '').strip().lower()
+                  _nm_sv = (nombre or '').strip()
+                  if not _re_sv.match(r'^[^@\s]+@[^@\s]+\.[^@\s]+$', _eml_sv):
+                      st.error(_T.get('err_email_format','Formato de email inválido'))
+                  elif not _nm_sv:
+                      st.error('✏️ ' + _T.get('nombre_label','Nombre'))
+                  else:
+                      _now_sv = datetime.now().isoformat()
+                      portal_clients[_eml_sv] = {'nombre': _nm_sv, 'empresa': empresa, 'telefono': telefono, 'pais': pais, 'email': _eml_sv, 'fecha_registro': portal_clients.get(_eml_sv, {}).get('fecha_registro', _now_sv), 'pedidos': portal_clients.get(_eml_sv, {}).get('pedidos', [])}
+                      save_portal_clients(portal_clients)
+                      _adm_sv = load_clients()
+                      _adm_sv[_eml_sv] = {'nombre': _nm_sv, 'email': _eml_sv, 'empresa': empresa, 'telefono': telefono, 'pais': pais, 'fecha_registro': _adm_sv.get(_eml_sv, {}).get('fecha_registro', _now_sv), 'pedidos_ids': _adm_sv.get(_eml_sv, {}).get('pedidos_ids', []), 'origen': _adm_sv.get(_eml_sv, {}).get('origen','portal_cliente')}
+                      save_clients(_adm_sv)
+                      st.cache_data.clear()
+                      st.success('' + _nm_sv)
+                      st.rerun()
 
         with tab_historial:
             if not _client_orders_all:
