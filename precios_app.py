@@ -1278,6 +1278,7 @@ def render_hacer_pedido():
         elif not c_name: st.error('❌ Ingresa nombre del cliente')
         elif not st.session_state.carrito: st.error('❌ Agrega productos al carrito')
         else:
+            c_email=(c_email or '').strip().lower()  # clave única normalizada (sin duplicados)
             _tod_h=load_pedidos()
             _yn_h=datetime.now().strftime('%Y')
             _pc_h=[p for p in _tod_h if p.get('id','').startswith(f'PED-{_yn_h}')]
@@ -1668,6 +1669,30 @@ def _migrate_clients_swap(clients):
         except Exception: pass
     return _new
 
+def _dedupe_portal_clients(pc):
+    """Normaliza el padrón del portal: clave email en minúsculas + sin espacios, y fusiona
+    duplicados del mismo cliente (une sus listas de pedidos). Devuelve un dict sin duplicados."""
+    out = {}
+    for _k, _v in (pc or {}).items():
+        _ek = (_k or '').strip().lower()
+        if not _ek or not isinstance(_v, dict):
+            continue
+        _v = dict(_v); _v['email'] = _ek
+        if _ek in out:
+            _prev = out[_ek]
+            for _f in ('nombre', 'empresa', 'telefono', 'pais', 'fecha_registro'):
+                if not _prev.get(_f) and _v.get(_f):
+                    _prev[_f] = _v[_f]
+            try:
+                _un = list(dict.fromkeys((_prev.get('pedidos') or []) + (_v.get('pedidos') or [])))
+                if _un:
+                    _prev['pedidos'] = _un
+            except TypeError:
+                pass
+        else:
+            out[_ek] = _v
+    return out
+
 def render_clientes():
     st.markdown('## 👥 Clientes')
     clients=load_clients()
@@ -1714,12 +1739,19 @@ def render_clientes():
                            'Ya puede entrar al portal y estará registrado.')
                 st.rerun()
 
-    # Merge portal-registered clients so admin can see all
+    # Merge portal-registered clients so admin can see all — CASE-INSENSITIVE (sin duplicar).
+    # El padrón del portal se normaliza (clave email en minúsculas) y se fusiona por email.
     try:
-        _pc = load_portal_clients()
+        _raw_pc = load_portal_clients()
+        _pc = _dedupe_portal_clients(_raw_pc)
+        if len(_pc) != len(_raw_pc):
+            save_portal_clients(_pc)   # limpia los duplicados también en el padrón/Gist (una vez)
+        _existing = {(k or '').strip().lower() for k in clients}
         for _pe, _pv in (_pc or {}).items():
-            if _pe and _pe not in clients:
-                clients[_pe] = {'nombre': _pv.get('nombre',''), 'email': _pe, 'empresa': _pv.get('empresa',''), 'telefono': _pv.get('telefono',''), 'pais': _pv.get('pais',''), 'fecha_registro': _pv.get('fecha_registro',''), 'pedidos_ids': _pv.get('pedidos',[]), 'origen': 'portal_cliente'}
+            _k = (_pe or '').strip().lower()
+            if _k and _k not in _existing:
+                clients[_k] = {'nombre': _pv.get('nombre',''), 'email': _k, 'empresa': _pv.get('empresa',''), 'telefono': _pv.get('telefono',''), 'pais': _pv.get('pais',''), 'fecha_registro': _pv.get('fecha_registro',''), 'pedidos_ids': _pv.get('pedidos',[]), 'origen': 'portal_cliente'}
+                _existing.add(_k)
         save_clients(clients)
     except Exception:
         pass
@@ -1830,6 +1862,7 @@ def load_portal_clients():
     return _load(PORTAL_CLIENTS_FILE, {})
 
 def save_portal_clients(c):
+    c = _dedupe_portal_clients(c)  # clave email normalizada + sin duplicados, también en el Gist
     _save(PORTAL_CLIENTS_FILE, c)
     if outbox:
         try:
@@ -2619,7 +2652,9 @@ def render_portal_pedido():
             st.rerun()
         elif _eml_trim:
             st.session_state.portal_email = _eml_trim
-    email_input = st.session_state.portal_email or (_email_form_raw or '').strip()
+    # Email SIEMPRE normalizado (minúsculas + sin espacios): es la clave única del cliente.
+    # Evita fichas duplicadas tipo "Demo@x" vs "demo@x" en el padrón y en la lista del admin.
+    email_input = (st.session_state.portal_email or (_email_form_raw or '').strip()).strip().lower()
 
     client_data = {}
     is_registered = False
@@ -2688,7 +2723,7 @@ def render_portal_pedido():
             _sv_c1, _sv_c2 = st.columns([1,3])
             if _sv_c1.button(_T.get('save_data_btn','💾 Guardar datos'), key='portal_save_client_btn', type='primary', use_container_width=True):
                 import re as _re_sv
-                _eml_sv = (email_input or '').strip()
+                _eml_sv = (email_input or '').strip().lower()
                 _nm_sv = (nombre or '').strip()
                 if not _re_sv.match(r'^[^@\s]+@[^@\s]+\.[^@\s]+$', _eml_sv):
                     st.error(_T.get('err_email_format','Formato de email inválido'))
