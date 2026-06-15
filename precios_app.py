@@ -2631,13 +2631,13 @@ def render_portal_pedido():
 
     # Banner comercial: invita al cliente a simular su pedido y ver precios por volumen
     _promo = {
-        'es': ('Precio por volumen en tiempo real', 'Tu precio exacto, al instante',
-               'Arma tu pedido y mira el precio cambiar en vivo: a más pallets, menos por caja. Transparente y sin compromiso — son 3 pasos.'),
-        'en': ('Real-time volume pricing', 'Your exact price, instantly',
-               'Build your order and watch the price update live: more pallets, less per box. Transparent and no commitment — just 3 steps.'),
+        'es': ('Pedido mayorista', 'Realiza tu pedido',
+               'Indica las cantidades — el precio por caja baja con el volumen. Sin compromiso; te confirmamos en 24 h.'),
+        'en': ('Wholesale order', 'Place your order',
+               'Set the quantities — the price per box drops with volume. No commitment; we confirm within 24 h.'),
     }.get(st.session_state.get('portal_lang', 'es'),
-          ('Precio por volumen en tiempo real', 'Tu precio exacto, al instante',
-           'Arma tu pedido y mira el precio cambiar en vivo: a más pallets, menos por caja.'))
+          ('Pedido mayorista', 'Realiza tu pedido',
+           'Indica las cantidades — el precio por caja baja con el volumen.'))
     # Ahorro MÁXIMO por caja a mayor volumen (1 pallet -> precio más barato de la tabla)
     _ahmax = []
     for _pp in data.get('products', []):
@@ -2658,15 +2658,12 @@ def render_portal_pedido():
             f'padding:3px 10px;font-size:.92rem;white-space:nowrap">{_pill}</span>'
             f'<span style="color:#46564d;font-size:.86rem">{_txt}</span></div>')
     st.markdown(
-        '<div style="background:linear-gradient(135deg,#EAF3EC 0%,#ffffff 72%);'
-        'border:1px solid #dce8df;border-radius:16px;padding:16px 18px;margin:2px 0 18px;'
-        'box-shadow:0 6px 18px rgba(20,60,40,.07)">'
-        f'<span style="display:inline-block;background:#CE7A32;color:#fff;font-size:.66rem;'
-        'font-weight:700;letter-spacing:.6px;padding:3px 10px;border-radius:20px;'
-        f'text-transform:uppercase">{_promo[0]}</span>'
-        f'<div style="font-weight:700;color:#0F4F29;font-size:1.08rem;margin:8px 0 3px;'
-        f'letter-spacing:-.2px">{_promo[1]}</div>'
-        f'<div style="color:#46564d;font-size:.9rem;line-height:1.5">{_promo[2]}</div>'
+        '<div style="margin:6px 0 20px">'
+        f'<div style="font-size:.72rem;letter-spacing:1.6px;text-transform:uppercase;'
+        f'color:#1B7A3C;font-weight:700">{_promo[0]}</div>'
+        f'<div style="font-weight:800;color:#16201b;font-size:1.7rem;letter-spacing:-.6px;'
+        f'margin:5px 0 4px;line-height:1.1">{_promo[1]}</div>'
+        f'<div style="color:#65726b;font-size:.95rem;line-height:1.5;max-width:580px">{_promo[2]}</div>'
         f'{_strip}'
         '</div>', unsafe_allow_html=True)
 
@@ -3220,13 +3217,14 @@ def render_portal_pedido():
         _specs = ' · '.join([s for s in [_kg_lbl, (f'{cxp} cj/pallet' if cxp else ''),
                              (f'Grupo {_grp_x}' if _grp_x else '')] if s])
         _added_mark = ' <span class="eh-row-added">✓ en tu pedido</span>' if _ex_qty > 0 else ''
-        _r = st.columns([0.5, 3.3, 2.2, 2.0], gap='small', vertical_alignment='center')
+        _r = st.columns([0.5, 3.0, 1.7, 3.0], gap='small', vertical_alignment='center')
         _r[0].markdown(f'<div class="eh-row-ic">{_svg_html}</div>', unsafe_allow_html=True)
         _r[1].markdown(
             f'<div class="eh-row-nm">{_esc(nombre_prod)}{_added_mark}</div>'
             f'<div class="eh-row-sp">{_specs}</div>', unsafe_allow_html=True)
-        # Reusar el resto del render: precio→col2, cantidad+unidad→col3, cajas→col1
-        gc = [_r[1], _r[2], _r[3], _r[3], _r[1]]
+        # Controles: cantidad + unidad en LÍNEA (compacto). precio→col2, cajas→col1
+        _ctrl = _r[3].columns([3, 2], gap='small', vertical_alignment='center')
+        gc = [_r[1], _r[2], _ctrl[0], _ctrl[1], _r[1]]
         # Col 1: Precio por caja
         _mon_x = data.get('config',{}).get('destinos_moneda',{}).get(destino,'USD') if tipo_precio=='CIF' else 'USD'
         _rate_x = get_exchange_rates().get(_mon_x,1.0)
@@ -3269,9 +3267,9 @@ def render_portal_pedido():
                                       f'margin-top:1px;white-space:nowrap">−{_sym_show}{_p3d:.2f}/caja a 3+ pallets</div>')
         _precio_show = round(precio_u * _rate_x, 2) if _conv else precio_u
         gc[1].markdown(
-            f'<div style="line-height:1.25;white-space:nowrap">{_ux_strike_html}'
-            f'<b style="color:{_ux_price_color};font-size:1.05em">{_sym_show}{_precio_show:.2f}</b>'
-            f'{_ux_badge_html}</div>', unsafe_allow_html=True)
+            f'<div style="line-height:1.2;white-space:nowrap;text-align:right">'
+            f'<b style="color:{_ux_price_color};font-size:1.1em">{_sym_show}{_precio_show:.2f}</b>'
+            f'{_ux_strike_html}{_ux_badge_html}</div>', unsafe_allow_html=True)
         # Col 2: Cantidad con +/- nativo
         qty_val = gc[2].number_input(
             _T['col_qty'], min_value=0, value=_ex_qty, step=1,
