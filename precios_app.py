@@ -2816,6 +2816,9 @@ def render_portal_pedido():
             client_data = dict(_rec)
             # Prerellenar SOLO al cambiar de email (no pisar lo que el usuario edite después)
             if st.session_state.get('portal_last_email') != email_input:
+                # Cliente reconocido recién entrado: saltar directo al paso 2 (envío)
+                # — ya tiene sus datos, así avanza más rápido e intuitivo.
+                st.session_state['_scroll_step2'] = True
                 st.session_state['portal_nombre'] = client_data.get('nombre', '') or ''
                 st.session_state['portal_empresa'] = client_data.get('empresa', '') or ''
                 st.session_state['portal_telefono'] = client_data.get('telefono', '') or ''
@@ -3044,7 +3047,26 @@ def render_portal_pedido():
         st.warning(_T['enter_full_name'])
         return
     # ── PASO 2: Tipo de precio + Destino ─────────────────────────────────────
+    # Ancla para el auto-scroll cuando un cliente reconocido entra (salta al paso 2).
+    st.markdown('<div id="eh-step2-anchor" style="position:relative;top:-70px"></div>', unsafe_allow_html=True)
     _eh_seccion(_T['step2'], 2)
+    # Si el cliente acaba de ser reconocido, desplazar la vista al paso 2 (una vez).
+    if st.session_state.pop('_scroll_step2', False):
+        import streamlit.components.v1 as _components
+        _components.html(
+            """<script>
+            (function(){
+              const tryScroll = (n) => {
+                const doc = window.parent && window.parent.document;
+                const el = doc && doc.getElementById('eh-step2-anchor');
+                if (el) { el.scrollIntoView({behavior:'smooth', block:'start'}); }
+                else if (n < 20) { setTimeout(()=>tryScroll(n+1), 120); }
+              };
+              setTimeout(()=>tryScroll(0), 250);
+            })();
+            </script>""",
+            height=0,
+        )
     _lang_en = st.session_state.get('portal_lang') == 'en'
     _tp_labels = ({'FOB': '🇪🇨 Price in Ecuador (you arrange transport)',
                    'CIF': '📍 Delivered to your city (freight included)'} if _lang_en
