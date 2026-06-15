@@ -1,0 +1,30 @@
+name: keep-portal-awake
+
+# Mantiene despierto el portal en Streamlit Community Cloud (gratuito), que se
+# DUERME por inactividad. Hace una visita HTTP periódica desde la infraestructura
+# de GitHub (no depende del Mac, que puede estar apagado).
+on:
+  schedule:
+    - cron: '*/15 * * * *'   # cada 15 minutos (UTC)
+  workflow_dispatch:          # permite lanzarlo a mano desde la pestaña Actions
+
+permissions:
+  contents: read
+
+concurrency:
+  group: keep-awake
+  cancel-in-progress: false
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Visitar el portal para que no se duerma
+        run: |
+          BASE="https://exportharet-pedidos.streamlit.app"
+          for path in "/_stcore/health" "/"; do
+            code=$(curl -s -o /dev/null -w "%{http_code}" \
+              -A "haret-keepalive-bot" --max-time 40 --retry 2 "$BASE$path" || echo "000")
+            echo "$BASE$path -> HTTP $code"
+          done
+          echo "Ping de keep-alive completado: $(date -u)"
