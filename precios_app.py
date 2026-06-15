@@ -3630,64 +3630,16 @@ def render_portal_pedido():
             _next_tramo = _t
             _pallets_para_siguiente = max(0, _t['min'] - _current_pallets)
             break
-    # PATCH 9: Progress bar toward minimum order
+    # Progreso hacia el pedido mínimo: lo muestra la barra inferior fija (una sola
+    # fuente de verdad), no aquí — evita duplicar la misma información tres veces.
     _min_order = 3
-    _progress_pct = min(1.0, _current_pallets / _min_order)
-    _progress_fill_pct = int(_progress_pct * 100)
-    if _current_pallets == 0:
-        _min_valido = False
-        _progress_color = '#e0e0e0'
-        _progress_text = _T['min_progress_zero']
-        _progress_icon = '⚪'
-    elif _current_pallets < _min_order:
-        _min_valido = False
-        _progress_color = '#10a37a'
-        _needed = _min_order - _current_pallets
-        _progress_text = _T['min_progress_short'].format(curr=_current_pallets, min=_min_order, needed=_needed)
-        _progress_icon = '🟡'
-    else:
-        _min_valido = True
-        _progress_color = '#10a37a'
-        _next_hint = ''
-        if _next_tramo and _pallets_para_siguiente > 0:
-            _next_hint = _T['min_progress_next'].format(n=int(_next_tramo["min"]))
-        _progress_text = _T['min_progress_ok'].format(curr=_current_pallets, min=_min_order) + _next_hint
-        _progress_icon = '🟢'
-    st.markdown(
-        f'<div style="margin: 4px 0 2px 0; font-size:0.88rem">{_progress_icon} {_progress_text}</div>'
-        f'<div style="height:8px;background:#e9ecef;border-radius:6px;margin-bottom:8px">'
-        f'<div style="height:100%;width:{_progress_fill_pct}%;background:{_progress_color};border-radius:6px;transition:width 0.4s"></div>'
-        f'</div>',
-        unsafe_allow_html=True
-    )
-    # PATCH 2: Live mini-carrito summary
+    _needed = max(0.0, _min_order - _current_pallets)
     _cart_total_usd = sum(i.get('total',0) for i in st.session_state.portal_carrito)
     _cart_total_pal = sum(i.get('pallets',0) for i in st.session_state.portal_carrito)
     _cart_total_caj = sum(i.get('cajas',0) for i in st.session_state.portal_carrito)
     _cart_items = len([i for i in st.session_state.portal_carrito if i.get('cajas',0) > 0])
     if _cart_items > 0:
-        _cart_dest_mon = data.get('config',{}).get('destinos_moneda',{}).get(destino,'USD') if tipo_precio=='CIF' else 'USD'
-        _cart_rate = get_exchange_rates().get(_cart_dest_mon, 1.0)
-        _cart_sym = MONEDA_SIMBOLO.get(_cart_dest_mon, _cart_dest_mon)
-        _cart_total_dest = round(_cart_total_usd * _cart_rate, 2) if _cart_dest_mon != 'USD' and _cart_rate != 1.0 else None
-        _s_prods = 's' if _cart_items != 1 else ''
-        # Mostrar primero la moneda elegida en el toggle (transparencia)
-        _alt_css = 'font-weight:500;font-size:.82em;opacity:.8'
-        if (not _ver_usd) and _cart_total_dest:
-            _total_disp = (f'💰 {_cart_sym}{_cart_total_dest:,.2f} {_cart_dest_mon}'
-                           f'<span style="{_alt_css}"> ~ ${_cart_total_usd:,.2f} USD</span>')
-        else:
-            _total_disp = (f'💰 ${_cart_total_usd:,.2f} USD'
-                           + (f'<span style="{_alt_css}"> ~ {_cart_sym}{_cart_total_dest:,.2f} {_cart_dest_mon}</span>'
-                              if _cart_total_dest else ''))
-        _cart_html = (
-            f'<div style="background:#eef6f2;border:1px solid #dce1e8;border-radius:12px;padding:9px 15px;margin:6px 0;display:flex;justify-content:space-between;align-items:center">'
-            f'<span style="font-weight:600;color:#0c6e51">{_T["cart_label"]}: {_cart_items} {_T["cart_products"]} | {_cart_total_pal:.1f} pal | {_cart_total_caj:,} cj</span>'
-            f'<span style="font-weight:700;color:#0c6e51;font-size:1.1em">{_total_disp}</span>'
-            f'</div>'
-        )
-        st.markdown(_cart_html, unsafe_allow_html=True)
-        # PATCH P12: Vaciar carrito accesible junto al banner del carrito vivo
+        # Solo "Vaciar pedido" (discreto a la derecha). El total va en la barra inferior.
         _vc_cols = st.columns([5, 2])
         with _vc_cols[1]:
             if st.button(_T.get('clear_cart','🗑️ Vaciar carrito'), key='portal_vaciar_top', use_container_width=True, type='secondary'):
@@ -3943,17 +3895,22 @@ def render_portal_pedido():
         _brate = get_exchange_rates().get(_bmon, 1.0); _bsym = MONEDA_SIMBOLO.get(_bmon, _bmon)
     else:
         _brate = 1.0; _bsym = '$'
+    # La barra mide lo CRÍTICO: progreso hacia el mínimo de pedido. Una vez
+    # alcanzado, en CIF muestra el ahorro por volumen. Mensaje corto y claro.
     if _fp <= 0:
         _fb_pct = 0
-        _fb_msg = 'Empieza tu pedido · a más pallets, mejor precio por caja'
         _fb_left = '📦 0 pallets'
+        _fb_msg = f'Empieza tu pedido · mínimo {_min_order} pallets'
+    elif _fp < _min_order:
+        _fb_left = f'📦 <b>{_fp:.1f}</b>/{_min_order} pallets'
+        _fb_pct = int(min(100, _fp / _min_order * 100))
+        _fb_msg = f'Faltan <b>{(_min_order - _fp):.1f}</b> para poder enviar'
     elif tipo_precio != 'CIF':
-        _fb_pct = 100
         _fb_left = f'📦 <b>{_fp:.1f}</b> pallets'
-        _fb_msg = 'Precio FOB fijo · embarcas desde Ecuador'
+        _fb_pct = 100
+        _fb_msg = '✓ Listo para enviar'
     else:
         _fb_left = f'📦 <b>{_fp:.1f}</b> pallets'
-        # Ahorro YA acumulado por volumen (vs precio a 1 pallet) + empujón del siguiente pallet
         _next_p = int(_fp) + 1
         _base_sum = 0.0; _ah_total = 0.0; _ah_next = 0.0
         for _it in _new_carrito:
@@ -3963,21 +3920,17 @@ def render_portal_pedido():
             _pn = get_precio_con_volumen(_cod, destino, tipo_precio, data, _next_p)
             if _p1:
                 _base_sum += _cj * _p1
-                _ah_total += _cj * (_p1 - _pcur)            # ahorro ya conseguido
+                _ah_total += _cj * (_p1 - _pcur)
             if _pn and _pn < _pcur:
-                _ah_next += _cj * (_pcur - _pn)             # ahorro extra con 1 pallet más
+                _ah_next += _cj * (_pcur - _pn)
         _pct_now = (_ah_total / _base_sum * 100) if _base_sum > 0 else 0
-        _fb_pct = min(100, int(_pct_now / 13 * 100))         # 13% ≈ descuento máx
+        _fb_pct = min(100, int(_pct_now / 13 * 100))
         _ah_t_d = _ah_total * _brate
         _ah_n_d = _ah_next * _brate
-        if _ah_total < 1:  # recién empieza (~1 pallet): solo el empujón
-            _fb_msg = (f'➕ Añade 1 pallet y ahorras <b>{_bsym}{_ah_n_d:,.0f}</b> en todo el pedido')
-        elif _ah_next >= 20:  # el siguiente pallet aún aporta de verdad
-            _fb_msg = (f'💰 Ya ahorras <b>{_bsym}{_ah_t_d:,.0f}</b> por volumen · '
-                       f'➕ con 1 pallet más, <b>+{_bsym}{_ah_n_d:,.0f}</b>')
-        else:  # mucho volumen: refuerza el gran ahorro acumulado
-            _fb_msg = (f'💰 Ya ahorras <b>{_bsym}{_ah_t_d:,.0f}</b> en este pedido '
-                       f'(<b>−{_pct_now:.1f}%</b> por volumen)')
+        if _ah_total < 1:
+            _fb_msg = f'➕ Añade 1 pallet y ahorras <b>{_bsym}{_ah_n_d:,.0f}</b>'
+        else:
+            _fb_msg = f'💰 Ahorras <b>{_bsym}{_ah_t_d:,.0f}</b> por volumen'
     # #4 Resumen inferior más informativo: nº de frutas + total (la lista detallada
     # está justo debajo). Peek de nombres en el title para repaso sin hacer scroll.
     _fb_items = [i for i in _new_carrito if i.get('cajas', 0) > 0]
@@ -4033,31 +3986,29 @@ def render_portal_pedido():
         _resumen_html.append('''<style>
         .eh-resumen-wrap { margin: 8px 0 14px; }
         .eh-resumen-total {
-            background: linear-gradient(135deg,#0c6e51 0%,#1a4f9e 100%);
-            color: #fff; border-radius: 12px; padding: 14px 18px;
+            background: #0c6e51; color: #fff; border-radius: 14px; padding: 16px 20px;
             display: flex; justify-content: space-between; align-items: center;
             flex-wrap: wrap; gap: 10px; margin-bottom: 12px;
-            box-shadow: 0 4px 12px rgba(0,62,140,0.15);
+            box-shadow: 0 8px 20px -8px rgba(12,110,81,.45);
         }
-        .eh-resumen-total .eh-tot-lbl { font-size: 0.85rem; opacity: 0.85; text-transform: uppercase; letter-spacing: 0.5px; }
-        .eh-resumen-total .eh-tot-val { font-size: 1.45rem; font-weight: 700; line-height: 1.1; }
-        .eh-resumen-total .eh-tot-eur { font-size: 1rem; opacity: 0.92; }
-        .eh-resumen-total .eh-tot-meta { font-size: 0.82rem; opacity: 0.88; }
+        .eh-resumen-total .eh-tot-lbl { font-size: 0.7rem; opacity: 0.82; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 700; }
+        .eh-resumen-total .eh-tot-val { font-size: 1.55rem; font-weight: 800; line-height: 1.1; letter-spacing:-.02em; }
+        .eh-resumen-total .eh-tot-eur { font-size: 0.92rem; opacity: 0.9; }
+        .eh-resumen-total .eh-tot-meta { font-size: 0.8rem; opacity: 0.9; }
         .eh-resumen-card {
-            background: #fff; border: 1px solid #e1e7f0; border-radius: 10px;
-            padding: 10px 14px; margin-bottom: 8px; display: grid;
-            grid-template-columns: 1fr auto; gap: 4px 12px; align-items: center;
+            background: #fff; border: 1px solid #e7eaef; border-radius: 12px;
+            padding: 11px 15px; margin-bottom: 8px; display: grid;
+            grid-template-columns: 1fr auto; gap: 3px 12px; align-items: center;
         }
-        .eh-resumen-card .eh-prod { font-weight: 600; color: #1a2540; font-size: 0.98rem; }
-        .eh-resumen-card .eh-precio { color: #0c6e51; font-weight: 700; text-align: right; white-space: nowrap; }
-        .eh-resumen-card .eh-meta { grid-column: 1 / -1; display: flex; justify-content: space-between; align-items: center; font-size: 0.82rem; color: #6c7a93; padding-top: 2px; border-top: 1px dashed #eef1f7; margin-top: 2px; }
-        .eh-resumen-card .eh-meta b { color: #1a2540; font-weight: 600; }
+        .eh-resumen-card .eh-prod { font-weight: 700; color: #131a21; font-size: 0.96rem; }
+        .eh-resumen-card .eh-precio { color: #084a37; font-weight: 800; text-align: right; white-space: nowrap; font-variant-numeric:tabular-nums; }
+        .eh-resumen-card .eh-meta { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; font-size: 0.78rem; color: #8b95a3; padding-top: 4px; margin-top: 2px; border-top: 1px solid #f1f4f7; }
+        .eh-resumen-card .eh-meta b { color: #131a21; font-weight: 600; }
         .eh-resumen-card .eh-eur { color: #0c6e51; font-weight: 600; }
         @media (min-width: 740px) {
           .eh-resumen-card { grid-template-columns: 2.3fr 0.9fr 0.9fr 0.9fr 1.1fr 1fr; gap: 6px 10px; }
           .eh-resumen-card .eh-prod { grid-column: auto; }
-          .eh-resumen-card .eh-precio { text-align: right; }
-          .eh-resumen-card .eh-meta { grid-column: auto; display: contents; border: none; padding: 0; margin: 0; font-size: 0.92rem; color: #1a2540; }
+          .eh-resumen-card .eh-meta { grid-column: auto; display: contents; border: none; padding: 0; margin: 0; font-size: 0.9rem; color: #566472; }
           .eh-resumen-card .eh-meta-cell { padding: 0; }
         }
         </style>''')
