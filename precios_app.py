@@ -89,6 +89,16 @@ LANG_TEXTS = {
         'not_registered': '✨ ¡Bienvenido! Eres nuevo aquí — completa tus datos para crear tu cuenta y empezar.',
         'edit_data': 'Editar mis datos',
         'client_ready': 'Listo para pedir',
+        'edit_shipping': 'Cambiar modalidad de envío',
+        'cart_restored': '🛒 Retomamos tu pedido donde lo dejaste — revisa las cantidades.',
+        'err_email_friendly': 'Revisa el correo: parece que falta la @ o el dominio (ej. nombre@empresa.com).',
+        'order_received_kick': 'Pedido recibido',
+        'post_steps': 'Recibido|Confirmamos (24 h)|Preparación|Envío',
+        'post_copy_hint': 'Guarda tu comprobante y, si quieres, confírmanos por WhatsApp o email:',
+        'ship_fob_title': 'Precio en Ecuador (FOB)',
+        'ship_fob_sub': 'Tú coordinas el transporte desde Quito/Guayaquil — sale más económico.',
+        'ship_cif_title': 'Puesto en {dest} (flete incluido)',
+        'ship_cif_sub': 'Nosotros enviamos hasta tu ciudad. Flete: ${flete:.2f} USD/kg.',
         'nombre_label': 'Nombre completo *',
         'empresa_label': 'Empresa (opcional)',
         'telefono_label': 'Teléfono / WhatsApp (opcional)',
@@ -149,6 +159,16 @@ LANG_TEXTS = {
         'not_registered': '✨ Welcome! You are new here — complete your details to create your account and get started.',
         'edit_data': 'Edit my details',
         'client_ready': 'Ready to order',
+        'edit_shipping': 'Change shipping option',
+        'cart_restored': '🛒 We picked up your order where you left off — review the quantities.',
+        'err_email_friendly': 'Check the email: it looks like the @ or domain is missing (e.g. name@company.com).',
+        'order_received_kick': 'Order received',
+        'post_steps': 'Received|We confirm (24 h)|Preparation|Shipping',
+        'post_copy_hint': 'Keep your receipt and, if you wish, confirm via WhatsApp or email:',
+        'ship_fob_title': 'Price in Ecuador (FOB)',
+        'ship_fob_sub': 'You arrange transport from Quito/Guayaquil — more economical.',
+        'ship_cif_title': 'Delivered to {dest} (freight included)',
+        'ship_cif_sub': 'We ship to your city. Freight: ${flete:.2f} USD/kg.',
         'nombre_label': 'Full name *',
         'empresa_label': 'Company',
         'telefono_label': 'Phone / WhatsApp',
@@ -1874,6 +1894,17 @@ def save_portal_clients(c):
         except Exception as e:
             logger.warning(f'publish_clients falló: {e}')
 
+# ── Carritos pendientes por email (para retomar el pedido al volver) ──
+# Store aislado del padrón de clientes: evita crear clientes fantasma y
+# mantiene el JSON de carritos pequeño. Clave = email normalizado.
+PORTAL_CARTS_FILE = 'portal_carritos.json'
+
+def load_portal_carts():
+    return _load(PORTAL_CARTS_FILE, {})
+
+def save_portal_carts(c):
+    _save(PORTAL_CARTS_FILE, c)
+
 def get_fob_price(codigo, data):
     for p in data.get('products', []):
         if p.get('codigo') == codigo:
@@ -2681,12 +2712,25 @@ def render_portal_pedido():
         st.caption('🔒 ' + _eml_benef)
         _acceder_clicked = st.form_submit_button(_T.get('btn_acceder', '🔓 Acceder'), type='primary', use_container_width=True)
     if _acceder_clicked:
+        import re as _re_eml
         _eml_trim = (_email_form_raw or '').strip()
-        if _eml_trim and _eml_trim != st.session_state.portal_email:
-            st.session_state.portal_email = _eml_trim
-            st.rerun()
-        elif _eml_trim:
-            st.session_state.portal_email = _eml_trim
+        # #7 Validación amable: si el formato no es válido, avisamos junto al campo
+        # (borde rojo + mensaje) en vez de dejar pasar un correo erróneo.
+        if _eml_trim and not _re_eml.match(r'^[^@\s]+@[^@\s]+\.[^@\s]+$', _eml_trim):
+            st.session_state['_email_invalid'] = True
+        else:
+            st.session_state.pop('_email_invalid', None)
+            if _eml_trim and _eml_trim != st.session_state.portal_email:
+                st.session_state.portal_email = _eml_trim
+                st.rerun()
+            elif _eml_trim:
+                st.session_state.portal_email = _eml_trim
+    if st.session_state.get('_email_invalid'):
+        st.markdown('<style>.st-key-portal_email_input input{border-color:#dc3545 !important;'
+                    'box-shadow:0 0 0 3px rgba(220,53,69,.12) !important}</style>', unsafe_allow_html=True)
+        st.markdown('<div style="color:#dc3545;font-size:.85rem;margin:-6px 0 4px">'
+                    + _esc(_T.get('err_email_friendly', 'Revisa el correo: parece que falta la @ o el dominio (ej. nombre@empresa.com).'))
+                    + '</div>', unsafe_allow_html=True)
     # Email SIEMPRE normalizado (minúsculas + sin espacios): es la clave única del cliente.
     # Evita fichas duplicadas tipo "Demo@x" vs "demo@x" en el padrón y en la lista del admin.
     email_input = (st.session_state.portal_email or (_email_form_raw or '').strip()).strip().lower()
@@ -2724,6 +2768,15 @@ def render_portal_pedido():
                 st.session_state['portal_telefono'] = client_data.get('telefono', '') or ''
                 st.session_state['portal_pais'] = (client_data.get('pais', '') or 'Spain')
                 st.session_state['portal_last_email'] = email_input
+                # Recordar la modalidad de envío de su último pedido (menos fricción)
+                _lo_ship = [p for p in load_pedidos()
+                            if (p.get('client_email', '') or '').strip().lower() == _eml_lc]
+                if _lo_ship:
+                    _lo = sorted(_lo_ship, key=lambda x: x.get('fecha', ''))[-1]
+                    if _lo.get('tipo_precio') in ('FOB', 'CIF'):
+                        st.session_state['portal_tipo'] = _lo.get('tipo_precio')
+                    if _lo.get('destino'):
+                        st.session_state['portal_dest'] = _lo.get('destino')
             st.success(_T['welcome_back'].format(name=client_data.get('nombre') or email_input))
         else:
             # Email nuevo/no reconocido: limpiar datos de un cliente anterior
@@ -2737,6 +2790,15 @@ def render_portal_pedido():
             show_register = True
 
     if email_input:
+        # #10 Retomar carrito pendiente: si el cliente vuelve y aún no tiene nada
+        # en el carrito de esta sesión, restaurar el que dejó guardado.
+        if st.session_state.get('_cart_restored_for') != email_input:
+            st.session_state['_cart_restored_for'] = email_input
+            if not st.session_state.get('portal_carrito'):
+                _saved_cart = load_portal_carts().get(email_input.strip().lower(), {}).get('items', [])
+                if _saved_cart:
+                    st.session_state.portal_carrito = _saved_cart
+                    st.session_state['_cart_was_restored'] = True
         _client_orders_all = [p for p in load_pedidos() if p.get('client_email','').lower() == email_input.lower()]
         _n_orders = len(_client_orders_all)
         tab_datos, tab_historial = st.tabs([_T['tab_datos'], _T['tab_pedidos'].format(n=_n_orders)])
@@ -2783,7 +2845,7 @@ def render_portal_pedido():
                   if not _re_sv.match(r'^[^@\s]+@[^@\s]+\.[^@\s]+$', _eml_sv):
                       st.error(_T.get('err_email_format','Formato de email inválido'))
                   elif not _nm_sv:
-                      st.error('✏️ ' + _T.get('nombre_label','Nombre'))
+                      st.error(_T.get('err_nombre', '✏️ Ingresa tu nombre completo'))
                   else:
                       _now_sv = datetime.now().isoformat()
                       portal_clients[_eml_sv] = {'nombre': _nm_sv, 'empresa': empresa, 'telefono': telefono, 'pais': pais, 'email': _eml_sv, 'fecha_registro': portal_clients.get(_eml_sv, {}).get('fecha_registro', _now_sv), 'pedidos': portal_clients.get(_eml_sv, {}).get('pedidos', [])}
@@ -2915,34 +2977,62 @@ def render_portal_pedido():
         return
     # ── PASO 2: Tipo de precio + Destino ─────────────────────────────────────
     _eh_seccion(_T['step2'], 2)
-    t1, t2 = st.columns([1, 2])
     _lang_en = st.session_state.get('portal_lang') == 'en'
     _tp_labels = ({'FOB': '🇪🇨 Price in Ecuador (you arrange transport)',
                    'CIF': '📍 Delivered to your city (freight included)'} if _lang_en
                   else {'FOB': '🇪🇨 Precio en Ecuador (tú recoges)',
                         'CIF': '📍 Puesto en tu ciudad (flete incluido)'})
-    tipo_precio = t1.radio(_T['price_type_label'], ['FOB', 'CIF'], key='portal_tipo', horizontal=False,
-        format_func=lambda x: _tp_labels.get(x, x), help=_T['price_type_help'])
-    destino = ''
-    dest_flete = 0.0
-    if tipo_precio == 'CIF':
-        dest_opts = list(dests.keys()) if dests else []
-        if not dest_opts:
-            t2.warning(_T['no_dest'])
-        else:
-            destino = t2.selectbox(_T['dest_label'], dest_opts, key='portal_dest')
-            dest_val = dests.get(destino, 0)
-            dest_flete = float(dest_val) if isinstance(dest_val, (int, float)) else dest_val.get('factor', 0) if isinstance(dest_val, dict) else 0
-            _puerto_orig = 'Quito/Guayaquil, Ecuador'
-            t2.caption(_T['flete_caption'].format(flete=dest_flete, orig=_puerto_orig, dest=destino))
-            t2.info(_T['cif_info'].format(dest=destino, orig=_puerto_orig))
-    else:
-        t2.info(_T['fob_info'])
-        t2.caption(_T['fob_origin'])
 
-    st.markdown('---')
+    def _flete_of(_d):
+        _dv = dests.get(_d, 0)
+        return float(_dv) if isinstance(_dv, (int, float)) else (_dv.get('factor', 0) if isinstance(_dv, dict) else 0)
+
+    # Resumen Pro del envío (siempre visible) + controles plegados: el cliente
+    # solo despliega si quiere cambiar de modalidad. Usa el valor persistido.
+    _cur_tipo = st.session_state.get('portal_tipo', 'FOB')
+    _cur_dest = st.session_state.get('portal_dest', '')
+    if _cur_tipo == 'CIF' and _cur_dest:
+        _ship_ico = '📍'
+        _ship_t = _T['ship_cif_title'].format(dest=_cur_dest)
+        _ship_s = _T['ship_cif_sub'].format(flete=_flete_of(_cur_dest))
+    else:
+        _ship_ico = '🇪🇨'
+        _ship_t = _T['ship_fob_title']
+        _ship_s = _T['ship_fob_sub']
+    st.markdown(
+        '<div style="display:flex;align-items:center;gap:13px;padding:13px 15px;border:1px solid #e2eae4;'
+        'background:#f6faf7;border-radius:14px;margin:2px 0 4px">'
+        f'<div style="font-size:1.45rem;flex:0 0 auto;line-height:1">{_ship_ico}</div>'
+        '<div style="min-width:0;line-height:1.3">'
+        f'<div style="font-weight:700;color:#16201b;font-size:1.02rem">{_esc(_ship_t)}</div>'
+        f'<div style="color:#65726b;font-size:.85rem">{_esc(_ship_s)}</div></div>'
+        '</div>', unsafe_allow_html=True)
+
+    with st.expander('🚚 ' + _T.get('edit_shipping', 'Cambiar modalidad de envío'), expanded=False):
+        t1, t2 = st.columns([1, 2])
+        tipo_precio = t1.radio(_T['price_type_label'], ['FOB', 'CIF'], key='portal_tipo', horizontal=False,
+            format_func=lambda x: _tp_labels.get(x, x), help=_T['price_type_help'])
+        destino = ''
+        dest_flete = 0.0
+        if tipo_precio == 'CIF':
+            dest_opts = list(dests.keys()) if dests else []
+            if not dest_opts:
+                t2.warning(_T['no_dest'])
+            else:
+                destino = t2.selectbox(_T['dest_label'], dest_opts, key='portal_dest')
+                dest_val = dests.get(destino, 0)
+                dest_flete = float(dest_val) if isinstance(dest_val, (int, float)) else dest_val.get('factor', 0) if isinstance(dest_val, dict) else 0
+                _puerto_orig = 'Quito/Guayaquil, Ecuador'
+                t2.caption(_T['flete_caption'].format(flete=dest_flete, orig=_puerto_orig, dest=destino))
+                t2.info(_T['cif_info'].format(dest=destino, orig=_puerto_orig))
+        else:
+            t2.info(_T['fob_info'])
+            t2.caption(_T['fob_origin'])
+
     # ── PASO 3: Selección de Productos ───────────────────────────────
     _eh_seccion(_T['step3'], 3)
+    if st.session_state.pop('_cart_was_restored', False):
+        st.success(_T.get('cart_restored', 'Retomamos tu pedido.'), icon=None)
     st.info(_T['price_update_notice'], icon=None)
     # Toggle de moneda: ver precios en la moneda del destino (CIF) o en USD — transparencia total
     _mon_dest = data.get('config', {}).get('destinos_moneda', {}).get(destino, 'USD') if tipo_precio == 'CIF' else 'USD'
@@ -3280,9 +3370,9 @@ def render_portal_pedido():
         # PATCH UX-CIF U4: calcular precio en proximo tramo y ahorro (solo CIF)
         _ux_next_price = None
         _ux_next_min = None
-        _ux_base_price_1 = get_precio_con_volumen(cod, destino, tipo_precio, data, 1) if tipo_precio == 'CIF' else None; _ux_save_pct = round((1 - precio_u / _ux_base_price_1) * 100, 1) if (_ux_base_price_1 and precio_u and _ux_base_price_1 > precio_u) else 0; _ux_save_pct = max(_ux_save_pct, 10.0) if (tipo_precio == 'CIF' and _total_pallets_now >= 3) else _ux_save_pct
-        if tipo_precio == 'CIF':
-            # Encontrar siguiente tramo con mas pallets
+        _ux_base_price_1 = get_precio_con_volumen(cod, destino, tipo_precio, data, 1); _ux_save_pct = round((1 - precio_u / _ux_base_price_1) * 100, 1) if (_ux_base_price_1 and precio_u and _ux_base_price_1 > precio_u) else 0; _ux_save_pct = max(_ux_save_pct, 10.0) if _total_pallets_now >= 3 else _ux_save_pct
+        if True:
+            # Encontrar siguiente tramo con mas pallets (FOB y CIF)
             for _tt in TRAMOS_VOLUMEN:
                 if _tt['min'] > max(_total_pallets_now, 1):
                     _ux_next_min = int(_tt['min'])
@@ -3296,7 +3386,7 @@ def render_portal_pedido():
         _ux_badge_html = ''; _ux_strike_html = ''; _ux_price_color = '#1B7A3C'
         _conv = (_mon_x != 'USD' and tipo_precio == 'CIF' and _rate_x != 1.0 and not _ver_usd)
         _sym_show = _sym_x if _conv else '$'
-        if tipo_precio == 'CIF' and _ux_base_price_1:
+        if _ux_base_price_1:
             _p1 = round(_ux_base_price_1 * (_rate_x if _conv else 1.0), 2)   # ancla: 1 pallet
             _pu = round(precio_u * (_rate_x if _conv else 1.0), 2)           # precio actual
             if precio_u < _ux_base_price_1:  # YA con descuento por volumen
@@ -3305,7 +3395,12 @@ def render_portal_pedido():
                 _ux_badge_html = (f'<div style="color:#15803d;font-size:0.74em;font-weight:600;'
                                   f'margin-top:1px;white-space:nowrap">−{_sym_show}{_p1 - _pu:.2f}/caja</div>')
                 _ux_price_color = '#16a34a'
-            else:  # aún sin descuento → gancho hacia 3+ pallets
+            elif _ux_next_min and _ux_next_price and _ux_next_price < precio_u:
+                # gancho hacia el SIGUIENTE tramo real (contextual por fruta)
+                _pnd = round((precio_u - _ux_next_price) * (_rate_x if _conv else 1.0), 2)
+                _ux_badge_html = (f'<div style="color:#b5641f;font-size:0.72em;font-weight:600;'
+                                  f'margin-top:1px;white-space:nowrap">−{_sym_show}{_pnd:.2f}/caja a {_ux_next_min}+ pallets</div>')
+            else:  # sin tramo siguiente arriba → gancho base a 3+ pallets
                 _p3 = get_precio_con_volumen(cod, destino, tipo_precio, data, 3)
                 if _p3 and _p3 < _ux_base_price_1:
                     _p3d = round((_ux_base_price_1 - _p3) * (_rate_x if _conv else 1.0), 2)
@@ -3371,6 +3466,23 @@ def render_portal_pedido():
     # El resumen y el total inferiores se calculan del carrito ya actualizado.
     st.session_state.portal_carrito = _new_carrito
 
+    # #10 Persistir el carrito por email SOLO cuando cambia (evita escrituras en cada
+    # rerun). Así el cliente puede cerrar y retomar el pedido donde lo dejó.
+    if email_input:
+        _cart_snap = [(i.get('codigo'), i.get('cajas', 0), i.get('unidad', 'Pallets')) for i in _new_carrito]
+        if st.session_state.get('_cart_saved_snap') != _cart_snap:
+            try:
+                _carts_all = load_portal_carts()
+                _eml_cart = email_input.strip().lower()
+                if _new_carrito:
+                    _carts_all[_eml_cart] = {'items': _new_carrito, 'ts': datetime.now().isoformat()}
+                else:
+                    _carts_all.pop(_eml_cart, None)
+                save_portal_carts(_carts_all)
+                st.session_state['_cart_saved_snap'] = _cart_snap
+            except Exception as _e_cart:
+                logger.warning(f'guardar carrito falló: {_e_cart}')
+
     # ── Nube flotante sutil: descuento total por volumen + incentivo del siguiente pallet ──
     _fp = sum(i.get('pallets', 0) for i in _new_carrito)
     _bmon = _mon_dest if (tipo_precio == 'CIF' and not _ver_usd) else 'USD'
@@ -3413,6 +3525,19 @@ def render_portal_pedido():
         else:  # mucho volumen: refuerza el gran ahorro acumulado
             _fb_msg = (f'💰 Ya ahorras <b>{_bsym}{_ah_t_d:,.0f}</b> en este pedido '
                        f'(<b>−{_pct_now:.1f}%</b> por volumen)')
+    # #4 Resumen inferior más informativo: nº de frutas + total (la lista detallada
+    # está justo debajo). Peek de nombres en el title para repaso sin hacer scroll.
+    _fb_items = [i for i in _new_carrito if i.get('cajas', 0) > 0]
+    _fb_n = len(_fb_items)
+    _fb_tot_disp = sum(i.get('total', 0) for i in _new_carrito) * _brate
+    _fb_peek = ' · '.join(f"{_esc(i.get('producto',''))} ({i.get('cajas',0)} cj)" for i in _fb_items[:8])
+    if _fb_n:
+        _fruta_w = 'fruta' if _fb_n == 1 else 'frutas'
+        _fb_mid = (
+            f'<span title="{_fb_peek}" style="white-space:nowrap;cursor:default">🧾 <b>{_fb_n}</b> {_fruta_w}</span>'
+            f'<span style="white-space:nowrap;font-weight:800;color:#0F4F29;font-size:1.02rem">{_bsym}{_fb_tot_disp:,.0f}</span>')
+    else:
+        _fb_mid = ''
     st.markdown(
         '<div style="position:fixed;left:0;right:0;bottom:0;z-index:60;'
         'background:rgba(255,255,255,.93);backdrop-filter:blur(6px);'
@@ -3420,6 +3545,7 @@ def render_portal_pedido():
         '<div style="max-width:780px;margin:0 auto;display:flex;align-items:center;gap:12px;'
         'flex-wrap:wrap;font-size:.84rem;color:#1B2620">'
         f'<span style="white-space:nowrap">{_fb_left}</span>'
+        f'{_fb_mid}'
         '<div style="flex:1;min-width:90px;height:7px;background:#e3ede6;border-radius:6px;overflow:hidden">'
         f'<div style="height:100%;width:{_fb_pct}%;background:linear-gradient(90deg,#2E9E4F,#1B7A3C);'
         'transition:width .4s ease"></div></div>'
@@ -3743,6 +3869,14 @@ def render_portal_pedido():
                 # Guardar pedido en session para acciones post-guardado
                 st.session_state['ultimo_pedido'] = ped
                 st.session_state.portal_carrito = []
+                # #10 El pedido ya se envió: borrar el carrito pendiente guardado
+                try:
+                    _carts_done = load_portal_carts()
+                    if _carts_done.pop((email_input or '').strip().lower(), None) is not None:
+                        save_portal_carts(_carts_done)
+                    st.session_state['_cart_saved_snap'] = []
+                except Exception:
+                    pass
                 # Clear step-4 fields so next order starts clean
                 for _k in ['portal_notas','p_term']: st.session_state.pop(_k, None)
                 st.success(_T['order_confirmed'].format(pid=pid))
@@ -3758,13 +3892,31 @@ def render_portal_pedido():
         pid_saved = ped_saved.get('id','')
         _nom_post = _esc(ped_saved.get('client_name',''))
         st.markdown('---')
-        # Professional post-order confirmation banner
-        st.markdown(f'''<div style="background:linear-gradient(135deg,#1a6b8a,#0d4d6b);padding:20px 24px;border-radius:12px;margin:12px 0;">
-          <div style="font-size:1.8em;">&#x2705;</div>
-          <h3 style="color:#fff;margin:8px 0 4px;">{_T["post_order_h3"].format(pid=pid_saved)}</h3>
-          <p style="color:#d0eaf5;margin:0;">{_T["post_order_thanks"].format(name=_nom_post)}</p>
+        # #6/#8 Confirmación Pro (verde de marca) con nº de pedido destacado + timeline
+        _post_steps = _T.get('post_steps', 'Recibido|Confirmamos (24 h)|Preparación|Envío').split('|')
+        _steps_html = ''
+        for _si, _slbl in enumerate(_post_steps):
+            _on = _si == 0
+            _dot = ('background:#fff;color:#1B7A3C' if _on else 'background:rgba(255,255,255,.22);color:#fff')
+            _txt = ('#fff;font-weight:700' if _on else 'rgba(255,255,255,.8);font-weight:500')
+            _conn = ('<div style="flex:1;height:2px;background:rgba(255,255,255,.25);margin:0 4px;min-width:10px"></div>' if _si < len(_post_steps) - 1 else '')
+            _steps_html += (f'<div style="display:flex;align-items:center;gap:6px;white-space:nowrap">'
+                            f'<span style="width:16px;height:16px;border-radius:50%;{_dot};font-size:.62rem;'
+                            f'display:flex;align-items:center;justify-content:center;font-weight:800">{"✓" if _on else _si+1}</span>'
+                            f'<span style="font-size:.74rem;color:{_txt}">{_esc(_slbl)}</span></div>{_conn}')
+        st.markdown(f'''<div style="background:linear-gradient(135deg,#1B7A3C,#0F4F29);padding:22px 24px;border-radius:16px;margin:12px 0;box-shadow:0 10px 30px rgba(15,79,41,.22)">
+          <div style="display:flex;align-items:center;gap:13px">
+            <div style="width:46px;height:46px;border-radius:50%;background:rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center;font-size:1.5rem;flex:0 0 auto">&#x2705;</div>
+            <div style="line-height:1.2">
+              <div style="font-size:.7rem;letter-spacing:1.4px;text-transform:uppercase;color:rgba(255,255,255,.85);font-weight:700">{_esc(_T.get("order_received_kick","Pedido recibido"))}</div>
+              <div style="color:#fff;font-size:1.45rem;font-weight:800;margin-top:1px">{_esc(pid_saved.upper())}</div>
+            </div>
+          </div>
+          <p style="color:#eaf5ee;margin:13px 0 14px;line-height:1.5;font-size:.94rem">{_T["post_order_thanks"].format(name=_nom_post)}</p>
+          <div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px 2px;border-top:1px solid rgba(255,255,255,.18);padding-top:13px">{_steps_html}</div>
         </div>''', unsafe_allow_html=True)
         pdf_bytes, pdf_mime, pdf_ext = build_order_pdf(ped_saved)
+        st.caption(_T.get('post_copy_hint', 'Guarda tu comprobante y, si quieres, confírmanos por WhatsApp o email:'))
         # Acciones en columnas
         ac1, ac2, ac3 = st.columns(3)
         # Descargar PDF albarán
