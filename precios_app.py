@@ -1498,6 +1498,8 @@ def render_gestion_pedidos():
     else:
         fe = f1.selectbox('Estado',['Todos']+ORDEN_ESTADOS,key='gp_e')
         _use_multi = False
+    if '_gp_c_pending' in st.session_state:   # viene de la ficha de cliente ("Ver sus pedidos")
+        st.session_state['gp_c'] = st.session_state.pop('_gp_c_pending')
     fc=f2.text_input('🔍 Buscar (cliente, email o ID)',key='gp_c',placeholder='nombre, correo o PED-…')
     fd=f3.selectbox('Destino',['Todos']+sorted(set(p.get('destino','') for p in pedidos if p.get('destino'))),key='gp_d')
     fd1,fd2=st.columns(2)
@@ -1925,7 +1927,7 @@ def _dedupe_portal_clients(pc):
     return out
 
 def render_clientes():
-    st.markdown('## 👥 Clientes')
+    _admin_seccion('Clientes', '👥')
     clients=load_clients()
     clients=_migrate_clients_swap(clients)
 
@@ -1997,6 +1999,81 @@ def render_clientes():
         rows.append({'Nombre':c.get('nombre',''),'Email':e,'Empresa':c.get('empresa',''),'País':c.get('pais',''),'Segmento':seg['badge'],'Pedidos':len(mp),'Facturación':f"${sum(p.get('total_usd',0) for p in mp):,.2f}",'Descuento':f"{seg['descuento']*100:.0f}%"})
     st.dataframe(pd.DataFrame(rows),use_container_width=True,hide_index=True)
     st.caption(f'{len(rows)} de {len(clients)} clientes')
+
+    # ── Ficha de cliente (Perfil 360, estilo Finanzas) ──
+    _admin_seccion('Ficha de cliente', '🪪')
+    _cli_keys = sorted(clients.keys(), key=lambda e: (clients[e].get('nombre','') or e).lower())
+    _sel_cli = st.selectbox('Cliente', _cli_keys,
+                            format_func=lambda e: f"{clients[e].get('nombre','') or '(sin nombre)'} · {e}",
+                            key='cli_ficha_sel')
+    if _sel_cli:
+        _c = clients[_sel_cli]
+        _mp = sorted([p for p in pedidos if (p.get('client_email','') or '').strip().lower() == _sel_cli.strip().lower()],
+                     key=lambda x: x.get('fecha',''), reverse=True)
+        _vol = sum(p.get('total_usd',0) for p in _mp)
+        _np = len(_mp)
+        _ticket = (_vol/_np) if _np else 0.0
+        _seg = segmentar(_sel_cli, clients)
+        _ult = _mp[0].get('fecha','')[:10] if _mp else '—'
+        _rec = ''
+        if _mp:
+            try:
+                _d = (datetime.now() - datetime.fromisoformat(_mp[0].get('fecha'))).days
+                _rec = 'hoy' if _d <= 0 else (f'hace {_d} d' if _d < 60 else f'hace {_d//30} m')
+            except Exception:
+                _rec = ''
+        _activos = len([p for p in _mp if p.get('estado') in ('Recibido','Confirmado','Preparando')])
+        _ini = ((_c.get('nombre') or _sel_cli).strip()[:1] or '·').upper()
+        _sub = ' · '.join([x for x in [_c.get('empresa',''), _c.get('pais',''), _sel_cli] if x])
+        # Cabecera de ficha (avatar + nombre + segmento)
+        st.markdown(
+            '<div style="display:flex;align-items:center;gap:13px;background:#fff;border:1px solid #e7eaef;'
+            'border-radius:14px;padding:14px 18px;margin:4px 0 10px;box-shadow:0 1px 2px rgba(18,28,42,.05)">'
+            f'<div style="width:44px;height:44px;border-radius:50%;background:#0c6e51;color:#fff;font-weight:800;'
+            f'font-size:1.1rem;display:flex;align-items:center;justify-content:center;flex:0 0 auto">{_esc(_ini)}</div>'
+            '<div style="min-width:0;line-height:1.25">'
+            f'<div style="font-weight:800;color:#131a21;font-size:1.08rem">{_esc(_c.get("nombre","") or "(sin nombre)")}</div>'
+            f'<div style="color:#8b95a3;font-size:.82rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{_esc(_sub)}</div></div>'
+            f'<div style="margin-left:auto;flex:0 0 auto;background:#eef6f2;color:#0b5a42;border:1px solid rgba(12,110,81,.2);'
+            f'border-radius:999px;padding:4px 12px;font-size:.76rem;font-weight:700;white-space:nowrap">{_esc(_seg["badge"])}</div>'
+            '</div>', unsafe_allow_html=True)
+        # KPIs (tarjetas)
+        _k1,_k2,_k3,_k4 = st.columns(4)
+        _k1.metric('💵 Volumen total', f'${_vol:,.0f}', 'USD')
+        _k2.metric('📦 Pedidos', _np, f'{_activos} activos' if _activos else None)
+        _k3.metric('🎟️ Ticket medio', f'${_ticket:,.0f}')
+        _k4.metric('🕒 Último pedido', _ult, _rec or None)
+        # Contacto rápido
+        _cc1, _cc2, _cc3 = st.columns(3)
+        _tel_d = ''.join(ch for ch in str(_c.get('telefono','') or '') if ch.isdigit())
+        if _tel_d:
+            _cc1.link_button('📲 WhatsApp', f'https://wa.me/{_tel_d}', use_container_width=True)
+        _cc2.link_button('✉️ Email', f'mailto:{_sel_cli}', use_container_width=True)
+        if _np:
+            if _cc3.button('📦 Ver sus pedidos', use_container_width=True, key='cli_ficha_pedidos'):
+                # clave pendiente: se aplica al buscador de Pedidos ANTES de crear el widget
+                st.session_state['_gp_c_pending'] = _sel_cli
+                st.rerun()
+        # Historial de pedidos (con badge de estado)
+        st.markdown('<div style="font-size:.7rem;text-transform:uppercase;letter-spacing:.06em;color:#8b95a3;'
+                    'font-weight:700;margin:12px 0 4px">Historial de pedidos</div>', unsafe_allow_html=True)
+        if _mp:
+            for _p in _mp[:15]:
+                _pid = (_p.get('id','') or '').upper()
+                _pf = (_p.get('fecha','') or '')[:10]
+                st.markdown(
+                    '<div style="display:flex;align-items:center;gap:10px;background:#fff;border:1px solid #e7eaef;'
+                    'border-radius:10px;padding:8px 13px;margin-bottom:6px">'
+                    f'{estado_badge(_p.get("estado","Recibido"))}'
+                    f'<span style="font-weight:700;color:#131a21;font-size:.85rem">#{_esc(_pid)}</span>'
+                    f'<span style="color:#8b95a3;font-size:.78rem">{_esc(_pf)}</span>'
+                    f'<span style="margin-left:auto;font-weight:800;color:#084a37;font-variant-numeric:tabular-nums">${_p.get("total_usd",0):,.2f}</span>'
+                    '</div>', unsafe_allow_html=True)
+            if _np > 15:
+                st.caption(f'… y {_np-15} pedido(s) más')
+        else:
+            st.info('Este cliente aún no tiene pedidos.')
+
     with st.expander('🗑️ Eliminar Cliente', expanded=False):
         _cli_opts = list(clients.keys())
         _del_cli = st.selectbox('Cliente a eliminar', _cli_opts, format_func=lambda e: f"{clients[e].get('nombre','')} ({e})", key='cli_del_sel')
@@ -2006,51 +2083,26 @@ def render_clientes():
             if _del_cli in clients:
                 del clients[_del_cli]; save_clients(clients)
                 st.toast(f'Cliente {_del_cli} eliminado'); st.rerun()
-    st.markdown('---')
-    sel=st.selectbox('Detalle de cliente',['']+list(clients.keys()),key='cli_d')
-    if sel:
-        c=clients[sel]; seg=segmentar(sel,clients); mp=[p for p in pedidos if p.get('client_email')==sel]
-        d1,d2=st.columns(2)
-        d1.markdown(f"**Nombre:** {c.get('nombre','')}")
-        d1.markdown(f"**Email:** {sel}")
-        d1.markdown(f"**Segmento:** {seg['badge']}")
-        d2.markdown(f"**Pedidos:** {len(mp)}")
-        d2.markdown(f"**Facturación:** ${sum(p.get('total_usd',0) for p in mp):,.2f}")
-        d2.markdown(f"**Descuento:** {seg['descuento']*100:.0f}%")
-        if mp:
-            st.dataframe(pd.DataFrame([{'ID':p.get('id',''),'Destino':p.get('destino',''),'Total':f"${p.get('total_usd',0):,.2f}",'Estado':p.get('estado',''),'Fecha':p.get('fecha','')[:10]} for p in sorted(mp,key=lambda x:x.get('fecha',''),reverse=True)]),use_container_width=True,hide_index=True)
-    st.markdown("---")
-    st.markdown("### 🔍 Ficha de Cliente")
-    _cl_list = list(clients.keys())
-    if _cl_list:
-        _sel=st.selectbox('Seleccionar cliente',_cl_list,format_func=lambda e:f"{clients[e].get('nombre','')} ({e})",key='sel_cl')
-        if _sel:
-            _c=clients[_sel]; _seg=segmentar(_sel,clients); _mp=[p for p in pedidos if p.get('client_email')==_sel]
-            col_f1,col_f2=st.columns([3,1])
-            with col_f1:
-                st.markdown(f"#### {_c.get('nombre','')} {_seg['badge']}")
-                fc1,fc2=st.columns(2)
-                f_nom=fc1.text_input('Nombre',value=_c.get('nombre',''),key='f_nom')
-                f_emp=fc2.text_input('Empresa',value=_c.get('empresa',''),key='f_emp')
-                fc3,fc4=st.columns(2)
-                f_tel=fc3.text_input('Teléfono/WhatsApp',value=_c.get('telefono',''),key='f_tel')
-                f_pais=fc4.text_input('País',value=_c.get('pais',''),key='f_pais')
-                TOPTC=['','Pago anticipado 100%','50% adelanto / 50% contra documentos','30% adelanto / 70% contra BL','Carta de crédito (LC)','Pago a 30 días','Pago a 60 días','Otro']
-                cur_tc=_c.get('terminos_habituales',''); tc_idx=TOPTC.index(cur_tc) if cur_tc in TOPTC else 0
-                f_term=st.selectbox('Términos habituales',TOPTC,index=tc_idx,key='f_term')
-                f_seg=st.text_input('📅 Próximo seguimiento',value=_c.get('proximo_seguimiento',''),placeholder='ej: 2026-07-01',key='f_seg')
-                f_notas=st.text_area('📋 Notas internas (solo admin)',value=_c.get('notas_internas',''),height=90,key='f_notas',placeholder='Preferencias, condiciones especiales...')
-                if st.button('💾 Guardar ficha',type='primary',key='save_ficha_cl'):
-                    clients[_sel].update({'nombre':f_nom,'empresa':f_emp,'telefono':f_tel,'pais':f_pais,'terminos_habituales':f_term,'proximo_seguimiento':f_seg,'notas_internas':f_notas})
-                    save_clients(clients); st.toast('Ficha guardada',icon='✅'); st.rerun()
-            with col_f2:
-                st.metric('Pedidos',len(_mp))
-                st.metric('Facturación',f"${sum(p.get('total_usd',0) for p in _mp):,.2f}")
-                st.metric('Descuento',f"{_seg['descuento']*100:.0f}%")
-                if _c.get('proximo_seguimiento'): st.info(f"📅 {_c.get('proximo_seguimiento')}")
-            if _mp:
-                st.markdown('#### 📜 Historial de pedidos')
-                st.dataframe(pd.DataFrame([{'ID':p.get('id',''),'Destino':p.get('destino',''),'Total':f"${p.get('total_usd',0):,.2f}",'Terminos':p.get('terminos_pago',''),'Estado':p.get('estado',''),'Fecha':p.get('fecha','')[:10]} for p in sorted(_mp,key=lambda x:x.get('fecha',''),reverse=True)]),use_container_width=True,hide_index=True)
+    # Editar datos del cliente seleccionado arriba (notas internas, términos…)
+    if _sel_cli:
+        with st.expander('✏️ Editar datos del cliente', expanded=False):
+            _ce = clients[_sel_cli]
+            _fc1,_fc2=st.columns(2)
+            _f_nom=_fc1.text_input('Nombre',value=_ce.get('nombre',''),key='f_nom')
+            _f_emp=_fc2.text_input('Empresa',value=_ce.get('empresa',''),key='f_emp')
+            _fc3,_fc4=st.columns(2)
+            _f_tel=_fc3.text_input('Teléfono/WhatsApp',value=_ce.get('telefono',''),key='f_tel')
+            _f_pais=_fc4.text_input('País',value=_ce.get('pais',''),key='f_pais')
+            _TOPTC=['','Pago anticipado 100%','50% adelanto / 50% contra documentos','30% adelanto / 70% contra BL','Carta de crédito (LC)','Pago a 30 días','Pago a 60 días','Otro']
+            _cur_tc=_ce.get('terminos_habituales',''); _tc_idx=_TOPTC.index(_cur_tc) if _cur_tc in _TOPTC else 0
+            _f_term=st.selectbox('Términos habituales',_TOPTC,index=_tc_idx,key='f_term')
+            _f_seg=st.text_input('📅 Próximo seguimiento',value=_ce.get('proximo_seguimiento',''),placeholder='ej: 2026-07-01',key='f_seg')
+            _f_notas=st.text_area('🔒 Notas internas (solo admin)',value=_ce.get('notas_internas',''),height=90,key='f_notas',placeholder='Preferencias, condiciones especiales...')
+            if st.button('💾 Guardar ficha',type='primary',key='save_ficha_cl'):
+                clients[_sel_cli] = _merge_client_record(clients.get(_sel_cli, {}),
+                    {'nombre':_f_nom,'empresa':_f_emp,'telefono':_f_tel,'pais':_f_pais})
+                clients[_sel_cli].update({'terminos_habituales':_f_term,'proximo_seguimiento':_f_seg,'notas_internas':_f_notas})
+                save_clients(clients); st.toast('Ficha guardada',icon='✅'); st.rerun()
 
 def render_reportes():
     st.markdown('## 📊 Reportes y Analytics')
