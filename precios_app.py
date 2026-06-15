@@ -142,7 +142,7 @@ LANG_TEXTS = {
         'unit_pallets': 'pallets',
         'unit_boxes': 'cajas',
         'unit_products': 'producto(s)',
-        'unit_kg_per_box': 'kg/caja', 'group_missing': '🎁 Te faltan <b>{n} cj</b> para completar 1 pallet del Grupo {g} y mejorar el precio', 'group_complete_with': ' · Completalo con: <b>{names}</b>', 'col_product': 'Producto', 'col_price': 'Precio/cja', 'col_qty': 'Cantidad', 'col_unit': 'Unidad', 'col_boxes': 'Cajas', 'unit_pallets': 'Pallets', 'unit_boxes': 'Cajas', 'min_from': 'Desde', 'added_mark': '✓ Agregado', 'saved_per_box': '💰 Ahorras', 'min_warning': '⚠️ Mínimo: <b>{n} {u}</b> para {p}', 'calc_title': '🧮 Calculadora de costo en otra moneda (referencial)', 'calc_convert_to': 'Convertir a:', 'calc_total_usd': 'Total en USD:', 'calc_total_dest': 'Total en {m}:', 'calc_rate': 'Tasa aplicada:', 'calc_per_pallet': 'Costo aprox. por pallet:', 'calc_note': 'ℹ Valor referencial. La transacción se realiza en USD.', 'order_summary_title': '📝 Resumen del Pedido', 'order_lbl_client': 'Cliente:', 'order_lbl_company': 'Empresa:', 'order_lbl_country': 'País:', 'order_lbl_mode': 'Modalidad:', 'order_lbl_payment': 'T. pago:', 'order_lbl_pending': 'Por confirmar', 'order_savings': '💰 Ahorro por volumen: ${s:,.2f} USD', 'order_total_label': 'TOTAL DEL PEDIDO', 'order_n_pallets': '📦 {n:.2f} pallets', 'order_n_boxes': '📋 {n:,} cajas', 'order_weight': '⚖️ {n:,.0f} kg net.', 'order_weight_note': '* kg net. de fruta — no incluye embalaje', 'savings_per_box': '💰 Ahorras ${d:.2f}/cj', 'unlock_better_price': '🎉 ¡Desbloqueaste mejor precio! Tramo: {label}', 'min_order_alert': '⚠️ Pedido mínimo: 3 pallets. Tienes {curr:.1f} pallets — añade {miss:.1f} pallets más para poder confirmar.', 'order_sent_email': 'Tu pedido ha sido enviado a <b>order@exportharet.com</b> para su confirmación. Nuestro equipo te contactará en 24-48h. Sigue el estado en la pestaña <b>Mis Pedidos</b> ↑', 'post_order_h3': 'Pedido {pid} enviado', 'post_order_thanks': '<b>Gracias {name}</b>, hemos recibido tu pedido correctamente.<br>📞 Nuestro equipo se pondrá en contacto contigo en <b>menos de 24 horas</b> para confirmar disponibilidad, precios finales y logística.<br>También recibirás confirmación por email cuando el pedido sea procesado.', 'wa_confirm': '💬 Confirmar por WhatsApp', 'em_send': 'Enviar por Email', 'wa_msg_greeting': 'Estimado equipo de Export Haret,', 'wa_msg_intro': 'Acabo de realizar el siguiente pedido a través del portal:', 'wa_msg_order': '📋 *Pedido', 'wa_msg_client': 'Cliente:', 'wa_msg_company': 'Empresa:', 'wa_msg_country': 'País:', 'wa_msg_details': '*Detalle de productos:*', 'wa_msg_total': '💰 *TOTAL', 'wa_msg_closing': 'Quedo a disposición para coordinar los detalles.', 'wa_msg_regards': 'Saludos.', 'em_subj': 'Pedido', 'em_body_intro': 'Adjunto el albarán del pedido', 'em_body_data': 'Datos del pedido:', 'em_body_client': '• Cliente:', 'em_body_company': 'Empresa:', 'em_body_incoterm': '• Incoterm:', 'em_body_total': '• Total:', 'em_body_products': 'Productos:', 'em_body_closing': 'Quedo a disposición para cualquier consulta.', 'em_body_regards': 'Saludos.', 'share_portal_title': '🔗 Compartir Portal Clientes', 'share_portal_caption': 'Envía este enlace a tus clientes:', 'share_msg': 'Hola, te invitamos a usar nuestro portal de pedidos Export Haret:', 'destination_fob': 'FOB (desde Ecuador)', 'order_status': 'Estado:', 'order_type': 'Tipo:', 'order_destination': 'Destino:', 'order_date': 'Fecha:', 'order_total_lbl': 'Total:', 'tracking_title': '📍 Seguimiento:', 'full_history': '📜 Historial completo', 'products_label': 'Productos:', 'btn_repeat': '🔄 Repetir', 'btn_repeat_help': 'Cargar al pedido', 'btn_cancel': '🗑️ Cancelar', 'order_repeat_loaded': 'Pedido {pid} cargado. Revisa y confirma.', 'order_no_products': 'Este pedido no tiene productos registrados.', 'confirm_cancel': '⚠️ ¿Confirmas la cancelación del pedido <b>{pid}</b>? Se notificará a nuestro equipo.', 'btn_yes_cancel': 'Sí, cancelar', 'btn_no': '❌ No', 'order_cancelled': 'Pedido {pid} cancelado. Notificación enviada a order@exportharet.com', 'enter_valid_email': 'Ingresa un correo electrónico válido para continuar.', 'enter_full_name': 'Ingresa tu nombre completo para continuar.', 'err_invalid_email': '❌ Formato de email inválido', 'fob_freight_caption': 'Flete: ${flete:.2f} USD/Kilo', 'price_in_dest': '💱 <b>Equiv. {m}</b> (ref.): <b style="color:#1a7a3c">{sym}{tot:,.2f} {m}</b> <small style="color:#888">1 USD = {rate:.4f} {m}</small>', 'rate_info': '💱 1 USD = <b>{sym}{rate:.4f} {m}</b> — {live} | Fuente: {src} | Actualizado: {ts}', 'rate_info_sub': 'Precios en {m} son de referencia. La transacción se realiza en USD.', 'rate_live': '🟢 En vivo', 'rate_approx': '⚪ Aprox.', 'btn_change_client': '🔄 Cambiar cliente', 'err_email_format': '❌ Formato de email inválido', 'msg_click_validate': '👆 Haz clic en validar para continuar', 'order_cleared': 'Pedido vaciado',       'fob_origin': '📌 Origen de embarque: **Quito o Guayaquil, Ecuador**',
+        'unit_kg_per_box': 'kg/caja', 'group_missing': '🎁 Te faltan <b>{n} cj</b> para completar 1 pallet del Grupo {g} y mejorar el precio', 'group_complete_with': ' · Completalo con: <b>{names}</b>', 'col_product': 'Producto', 'col_price': 'Precio/cja', 'col_qty': 'Cantidad', 'col_unit': 'Unidad', 'col_boxes': 'Cajas', 'unit_pallets': 'Pallets', 'unit_boxes': 'Cajas', 'min_from': 'Desde', 'added_mark': '✓ Agregado', 'saved_per_box': '💰 Ahorras', 'min_warning': '⚠️ Mínimo: <b>{n} {u}</b> para {p}', 'calc_title': '🧮 Calculadora de costo en otra moneda (referencial)', 'calc_convert_to': 'Convertir a:', 'calc_total_usd': 'Total en USD:', 'calc_total_dest': 'Total en {m}:', 'calc_rate': 'Tasa aplicada:', 'calc_per_pallet': 'Costo aprox. por pallet:', 'calc_note': 'ℹ Valor referencial. La transacción se realiza en USD.', 'order_summary_title': '📝 Resumen del Pedido', 'order_lbl_client': 'Cliente:', 'order_lbl_company': 'Empresa:', 'order_lbl_country': 'País:', 'order_lbl_mode': 'Modalidad:', 'order_lbl_payment': 'T. pago:', 'order_lbl_pending': 'Por confirmar', 'order_savings': '💰 Ahorro por volumen: ${s:,.2f} USD', 'order_total_label': 'TOTAL DEL PEDIDO', 'order_n_pallets': '📦 {n:.2f} pallets', 'order_n_boxes': '📋 {n:,} cajas', 'order_weight': '⚖️ {n:,.0f} kg net.', 'order_weight_note': '* kg net. de fruta — no incluye embalaje', 'savings_per_box': '💰 Ahorras ${d:.2f}/cj', 'unlock_better_price': '🎉 ¡Desbloqueaste mejor precio! Tramo: {label}', 'min_order_alert': '⚠️ Pedido mínimo: 3 pallets. Tienes {curr:.1f} pallets — añade {miss:.1f} pallets más para poder confirmar.', 'order_sent_email': 'Tu pedido ha sido enviado a <b>order@exportharet.com</b> para su confirmación. Nuestro equipo te contactará en 24-48h. Sigue el estado en la pestaña <b>Mis Pedidos</b> ↑', 'post_order_h3': 'Pedido {pid} enviado', 'post_order_thanks': '<b>Gracias {name}</b>, hemos recibido tu pedido correctamente.<br>📞 Nuestro equipo se pondrá en contacto contigo en <b>menos de 24 horas</b> para confirmar disponibilidad, precios finales y logística.<br>También recibirás confirmación por email cuando el pedido sea procesado.', 'wa_confirm': '💬 Confirmar por WhatsApp', 'em_send': 'Enviar por Email', 'wa_msg_greeting': 'Estimado equipo de Export Haret,', 'wa_msg_intro': 'Acabo de realizar el siguiente pedido a través del portal:', 'wa_msg_order': '📋 *Pedido', 'wa_msg_client': 'Cliente:', 'wa_msg_company': 'Empresa:', 'wa_msg_country': 'País:', 'wa_msg_details': '*Detalle de productos:*', 'wa_msg_total': '💰 *TOTAL', 'wa_msg_closing': 'Quedo a disposición para coordinar los detalles.', 'wa_msg_regards': 'Saludos.', 'em_subj': 'Pedido', 'em_body_intro': 'Adjunto el albarán del pedido', 'em_body_data': 'Datos del pedido:', 'em_body_client': '• Cliente:', 'em_body_company': 'Empresa:', 'em_body_incoterm': '• Incoterm:', 'em_body_total': '• Total:', 'em_body_products': 'Productos:', 'em_body_closing': 'Quedo a disposición para cualquier consulta.', 'em_body_regards': 'Saludos.', 'share_portal_title': '🔗 Compartir Portal Clientes', 'share_portal_caption': 'Envía este enlace a tus clientes:', 'share_msg': 'Hola, te invitamos a usar nuestro portal de pedidos Export Haret:', 'destination_fob': 'FOB (desde Ecuador)', 'order_status': 'Estado:', 'order_type': 'Tipo:', 'order_destination': 'Destino:', 'order_date': 'Fecha:', 'order_total_lbl': 'Total:', 'tracking_title': '📍 Seguimiento:', 'full_history': '📜 Historial completo', 'products_label': 'Productos:', 'btn_repeat': '🔄 Repetir', 'btn_repeat_help': 'Cargar al pedido', 'btn_cancel': '🗑️ Cancelar', 'order_repeat_loaded': 'Pedido {pid} cargado. Revisa y confirma.', 'order_no_products': 'Este pedido no tiene productos registrados.', 'confirm_cancel': '⚠️ ¿Confirmas la cancelación del pedido <b>{pid}</b>? Se notificará a nuestro equipo.', 'btn_yes_cancel': 'Sí, cancelar', 'btn_no': '❌ No', 'order_cancelled': 'Pedido {pid} cancelado. Notificación enviada a order@exportharet.com', 'enter_valid_email': 'Ingresa un correo electrónico válido para continuar.', 'enter_full_name': 'Ingresa tu nombre completo para continuar.', 'err_invalid_email': '❌ Formato de email inválido', 'fob_freight_caption': 'Flete: ${flete:.2f} USD/Kilo', 'price_in_dest': '💱 <b>Equiv. {m}</b> (ref.): <b style="color:#0c6e51">{sym}{tot:,.2f} {m}</b> <small style="color:#888">1 USD = {rate:.4f} {m}</small>', 'rate_info': '💱 1 USD = <b>{sym}{rate:.4f} {m}</b> — {live} | Fuente: {src} | Actualizado: {ts}', 'rate_info_sub': 'Precios en {m} son de referencia. La transacción se realiza en USD.', 'rate_live': '🟢 En vivo', 'rate_approx': '⚪ Aprox.', 'btn_change_client': '🔄 Cambiar cliente', 'err_email_format': '❌ Formato de email inválido', 'msg_click_validate': '👆 Haz clic en validar para continuar', 'order_cleared': 'Pedido vaciado',       'fob_origin': '📌 Origen de embarque: **Quito o Guayaquil, Ecuador**',
         'min_order_empty': '📋 <strong>Pedido mínimo: 3 pallets</strong> — Añade productos para comenzar tu pedido',
         'min_order_short': '📋 <strong>Pedido mínimo: 3 pallets</strong> — Tienes {plt:.1f} plt. Añade más productos.',
         'cart_fob': '📦 Precios FOB — El flete corre por tu cuenta desde Quito/Guayaquil, Ecuador',
@@ -236,7 +236,7 @@ LANG_TEXTS = {
         'unit_pallets': 'pallets',
         'unit_boxes': 'boxes',
         'unit_products': 'product(s)',
-        'unit_kg_per_box': 'kg/box', 'group_missing': '🎁 You need <b>{n} bx</b> more to complete 1 pallet in Group {g} and improve the price', 'group_complete_with': ' · Complete with: <b>{names}</b>', 'col_product': 'Product', 'col_price': 'Price/box', 'col_qty': 'Quantity', 'col_unit': 'Unit', 'col_boxes': 'Boxes', 'unit_pallets': 'Pallets', 'unit_boxes': 'Boxes', 'min_from': 'From', 'added_mark': '✓ Added', 'saved_per_box': '💰 You save', 'min_warning': '⚠️ Minimum: <b>{n} {u}</b> for {p}', 'calc_title': '🧮 Cost calculator in another currency (reference)', 'calc_convert_to': 'Convert to:', 'calc_total_usd': 'Total in USD:', 'calc_total_dest': 'Total in {m}:', 'calc_rate': 'Applied rate:', 'calc_per_pallet': 'Approx. cost per pallet:', 'calc_note': 'ℹ Reference value. Transactions are made in USD.', 'order_summary_title': '📝 Order Summary', 'order_lbl_client': 'Customer:', 'order_lbl_company': 'Company:', 'order_lbl_country': 'Country:', 'order_lbl_mode': 'Mode:', 'order_lbl_payment': 'Payment:', 'order_lbl_pending': 'To be confirmed', 'order_savings': '💰 Volume savings: ${s:,.2f} USD', 'order_total_label': 'ORDER TOTAL', 'order_n_pallets': '📦 {n:.2f} pallets', 'order_n_boxes': '📋 {n:,} boxes', 'order_weight': '⚖️ {n:,.0f} kg net', 'order_weight_note': '* kg net of fruit — does not include packaging', 'savings_per_box': '💰 You save ${d:.2f}/bx', 'unlock_better_price': '🎉 You unlocked a better price! Tier: {label}', 'min_order_alert': '⚠️ Minimum order: 3 pallets. You have {curr:.1f} pallets — add {miss:.1f} more pallets to confirm.', 'order_sent_email': 'Your order has been sent to <b>order@exportharet.com</b> for confirmation. Our team will contact you within 24-48h. Track the status in the <b>My Orders</b> tab ↑', 'post_order_h3': 'Order {pid} sent', 'post_order_thanks': '<b>Thank you {name}</b>, we have received your order correctly.<br>📞 Our team will contact you within <b>less than 24 hours</b> to confirm availability, final prices and logistics.<br>You will also receive an email confirmation when the order is processed.', 'wa_confirm': '💬 Confirm via WhatsApp', 'em_send': 'Send by Email', 'wa_msg_greeting': 'Dear Export Haret team,', 'wa_msg_intro': 'I have just placed the following order through the portal:', 'wa_msg_order': '📋 *Order', 'wa_msg_client': 'Customer:', 'wa_msg_company': 'Company:', 'wa_msg_country': 'Country:', 'wa_msg_details': '*Product details:*', 'wa_msg_total': '💰 *TOTAL', 'wa_msg_closing': 'I remain available to coordinate the details.', 'wa_msg_regards': 'Best regards.', 'em_subj': 'Order', 'em_body_intro': 'Attached the delivery note for order', 'em_body_data': 'Order data:', 'em_body_client': '• Customer:', 'em_body_company': 'Company:', 'em_body_incoterm': '• Incoterm:', 'em_body_total': '• Total:', 'em_body_products': 'Products:', 'em_body_closing': 'I remain available for any question.', 'em_body_regards': 'Best regards.', 'share_portal_title': '🔗 Share Customer Portal', 'share_portal_caption': 'Send this link to your customers:', 'share_msg': 'Hello, we invite you to use our Export Haret order portal:', 'destination_fob': 'FOB (from Ecuador)', 'order_status': 'Status:', 'order_type': 'Type:', 'order_destination': 'Destination:', 'order_date': 'Date:', 'order_total_lbl': 'Total:', 'tracking_title': '📍 Tracking:', 'full_history': '📜 Full history', 'products_label': 'Products:', 'btn_repeat': '🔄 Repeat', 'btn_repeat_help': 'Load to order', 'btn_cancel': '🗑️ Cancel', 'order_repeat_loaded': 'Order {pid} loaded. Review and confirm.', 'order_no_products': 'This order has no registered products.', 'confirm_cancel': '⚠️ Confirm cancellation of order <b>{pid}</b>? Our team will be notified.', 'btn_yes_cancel': 'Yes, cancel', 'btn_no': '❌ No', 'order_cancelled': 'Order {pid} cancelled. Notification sent to order@exportharet.com', 'enter_valid_email': 'Please enter a valid email address to continue.', 'enter_full_name': 'Please enter your full name to continue.', 'err_invalid_email': '❌ Invalid email format', 'fob_freight_caption': 'Freight: ${flete:.2f} USD/Kilo', 'price_in_dest': '💱 <b>Equiv. {m}</b> (ref.): <b style="color:#1a7a3c">{sym}{tot:,.2f} {m}</b> <small style="color:#888">1 USD = {rate:.4f} {m}</small>', 'rate_info': '💱 1 USD = <b>{sym}{rate:.4f} {m}</b> — {live} | Source: {src} | Updated: {ts}', 'rate_info_sub': 'Prices in {m} are for reference. Transactions are made in USD.', 'rate_live': '🟢 Live', 'rate_approx': '⚪ Approx.',
+        'unit_kg_per_box': 'kg/box', 'group_missing': '🎁 You need <b>{n} bx</b> more to complete 1 pallet in Group {g} and improve the price', 'group_complete_with': ' · Complete with: <b>{names}</b>', 'col_product': 'Product', 'col_price': 'Price/box', 'col_qty': 'Quantity', 'col_unit': 'Unit', 'col_boxes': 'Boxes', 'unit_pallets': 'Pallets', 'unit_boxes': 'Boxes', 'min_from': 'From', 'added_mark': '✓ Added', 'saved_per_box': '💰 You save', 'min_warning': '⚠️ Minimum: <b>{n} {u}</b> for {p}', 'calc_title': '🧮 Cost calculator in another currency (reference)', 'calc_convert_to': 'Convert to:', 'calc_total_usd': 'Total in USD:', 'calc_total_dest': 'Total in {m}:', 'calc_rate': 'Applied rate:', 'calc_per_pallet': 'Approx. cost per pallet:', 'calc_note': 'ℹ Reference value. Transactions are made in USD.', 'order_summary_title': '📝 Order Summary', 'order_lbl_client': 'Customer:', 'order_lbl_company': 'Company:', 'order_lbl_country': 'Country:', 'order_lbl_mode': 'Mode:', 'order_lbl_payment': 'Payment:', 'order_lbl_pending': 'To be confirmed', 'order_savings': '💰 Volume savings: ${s:,.2f} USD', 'order_total_label': 'ORDER TOTAL', 'order_n_pallets': '📦 {n:.2f} pallets', 'order_n_boxes': '📋 {n:,} boxes', 'order_weight': '⚖️ {n:,.0f} kg net', 'order_weight_note': '* kg net of fruit — does not include packaging', 'savings_per_box': '💰 You save ${d:.2f}/bx', 'unlock_better_price': '🎉 You unlocked a better price! Tier: {label}', 'min_order_alert': '⚠️ Minimum order: 3 pallets. You have {curr:.1f} pallets — add {miss:.1f} more pallets to confirm.', 'order_sent_email': 'Your order has been sent to <b>order@exportharet.com</b> for confirmation. Our team will contact you within 24-48h. Track the status in the <b>My Orders</b> tab ↑', 'post_order_h3': 'Order {pid} sent', 'post_order_thanks': '<b>Thank you {name}</b>, we have received your order correctly.<br>📞 Our team will contact you within <b>less than 24 hours</b> to confirm availability, final prices and logistics.<br>You will also receive an email confirmation when the order is processed.', 'wa_confirm': '💬 Confirm via WhatsApp', 'em_send': 'Send by Email', 'wa_msg_greeting': 'Dear Export Haret team,', 'wa_msg_intro': 'I have just placed the following order through the portal:', 'wa_msg_order': '📋 *Order', 'wa_msg_client': 'Customer:', 'wa_msg_company': 'Company:', 'wa_msg_country': 'Country:', 'wa_msg_details': '*Product details:*', 'wa_msg_total': '💰 *TOTAL', 'wa_msg_closing': 'I remain available to coordinate the details.', 'wa_msg_regards': 'Best regards.', 'em_subj': 'Order', 'em_body_intro': 'Attached the delivery note for order', 'em_body_data': 'Order data:', 'em_body_client': '• Customer:', 'em_body_company': 'Company:', 'em_body_incoterm': '• Incoterm:', 'em_body_total': '• Total:', 'em_body_products': 'Products:', 'em_body_closing': 'I remain available for any question.', 'em_body_regards': 'Best regards.', 'share_portal_title': '🔗 Share Customer Portal', 'share_portal_caption': 'Send this link to your customers:', 'share_msg': 'Hello, we invite you to use our Export Haret order portal:', 'destination_fob': 'FOB (from Ecuador)', 'order_status': 'Status:', 'order_type': 'Type:', 'order_destination': 'Destination:', 'order_date': 'Date:', 'order_total_lbl': 'Total:', 'tracking_title': '📍 Tracking:', 'full_history': '📜 Full history', 'products_label': 'Products:', 'btn_repeat': '🔄 Repeat', 'btn_repeat_help': 'Load to order', 'btn_cancel': '🗑️ Cancel', 'order_repeat_loaded': 'Order {pid} loaded. Review and confirm.', 'order_no_products': 'This order has no registered products.', 'confirm_cancel': '⚠️ Confirm cancellation of order <b>{pid}</b>? Our team will be notified.', 'btn_yes_cancel': 'Yes, cancel', 'btn_no': '❌ No', 'order_cancelled': 'Order {pid} cancelled. Notification sent to order@exportharet.com', 'enter_valid_email': 'Please enter a valid email address to continue.', 'enter_full_name': 'Please enter your full name to continue.', 'err_invalid_email': '❌ Invalid email format', 'fob_freight_caption': 'Freight: ${flete:.2f} USD/Kilo', 'price_in_dest': '💱 <b>Equiv. {m}</b> (ref.): <b style="color:#0c6e51">{sym}{tot:,.2f} {m}</b> <small style="color:#888">1 USD = {rate:.4f} {m}</small>', 'rate_info': '💱 1 USD = <b>{sym}{rate:.4f} {m}</b> — {live} | Source: {src} | Updated: {ts}', 'rate_info_sub': 'Prices in {m} are for reference. Transactions are made in USD.', 'rate_live': '🟢 Live', 'rate_approx': '⚪ Approx.',
     }
 }
 
@@ -253,7 +253,7 @@ CUSTOM_CSS = """
 }
 /* === MINI CARRITO FLOTANTE === */
 .cart-badge {
-    background: #1B7A3C;
+    background: #0c6e51;
     color: white;
     border-radius: 12px;
     padding: 2px 10px;
@@ -269,17 +269,17 @@ CUSTOM_CSS = """
 }
 .min-progress-fill {
     height: 100%;
-    background: linear-gradient(90deg, #2E9E4F, #1B7A3C);
+    background: linear-gradient(90deg, #10a37a, #0c6e51);
     border-radius: 4px;
     transition: width 0.3s ease;
 }
 /* === BOTONES === */
-.stButton > button[kind="primary"] { background: #1B7A3C !important; border-color: #1B7A3C !important; }
-.stButton > button[kind="primary"]:hover { background: #0F4F29 !important; }
+.stButton > button[kind="primary"] { background: #0c6e51 !important; border-color: #0c6e51 !important; }
+.stButton > button[kind="primary"]:hover { background: #084a37 !important; }
 /* === RESUMEN PEDIDO === */
 .order-summary-box {
     background: #f8faff;
-    border: 1.5px solid #1B7A3C;
+    border: 1.5px solid #0c6e51;
     border-radius: 10px;
     padding: 16px;
     margin: 12px 0;
@@ -433,10 +433,10 @@ def login_page():
             with _lc2:
                 st.image('logo.png', use_container_width=True)
         else:
-            st.markdown('<div style="text-align:center"><h1 style="margin:0;color:#0F4F29">Export Haret</h1></div>', unsafe_allow_html=True)
+            st.markdown('<div style="text-align:center"><h1 style="margin:0;color:#084a37">Export Haret</h1></div>', unsafe_allow_html=True)
         st.markdown(
             '<div style="text-align:center;margin:8px 0 16px">'
-            '<div style="font-size:.72rem;letter-spacing:2px;text-transform:uppercase;color:#1B7A3C;font-weight:700">Panel de administración</div>'
+            '<div style="font-size:.72rem;letter-spacing:2px;text-transform:uppercase;color:#0c6e51;font-weight:700">Panel de administración</div>'
             '<div style="font-weight:800;color:#14201a;font-size:1.5rem;letter-spacing:-.5px;margin-top:4px">Inicia sesión</div>'
             '</div>', unsafe_allow_html=True)
         with st.form('admin_login_form', clear_on_submit=False):
@@ -469,10 +469,10 @@ def _admin_css():
       [data-testid="stAppViewContainer"] .block-container{ max-width:1180px !important; }
       /* KPI / métricas del área principal → tarjetas premium */
       [data-testid="stMain"] [data-testid="stMetric"]{
-        background:#fff; border:1px solid #e7ede8; border-radius:14px;
+        background:#fff; border:1px solid #e7eaef; border-radius:14px;
         padding:13px 16px; box-shadow:0 1px 2px rgba(20,60,40,.04); }
       [data-testid="stMain"] [data-testid="stMetricLabel"] p{ color:#65726b; font-weight:600; font-size:.84rem; }
-      [data-testid="stMain"] [data-testid="stMetricValue"]{ color:#0F4F29; font-weight:800; }
+      [data-testid="stMain"] [data-testid="stMetricValue"]{ color:#084a37; font-weight:800; }
       /* Pestañas admin más sobrias */
       .stTabs [data-baseweb="tab-list"]{ gap:2px; flex-wrap:wrap; }
       .stTabs [data-baseweb="tab"]{ padding:8px 14px; font-size:.92rem; }
@@ -480,7 +480,7 @@ def _admin_css():
       [data-testid="stMain"] hr{ margin:.7rem 0; border-top:1px solid #eef2ef; }
       /* Sidebar: métricas compactas sin caja */
       [data-testid="stSidebar"] [data-testid="stMetric"]{ padding:2px 0; }
-      [data-testid="stSidebar"] [data-testid="stMetricValue"]{ font-size:1.15rem; color:#0F4F29; }
+      [data-testid="stSidebar"] [data-testid="stMetricValue"]{ font-size:1.15rem; color:#084a37; }
     </style>''', unsafe_allow_html=True)
 
 
@@ -489,7 +489,7 @@ def _admin_seccion(titulo, icono=''):
     _t = f'{icono} {titulo}'.strip()
     st.markdown(
         '<div style="display:flex;align-items:center;gap:9px;margin:18px 0 10px">'
-        '<span style="width:22px;height:2px;background:#1B7A3C;border-radius:2px"></span>'
+        '<span style="width:22px;height:2px;background:#0c6e51;border-radius:2px"></span>'
         f'<span style="font-weight:800;color:#14201a;font-size:1.12rem;letter-spacing:-.3px">{_esc(_t)}</span>'
         '</div>', unsafe_allow_html=True)
 
@@ -1343,12 +1343,12 @@ def render_hacer_pedido():
         _tot_pre = sum(i['total'] for i in st.session_state.carrito)
         _plt_pre = sum(i.get('pallets',0) for i in st.session_state.carrito)
         st.markdown(
-            f'<div style="background:#f0f7ff;border:1px solid #1B7A3C;border-radius:8px;padding:12px 18px;margin:8px 0">'
+            f'<div style="background:#f0f7ff;border:1px solid #0c6e51;border-radius:8px;padding:12px 18px;margin:8px 0">'
             f'📋 <b>Resumen</b><br>'
             f'&bull; Cliente: <b>{c_name}</b> ({c_email})<br>'
             f'&bull; Destino: <b>{destino}</b><br>'
             f'&bull; Productos: <b>{len(st.session_state.carrito)}</b> &nbsp; Pallets: <b>{_plt_pre:.2f}</b><br>'
-            f'&bull; 💰 Total: <b style="color:#1B7A3C">${_tot_pre:,.2f} USD</b>'
+            f'&bull; 💰 Total: <b style="color:#0c6e51">${_tot_pre:,.2f} USD</b>'
             f'</div>',
             unsafe_allow_html=True
         )
@@ -2026,7 +2026,7 @@ def build_order_html(ped):
                f'<td style="padding:7px;border:1px solid #e0e0e0;text-align:right;color:#856404">${fob_u:.4f}</td>'
                f'<td style="padding:7px;border:1px solid #e0e0e0;text-align:right;color:#888">${flete_u:.4f}</td>'
                f'<td style="padding:7px;border:1px solid #e0e0e0;text-align:center;color:#28a745">{dto*100:.0f}%</td>'
-               f'<td style="padding:7px;border:1px solid #e0e0e0;text-align:right;font-weight:bold;color:#1B7A3C">${precio:.4f}</td>'
+               f'<td style="padding:7px;border:1px solid #e0e0e0;text-align:right;font-weight:bold;color:#0c6e51">${precio:.4f}</td>'
                f'<td style="padding:7px;border:1px solid #e0e0e0;text-align:right;font-weight:bold">${total:,.2f}</td></tr>')
     pid=ped.get('id',''); fecha=ped.get('fecha','')[:10]; nombre=ped.get('client_name','')
     email_c=ped.get('client_email',''); empresa=ped.get('empresa',''); telefono=ped.get('telefono','')
@@ -2037,7 +2037,7 @@ def build_order_html(ped):
     t_row=f'<tr><td colspan="2" style="padding:6px;font-weight:bold;background:#f8f9fa">T\xe9rminos de pago:</td><td colspan="7" style="padding:6px">{terminos}</td></tr>' if terminos else ''
     e_row=f'<tr><td colspan="2" style="padding:6px;font-weight:bold;background:#f8f9fa">Entrega estimada:</td><td colspan="7" style="padding:6px">{f_entrega}</td></tr>' if f_entrega else ''
     return f'''<div style="font-family:Arial,sans-serif;max-width:750px;margin:0 auto;padding:20px">
-      <div style="background:linear-gradient(135deg,#1B7A3C,#176836);color:white;padding:24px;border-radius:10px;margin-bottom:20px">
+      <div style="background:linear-gradient(135deg,#0c6e51,#0a5d44);color:white;padding:24px;border-radius:10px;margin-bottom:20px">
         <h1 style="margin:0;font-size:1.6em">🚀 Export Haret</h1>
         <p style="margin:4px 0 0;opacity:.85">Confirmaci\xf3n de Pedido | Frutas Ex\xf3ticas Premium</p>
       </div>
@@ -2054,9 +2054,9 @@ def build_order_html(ped):
             <td style="padding:6px;font-weight:bold">Destino:</td><td style="padding:6px">{destino}</td></tr>
         {t_row}{e_row}
       </table>
-      <h3 style="border-bottom:2px solid #1B7A3C;padding-bottom:6px">Detalle de Productos</h3>
+      <h3 style="border-bottom:2px solid #0c6e51;padding-bottom:6px">Detalle de Productos</h3>
       <table style="width:100%;border-collapse:collapse;font-size:.88em">
-        <thead><tr style="background:#1B7A3C;color:white">
+        <thead><tr style="background:#0c6e51;color:white">
           <th style="padding:8px">C\xf3d</th><th style="padding:8px">Producto</th>
           <th style="padding:8px">Cajas</th><th style="padding:8px">Pallets</th>
           <th style="padding:8px">FOB $/cj</th><th style="padding:8px">Flete $/cj</th>
@@ -2065,7 +2065,7 @@ def build_order_html(ped):
         </tr></thead><tbody>{rows}</tbody>
         <tfoot><tr style="background:#e8f0fe">
           <td colspan="8" style="padding:10px;text-align:right;font-weight:bold">TOTAL:</td>
-          <td style="padding:10px;font-weight:bold;font-size:1.15em;color:#1B7A3C">${total_usd:,.2f} USD</td>
+          <td style="padding:10px;font-weight:bold;font-size:1.15em;color:#0c6e51">${total_usd:,.2f} USD</td>
         </tr></tfoot></table>
       {f'<p style="margin-top:14px"><b>Notas:</b> {notas}</p>' if notas else ''}
       <p style="margin-top:20px;color:#666;font-size:.83em;border-top:1px solid #eee;padding-top:10px">
@@ -2153,7 +2153,7 @@ def build_order_pdf(ped):
     story = []
 
     # Colores corporativos
-    AZUL = colors.HexColor('#1B7A3C')
+    AZUL = colors.HexColor('#0c6e51')
     AZUL_LIGHT = colors.HexColor('#E8F0FA')
     GRIS = colors.HexColor('#666666')
 
@@ -2346,7 +2346,7 @@ def build_catalog_pdf(data):
     doc = SimpleDocTemplate(buf, pagesize=A4, rightMargin=1.5*cm, leftMargin=1.5*cm, topMargin=2*cm, bottomMargin=2*cm)
     styles = getSampleStyleSheet()
     story = []
-    AZUL = colors.HexColor('#1B7A3C')
+    AZUL = colors.HexColor('#0c6e51')
     GRIS = colors.HexColor('#666666')
     header_style = ParagraphStyle('h', fontSize=20, textColor=AZUL, fontName='Helvetica-Bold', spaceAfter=4, alignment=TA_LEFT)
     sub_style = ParagraphStyle('s', fontSize=10, textColor=GRIS, fontName='Helvetica', spaceAfter=12, alignment=TA_LEFT)
@@ -2540,7 +2540,7 @@ def send_order_email(ped):
     telefono_h, pais_h = _esc(telefono), _esc(pais)
     _notas_html = f'<p><b>Notas:</b> {_esc(notas)}</p>' if notas else ''
     html = (f'<html><body style="font-family:Arial,sans-serif;color:#333">'
-            f'<div style="background:#1B7A3C;padding:16px 24px;border-radius:8px">'
+            f'<div style="background:#0c6e51;padding:16px 24px;border-radius:8px">'
             f'<h2 style="color:white;margin:0">🚀 Export Haret \u2014 Nueva Orden Recibida</h2>'
             f'</div><div style="padding:16px 0">'
             f'<table style="width:100%;border-collapse:collapse;font-size:14px">'
@@ -2553,14 +2553,14 @@ def send_order_email(ped):
             f'<tr><td style="padding:6px"><b>Pa\u00eds:</b></td><td>{pais_h or "-"}</td>'
             f'<td style="padding:6px"><b>Destino:</b></td><td>{dest_str}</td></tr>'
             f'</table>'
-            f'<h3 style="color:#1B7A3C;border-bottom:2px solid #1B7A3C;padding-bottom:6px">Productos</h3>'
+            f'<h3 style="color:#0c6e51;border-bottom:2px solid #0c6e51;padding-bottom:6px">Productos</h3>'
             f'<table style="width:100%;border-collapse:collapse;font-size:13px">'
-            f'<thead><tr style="background:#1B7A3C;color:white">'
+            f'<thead><tr style="background:#0c6e51;color:white">'
             f'<th style="padding:8px">C\u00f3digo</th><th style="padding:8px">Producto</th>'
             f'<th style="padding:8px">Cajas</th><th style="padding:8px">Pallets</th>'
             f'<th style="padding:8px">Precio/caja</th><th style="padding:8px">Total</th>'
             f'</tr></thead><tbody>{rows_html}</tbody></table>'
-            f'<p style="text-align:right;font-size:16px;font-weight:bold;color:#1B7A3C">'
+            f'<p style="text-align:right;font-size:16px;font-weight:bold;color:#0c6e51">'
             f'TOTAL: ${total_usd:,.2f} USD</p>'
             f'{_notas_html}'
             f'</div><p style="color:#888;font-size:11px">Export Haret \u00a9 2026 | order@exportharet.com</p>'
@@ -2679,7 +2679,7 @@ def send_status_email(ped, estado):
         if smtp_host and smtp_user and smtp_pass:
             _ic = ESTADO_ICONS.get(estado, '📦')
             html = (f'<div style="font-family:Arial,sans-serif;color:#19231D">'
-                    f'<div style="background:#1B7A3C;padding:16px 22px;border-radius:10px">'
+                    f'<div style="background:#0c6e51;padding:16px 22px;border-radius:10px">'
                     f'<h2 style="margin:0;color:#fff">{_ic} {_esc(_title)}</h2></div>'
                     f'<p style="font-size:15px;line-height:1.6;margin:18px 2px">{_esc(_body)}</p>'
                     f'<p style="font-size:13px;color:#666;margin:2px">Pedido <b>{_esc(pid)}</b> · '
@@ -2713,8 +2713,8 @@ def _eh_seccion(raw, num):
 
 
 # ── Tienda visual: ilustración de línea + color de fondo por fruta ──────────────
-_ART_VERDE = '#1B7A3C'
-_ART_NARA = '#C66A2E'
+_ART_VERDE = '#0c6e51'
+_ART_NARA = '#10a37a'
 # (svg_inner, stroke, bg) — SVG de línea simple por familia de fruta
 _FRUIT_ART = {
     'pitahaya': ('<path d="M30 18C40 18 47 28 47 38C47 48 39 53 30 53C21 53 13 48 13 38C13 28 20 18 30 18Z"/><path d="M30 18C30 12 27 8 23 7M30 18C30 12 33 8 37 7M30 18C25 15 21 15 17 17M30 18C35 15 39 15 43 17"/>', _ART_NARA, '#FFF3DE'),
@@ -2773,7 +2773,7 @@ def render_portal_pedido():
             f'<span style="color:#8a978f;font-size:.74rem;font-weight:600;letter-spacing:2.4px;'
             f'text-transform:uppercase">{_tagline}</span></div>', unsafe_allow_html=True)
     else:
-        st.markdown(f'<div style="background:linear-gradient(135deg,#1B7A3C,#176836,#2E9E4F);padding:20px 30px;border-radius:12px;margin-bottom:24px;text-align:center"><h1 style="color:white;margin:0;font-size:1.8em">🚀 Export Haret</h1><p style="color:rgba(255,255,255,0.85);margin:4px 0 0">{LANG_TEXTS[st.session_state.get("portal_lang","es")]["header_subtitle"].split(" | ")[0]}</p></div>',unsafe_allow_html=True)
+        st.markdown(f'<div style="background:linear-gradient(135deg,#0c6e51,#0a5d44,#10a37a);padding:20px 30px;border-radius:12px;margin-bottom:24px;text-align:center"><h1 style="color:white;margin:0;font-size:1.8em">🚀 Export Haret</h1><p style="color:rgba(255,255,255,0.85);margin:4px 0 0">{LANG_TEXTS[st.session_state.get("portal_lang","es")]["header_subtitle"].split(" | ")[0]}</p></div>',unsafe_allow_html=True)
     # Init lang EARLY so _T is available for error messages
     if 'portal_lang' not in st.session_state:
         st.session_state['portal_lang'] = 'es'
@@ -2802,7 +2802,7 @@ def render_portal_pedido():
       .st-key-btn_lang_es button[kind="secondary"], .st-key-btn_lang_en button[kind="secondary"] {
         background:#fff !important; border-color:#e6ece8 !important; opacity:.55; }
       .st-key-btn_lang_es button[kind="primary"], .st-key-btn_lang_en button[kind="primary"] {
-        background:#eef5f0 !important; border:1px solid #cfe0d4 !important; opacity:1; }
+        background:#eef5f0 !important; border:1px solid #dce1e8 !important; opacity:1; }
     </style>''', unsafe_allow_html=True)
     _lbtn_c1, _lbtn_c2, _lbtn_c3 = st.columns([9, 1, 1])
     with _lbtn_c1:
@@ -2836,10 +2836,10 @@ def render_portal_pedido():
     _stp_lbls = [_T["progress_step1"], _T["progress_step2"], _T["progress_step3"], _T["progress_step4"]]
     _seg = ''
     for _i, (_lbl, _stt) in enumerate(zip(_stp_lbls, _stp_state), 1):
-        _nbg = '#1B7A3C' if _stt in ('on', 'done') else '#e7ece8'
+        _nbg = '#0c6e51' if _stt in ('on', 'done') else '#e7ece8'
         _nc = '#fff' if _stt in ('on', 'done') else '#737d77'
         _txt = '#16201b' if _stt != 'off' else '#a3aaa3'
-        _bgc = '#f3f7f4' if _stt == 'on' else 'transparent'
+        _bgc = '#eef6f2' if _stt == 'on' else 'transparent'
         _ico = '✓' if _stt == 'done' else str(_i)
         _br = ';border-right:1px solid #ebefec' if _i < 4 else ''
         _seg += (f'<div style="flex:1;display:flex;align-items:center;justify-content:center;gap:7px;'
@@ -2871,9 +2871,9 @@ def render_portal_pedido():
     # Chips de confianza (sobrios, premium) — sustituyen la caja naranja ruidosa.
     # Uno de ellos resalta el ahorro real por volumen.
     def _chip(_txt, _accent=False):
-        _bd = '#cfe0d4' if not _accent else '#e7d4bf'
-        _bg = '#f6faf7' if not _accent else '#fcf5ee'
-        _cc = '#1B7A3C' if not _accent else '#C66A2E'
+        _bd = '#dce1e8' if not _accent else '#e7d4bf'
+        _bg = '#eef6f2' if not _accent else '#eef6f2'
+        _cc = '#0c6e51' if not _accent else '#10a37a'
         _tc = '#3c4b42' if not _accent else '#8a4e22'
         return (f'<span style="display:inline-flex;align-items:center;gap:6px;background:{_bg};'
                 f'border:1px solid {_bd};border-radius:999px;padding:6px 13px;font-size:.82rem;'
@@ -2892,9 +2892,9 @@ def render_portal_pedido():
     st.markdown(
         '<div style="margin:8px 0 22px">'
         '<div style="display:flex;align-items:center;gap:9px;margin-bottom:7px">'
-        '<span style="width:26px;height:2px;background:#1B7A3C;border-radius:2px"></span>'
+        '<span style="width:26px;height:2px;background:#0c6e51;border-radius:2px"></span>'
         f'<span style="font-size:.72rem;letter-spacing:1.8px;text-transform:uppercase;'
-        f'color:#1B7A3C;font-weight:700">{_promo[0]}</span></div>'
+        f'color:#0c6e51;font-weight:700">{_promo[0]}</span></div>'
         f'<div style="font-weight:800;color:#14201a;font-size:2rem;letter-spacing:-.8px;'
         f'margin:0 0 6px;line-height:1.05">{_promo[1]}</div>'
         f'<div style="color:#65726b;font-size:1rem;line-height:1.55;max-width:560px">{_promo[2]}</div>'
@@ -3040,14 +3040,14 @@ def render_portal_pedido():
                 _ini = (client_data.get('nombre') or email_input or '·').strip()[:1].upper()
                 _sub = ' · '.join([x for x in [client_data.get('empresa',''), client_data.get('pais',''), email_input] if x])
                 st.markdown(
-                    '<div style="display:flex;align-items:center;gap:13px;padding:13px 15px;border:1px solid #e2eae4;'
-                    'background:#f6faf7;border-radius:14px;margin:2px 0 4px">'
-                    f'<div style="width:42px;height:42px;border-radius:50%;background:#1B7A3C;color:#fff;font-weight:800;'
+                    '<div style="display:flex;align-items:center;gap:13px;padding:13px 15px;border:1px solid #e7eaef;'
+                    'background:#eef6f2;border-radius:14px;margin:2px 0 4px">'
+                    f'<div style="width:42px;height:42px;border-radius:50%;background:#0c6e51;color:#fff;font-weight:800;'
                     f'font-size:1.05rem;display:flex;align-items:center;justify-content:center;flex:0 0 auto">{_esc(_ini)}</div>'
                     '<div style="min-width:0;line-height:1.3">'
                     f'<div style="font-weight:700;color:#16201b;font-size:1.02rem">{_esc(client_data.get("nombre") or email_input)}</div>'
                     f'<div style="color:#65726b;font-size:.85rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{_esc(_sub)}</div></div>'
-                    '<div style="margin-left:auto;flex:0 0 auto;background:#e3f2e7;color:#15803d;font-size:.72rem;font-weight:700;'
+                    '<div style="margin-left:auto;flex:0 0 auto;background:#eef6f2;color:#0b5a42;font-size:.72rem;font-weight:700;'
                     f'padding:5px 11px;border-radius:20px;white-space:nowrap">✓ {_esc(_T.get("client_ready","Listo para pedir"))}</div>'
                     '</div>', unsafe_allow_html=True)
                 _form_host = st.expander('✏️ ' + _T.get('edit_data', 'Editar mis datos'), expanded=False)
@@ -3130,7 +3130,7 @@ def render_portal_pedido():
                                 _is_active = _pi == _idx_act and op_estado != 'Cancelado'
                                 _is_done = _pi < _idx_act and op_estado != 'Cancelado'
                                 if _is_active:
-                                    _pc[_pi].markdown(f'<div style="text-align:center;background:#1B7A3C;color:white;border-radius:8px;padding:5px 2px;font-size:0.75em"><b>{_ic}<br>{_pe}</b></div>', unsafe_allow_html=True)
+                                    _pc[_pi].markdown(f'<div style="text-align:center;background:#0c6e51;color:white;border-radius:8px;padding:5px 2px;font-size:0.75em"><b>{_ic}<br>{_pe}</b></div>', unsafe_allow_html=True)
                                 elif _is_done:
                                     _pc[_pi].markdown(f'<div style="text-align:center;background:#d4edda;color:#155724;border-radius:8px;padding:5px 2px;font-size:0.75em">{_ic}<br>{_pe}</div>', unsafe_allow_html=True)
                                 else:
@@ -3262,8 +3262,8 @@ def render_portal_pedido():
         _ship_t = _T['ship_fob_title']
         _ship_s = _T['ship_fob_sub']
     st.markdown(
-        '<div style="display:flex;align-items:center;gap:13px;padding:13px 15px;border:1px solid #e2eae4;'
-        'background:#f6faf7;border-radius:14px;margin:2px 0 4px">'
+        '<div style="display:flex;align-items:center;gap:13px;padding:13px 15px;border:1px solid #e7eaef;'
+        'background:#eef6f2;border-radius:14px;margin:2px 0 4px">'
         f'<div style="font-size:1.45rem;flex:0 0 auto;line-height:1">{_ship_ico}</div>'
         '<div style="min-width:0;line-height:1.3">'
         f'<div style="font-weight:700;color:#16201b;font-size:1.02rem">{_esc(_ship_t)}</div>'
@@ -3328,12 +3328,12 @@ def render_portal_pedido():
     .eh-cat-header {
         position: sticky; top: 56px; z-index: 30;
         background: #fff; padding: 8px 0;
-        border-bottom: 2px solid #1B7A3C;
+        border-bottom: 2px solid #0c6e51;
         font-weight: 700;
         display: grid; grid-template-columns: 2.4fr 2.3fr 3.5fr 2fr 1.6fr;
         gap: 8px; align-items: center;
     }
-    .eh-cat-header > div { color: #1B7A3C; font-size: 0.92rem; }
+    .eh-cat-header > div { color: #0c6e51; font-size: 0.92rem; }
     /* Mobile: hide sticky header, products will stack */
     @media (max-width: 768px) {
         .eh-cat-header { display: none; }
@@ -3473,13 +3473,13 @@ def render_portal_pedido():
         _progress_icon = '⚪'
     elif _current_pallets < _min_order:
         _min_valido = False
-        _progress_color = '#2E9E4F'
+        _progress_color = '#10a37a'
         _needed = _min_order - _current_pallets
         _progress_text = _T['min_progress_short'].format(curr=_current_pallets, min=_min_order, needed=_needed)
         _progress_icon = '🟡'
     else:
         _min_valido = True
-        _progress_color = '#16a34a'
+        _progress_color = '#10a37a'
         _next_hint = ''
         if _next_tramo and _pallets_para_siguiente > 0:
             _next_hint = _T['min_progress_next'].format(n=int(_next_tramo["min"]))
@@ -3513,9 +3513,9 @@ def render_portal_pedido():
                            + (f'<span style="{_alt_css}"> ~ {_cart_sym}{_cart_total_dest:,.2f} {_cart_dest_mon}</span>'
                               if _cart_total_dest else ''))
         _cart_html = (
-            f'<div style="background:#EAF3EC;border:1px solid #cfe0d4;border-radius:12px;padding:9px 15px;margin:6px 0;display:flex;justify-content:space-between;align-items:center">'
-            f'<span style="font-weight:600;color:#1B7A3C">{_T["cart_label"]}: {_cart_items} {_T["cart_products"]} | {_cart_total_pal:.1f} pal | {_cart_total_caj:,} cj</span>'
-            f'<span style="font-weight:700;color:#1B7A3C;font-size:1.1em">{_total_disp}</span>'
+            f'<div style="background:#eef6f2;border:1px solid #dce1e8;border-radius:12px;padding:9px 15px;margin:6px 0;display:flex;justify-content:space-between;align-items:center">'
+            f'<span style="font-weight:600;color:#0c6e51">{_T["cart_label"]}: {_cart_items} {_T["cart_products"]} | {_cart_total_pal:.1f} pal | {_cart_total_caj:,} cj</span>'
+            f'<span style="font-weight:700;color:#0c6e51;font-size:1.1em">{_total_disp}</span>'
             f'</div>'
         )
         st.markdown(_cart_html, unsafe_allow_html=True)
@@ -3552,9 +3552,9 @@ def render_portal_pedido():
                 _g_breakdown = f"{_g_full} " + _T['group_full_pallets'] + (f" + {_g_rem}/{_gv['cxp']} " + _T['group_partial_boxes'] if _g_rem else "")
                 _grp_html.append(
                     f'<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px dashed #e2e8f0">'
-                    f'<div><b style="color:#1B7A3C">Grupo {_gk}</b> <small style="color:#666">— {" · ".join(sorted(set(_gv["productos"])))}</small></div>'
+                    f'<div><b style="color:#0c6e51">Grupo {_gk}</b> <small style="color:#666">— {" · ".join(sorted(set(_gv["productos"])))}</small></div>'
                     f'<div style="text-align:right;font-size:0.9rem">'
-                    f'<b>{_gv["cajas"]:,} cj</b> / {_gv["cxp"]} cj-pal = <b style="color:#16a34a">{_g_pal_exact:.2f} pal</b>'
+                    f'<b>{_gv["cajas"]:,} cj</b> / {_gv["cxp"]} cj-pal = <b style="color:#10a37a">{_g_pal_exact:.2f} pal</b>'
                     f'<br><small style="color:#888">{_g_breakdown}</small>'
                     f'</div>'
                     f'</div>'
@@ -3575,7 +3575,7 @@ def render_portal_pedido():
                         f'</div>'
                     )
             _grp_html.append(
-                f'<div style="display:flex;justify-content:space-between;align-items:center;padding-top:8px;font-weight:700;color:#1B7A3C">'
+                f'<div style="display:flex;justify-content:space-between;align-items:center;padding-top:8px;font-weight:700;color:#0c6e51">'
                 f'<div>{_T["group_total_pallets"]}</div>'
                 f'<div>{_grp_total_pal_real:.2f} pal</div>'
                 f'</div>'
@@ -3585,16 +3585,16 @@ def render_portal_pedido():
                 st.markdown(''.join(line.lstrip() for line in '\n'.join(_grp_html).split('\n')), unsafe_allow_html=True)
     # ── PRO: lista de frutas limpia (fila por fruta) ──
     st.markdown('''<style>
-    .eh-row-ic{width:38px;height:38px;border-radius:10px;background:#f3f7f4;display:flex;align-items:center;justify-content:center}
+    .eh-row-ic{width:38px;height:38px;border-radius:10px;background:#eef6f2;display:flex;align-items:center;justify-content:center}
     .eh-row-ic svg{width:23px;height:23px}
     .eh-row-nm{font-weight:600;font-size:1rem;color:#16201b;line-height:1.25}
     .eh-row-sp{font-size:.78rem;color:#737d77;margin-top:1px}
-    .eh-row-added{background:#e3f2e7;color:#15803d;font-size:.66rem;font-weight:700;padding:2px 8px;border-radius:20px;margin-left:7px;white-space:nowrap}
+    .eh-row-added{background:#eef6f2;color:#0b5a42;font-size:.66rem;font-weight:700;padding:2px 8px;border-radius:20px;margin-left:7px;white-space:nowrap}
     .eh-card-pr{line-height:1.15;white-space:nowrap;text-align:right}
     .eh-card-pr b{font-size:1.06rem}
     .eh-card-u{font-size:.7rem;color:#8a948c;margin-left:2px}
     .eh-card-kg{display:none}
-    .eh-card-cj{font-size:.72rem;color:#15803d;font-weight:600;margin-top:3px}
+    .eh-card-cj{font-size:.72rem;color:#0b5a42;font-weight:600;margin-top:3px}
     .eh-shop-h{font-size:1.05rem;font-weight:700;color:#16201b;margin:6px 0 2px;display:flex;justify-content:space-between;align-items:baseline}
     .eh-shop-h span{font-weight:500;font-size:.82rem;color:#737d77}
     .eh-row-div{border:none;border-top:1px solid #ebefec;margin:.45rem 0}
@@ -3671,7 +3671,7 @@ def render_portal_pedido():
         # Precio + incentivo de volumen (móvil y escritorio igual):
         #  · si ya tiene descuento por volumen → precio a 1 pallet TACHADO + ahorro real
         #  · si aún no → gancho: "−X/caja a 3+ pallets" para incentivar
-        _ux_badge_html = ''; _ux_strike_html = ''; _ux_price_color = '#1B7A3C'
+        _ux_badge_html = ''; _ux_strike_html = ''; _ux_price_color = '#0c6e51'
         _conv = (_mon_x != 'USD' and tipo_precio == 'CIF' and _rate_x != 1.0 and not _ver_usd)
         _sym_show = _sym_x if _conv else '$'
         if _ux_base_price_1:
@@ -3680,19 +3680,19 @@ def render_portal_pedido():
             if precio_u < _ux_base_price_1:  # YA con descuento por volumen
                 _ux_strike_html = (f'<span style="color:#9ca3af;text-decoration:line-through;'
                                    f'font-size:0.74em;margin-right:5px">{_sym_show}{_p1:.2f}</span>')
-                _ux_badge_html = (f'<div style="color:#15803d;font-size:0.74em;font-weight:600;'
+                _ux_badge_html = (f'<div style="color:#0b5a42;font-size:0.74em;font-weight:600;'
                                   f'margin-top:1px;white-space:nowrap">−{_sym_show}{_p1 - _pu:.2f}/caja</div>')
-                _ux_price_color = '#16a34a'
+                _ux_price_color = '#10a37a'
             elif _ux_next_min and _ux_next_price and _ux_next_price < precio_u:
                 # gancho hacia el SIGUIENTE tramo real (contextual por fruta)
                 _pnd = round((precio_u - _ux_next_price) * (_rate_x if _conv else 1.0), 2)
-                _ux_badge_html = (f'<div style="color:#b5641f;font-size:0.72em;font-weight:600;'
+                _ux_badge_html = (f'<div style="color:#0d8a67;font-size:0.72em;font-weight:600;'
                                   f'margin-top:1px;white-space:nowrap">−{_sym_show}{_pnd:.2f}/caja a {_ux_next_min}+ pallets</div>')
             else:  # sin tramo siguiente arriba → gancho base a 3+ pallets
                 _p3 = get_precio_con_volumen(cod, destino, tipo_precio, data, 3)
                 if _p3 and _p3 < _ux_base_price_1:
                     _p3d = round((_ux_base_price_1 - _p3) * (_rate_x if _conv else 1.0), 2)
-                    _ux_badge_html = (f'<div style="color:#b5641f;font-size:0.72em;font-weight:600;'
+                    _ux_badge_html = (f'<div style="color:#0d8a67;font-size:0.72em;font-weight:600;'
                                       f'margin-top:1px;white-space:nowrap">−{_sym_show}{_p3d:.2f}/caja a 3+ pallets</div>')
         _precio_show = round(precio_u * _rate_x, 2) if _conv else precio_u
         gc[1].markdown(
@@ -3820,7 +3820,7 @@ def render_portal_pedido():
         _fruta_w = 'fruta' if _fb_n == 1 else 'frutas'
         _fb_mid = (
             f'<span title="{_fb_peek}" style="white-space:nowrap;cursor:default">🧾 <b>{_fb_n}</b> {_fruta_w}</span>'
-            f'<span style="white-space:nowrap;font-weight:800;color:#0F4F29;font-size:1.02rem">{_bsym}{_fb_tot_disp:,.0f}</span>')
+            f'<span style="white-space:nowrap;font-weight:800;color:#084a37;font-size:1.02rem">{_bsym}{_fb_tot_disp:,.0f}</span>')
     else:
         _fb_mid = ''
     st.markdown(
@@ -3832,9 +3832,9 @@ def render_portal_pedido():
         f'<span style="white-space:nowrap">{_fb_left}</span>'
         f'{_fb_mid}'
         '<div style="flex:1;min-width:90px;height:7px;background:#e3ede6;border-radius:6px;overflow:hidden">'
-        f'<div style="height:100%;width:{_fb_pct}%;background:linear-gradient(90deg,#2E9E4F,#1B7A3C);'
+        f'<div style="height:100%;width:{_fb_pct}%;background:linear-gradient(90deg,#10a37a,#0c6e51);'
         'transition:width .4s ease"></div></div>'
-        f'<span style="color:#15803d;font-weight:600;white-space:nowrap">{_fb_msg}</span>'
+        f'<span style="color:#0b5a42;font-weight:600;white-space:nowrap">{_fb_msg}</span>'
         '</div></div>', unsafe_allow_html=True)
 
     # Carrito
@@ -3865,7 +3865,7 @@ def render_portal_pedido():
         _resumen_html.append('''<style>
         .eh-resumen-wrap { margin: 8px 0 14px; }
         .eh-resumen-total {
-            background: linear-gradient(135deg,#1B7A3C 0%,#1a4f9e 100%);
+            background: linear-gradient(135deg,#0c6e51 0%,#1a4f9e 100%);
             color: #fff; border-radius: 12px; padding: 14px 18px;
             display: flex; justify-content: space-between; align-items: center;
             flex-wrap: wrap; gap: 10px; margin-bottom: 12px;
@@ -3881,10 +3881,10 @@ def render_portal_pedido():
             grid-template-columns: 1fr auto; gap: 4px 12px; align-items: center;
         }
         .eh-resumen-card .eh-prod { font-weight: 600; color: #1a2540; font-size: 0.98rem; }
-        .eh-resumen-card .eh-precio { color: #1B7A3C; font-weight: 700; text-align: right; white-space: nowrap; }
+        .eh-resumen-card .eh-precio { color: #0c6e51; font-weight: 700; text-align: right; white-space: nowrap; }
         .eh-resumen-card .eh-meta { grid-column: 1 / -1; display: flex; justify-content: space-between; align-items: center; font-size: 0.82rem; color: #6c7a93; padding-top: 2px; border-top: 1px dashed #eef1f7; margin-top: 2px; }
         .eh-resumen-card .eh-meta b { color: #1a2540; font-weight: 600; }
-        .eh-resumen-card .eh-eur { color: #1a7a3c; font-weight: 600; }
+        .eh-resumen-card .eh-eur { color: #0c6e51; font-weight: 600; }
         @media (min-width: 740px) {
           .eh-resumen-card { grid-template-columns: 2.3fr 0.9fr 0.9fr 0.9fr 1.1fr 1fr; gap: 6px 10px; }
           .eh-resumen-card .eh-prod { grid-column: auto; }
@@ -3923,7 +3923,7 @@ def render_portal_pedido():
                 if _ux_base_price and _ux_curr_price and _ux_base_price > _ux_curr_price:
                     _ux_diff = round(_ux_base_price - _ux_curr_price, 2)
                     _ux_pct = round((1 - _ux_curr_price / _ux_base_price) * 100, 1)
-                    _ux_save_html = f'<span class="eh-meta-cell" style="color:#9ca3af;text-decoration:line-through">${_ux_base_price:.2f}/cj</span><span class="eh-meta-cell" style="color:#16a34a;font-weight:700">{_T["savings_per_box"].format(d=_ux_diff)}</span>'
+                    _ux_save_html = f'<span class="eh-meta-cell" style="color:#9ca3af;text-decoration:line-through">${_ux_base_price:.2f}/cj</span><span class="eh-meta-cell" style="color:#10a37a;font-weight:700">{_T["savings_per_box"].format(d=_ux_diff)}</span>'
             _resumen_html.append(f'''
             <div class="eh-resumen-card">
               <div class="eh-prod">{_item["producto"]}</div>
@@ -4026,16 +4026,16 @@ def render_portal_pedido():
                     )
             _conf_html = (
                 '<style>'
-                '.eh-cnf-wrap { background:#f0f7ff; border:2px solid #1B7A3C; border-radius:12px; padding:14px 16px; margin:10px 0; }'
-                '.eh-cnf-wrap h4 { margin:0 0 10px 0; color:#1B7A3C; font-size:1.1rem; }'
+                '.eh-cnf-wrap { background:#f0f7ff; border:2px solid #0c6e51; border-radius:12px; padding:14px 16px; margin:10px 0; }'
+                '.eh-cnf-wrap h4 { margin:0 0 10px 0; color:#0c6e51; font-size:1.1rem; }'
                 '.eh-cnf-meta { font-size:0.92rem; line-height:1.5; color:#1a2540; margin-bottom:10px; }'
-                '.eh-cnf-meta b { color:#1B7A3C; }'
+                '.eh-cnf-meta b { color:#0c6e51; }'
                 '.eh-cnf-card { background:#fff; border:1px solid #d4dff2; border-radius:8px; padding:8px 12px; margin-bottom:6px; }'
                 '.eh-cnf-prod { display:flex; justify-content:space-between; align-items:baseline; font-size:0.98rem; }'
                 '.eh-cnf-cod { font-size:0.78rem; color:#6c7a93; font-weight:normal; }'
                 '.eh-cnf-row { display:flex; justify-content:space-between; align-items:center; gap:8px; font-size:0.88rem; color:#3a4a6b; padding-top:4px; flex-wrap:wrap; }'
-                '.eh-cnf-tot { color:#1B7A3C; font-weight:700; font-size:0.98rem; margin-left:auto; }'
-                '.eh-cnf-total-row { display:flex; justify-content:space-between; align-items:center; background:linear-gradient(135deg,#1B7A3C 0%,#1a4f9e 100%); color:#fff; border-radius:10px; padding:12px 16px; margin-top:8px; flex-wrap:wrap; gap:8px; }'
+                '.eh-cnf-tot { color:#0c6e51; font-weight:700; font-size:0.98rem; margin-left:auto; }'
+                '.eh-cnf-total-row { display:flex; justify-content:space-between; align-items:center; background:linear-gradient(135deg,#0c6e51 0%,#1a4f9e 100%); color:#fff; border-radius:10px; padding:12px 16px; margin-top:8px; flex-wrap:wrap; gap:8px; }'
                 '.eh-cnf-total-row .eh-cnf-tl { font-size:0.82rem; opacity:0.88; }'
                 '.eh-cnf-total-row .eh-cnf-tv { font-size:1.35rem; font-weight:700; line-height:1.1; }'
                 '.eh-cnf-total-row .eh-cnf-tx { font-size:0.92rem; opacity:0.92; }'
@@ -4046,7 +4046,7 @@ def render_portal_pedido():
                 f'<div class="eh-cnf-meta"><b>{_T["order_lbl_client"]}</b> {_esc(nombre)} ({_esc(email_input)})<br>'
                 f'<b>{_T["order_lbl_company"]}</b> {_esc(empresa) or "N/A"} &nbsp;|&nbsp; <b>{_T["order_lbl_country"]}</b> {_esc(pais) or "N/A"}<br>'
                 f'<b>{_T["order_lbl_mode"]}</b> {tipo_str} &nbsp;|&nbsp; <b>{_T["order_lbl_payment"]}</b> {p_term or _T["order_lbl_pending"]}'
-                + (f'<br><span style="color:#16a34a;font-weight:600">{_T["order_savings"].format(s=_ux_total_save)}</span>' if (tipo_precio == 'CIF' and _ux_total_save > 0) else '')
+                + (f'<br><span style="color:#10a37a;font-weight:600">{_T["order_savings"].format(s=_ux_total_save)}</span>' if (tipo_precio == 'CIF' and _ux_total_save > 0) else '')
                 + '</div>'
                 f'{_prod_cards_html}'
                 '<div class="eh-cnf-total-row">'
@@ -4193,14 +4193,14 @@ def render_portal_pedido():
         _steps_html = ''
         for _si, _slbl in enumerate(_post_steps):
             _on = _si == 0
-            _dot = ('background:#fff;color:#1B7A3C' if _on else 'background:rgba(255,255,255,.22);color:#fff')
+            _dot = ('background:#fff;color:#0c6e51' if _on else 'background:rgba(255,255,255,.22);color:#fff')
             _txt = ('#fff;font-weight:700' if _on else 'rgba(255,255,255,.8);font-weight:500')
             _conn = ('<div style="flex:1;height:2px;background:rgba(255,255,255,.25);margin:0 4px;min-width:10px"></div>' if _si < len(_post_steps) - 1 else '')
             _steps_html += (f'<div style="display:flex;align-items:center;gap:6px;white-space:nowrap">'
                             f'<span style="width:16px;height:16px;border-radius:50%;{_dot};font-size:.62rem;'
                             f'display:flex;align-items:center;justify-content:center;font-weight:800">{"✓" if _on else _si+1}</span>'
                             f'<span style="font-size:.74rem;color:{_txt}">{_esc(_slbl)}</span></div>{_conn}')
-        st.markdown(f'''<div style="background:linear-gradient(135deg,#1B7A3C,#0F4F29);padding:22px 24px;border-radius:16px;margin:12px 0;box-shadow:0 10px 30px rgba(15,79,41,.22)">
+        st.markdown(f'''<div style="background:linear-gradient(135deg,#0c6e51,#084a37);padding:22px 24px;border-radius:16px;margin:12px 0;box-shadow:0 10px 30px rgba(15,79,41,.22)">
           <div style="display:flex;align-items:center;gap:13px">
             <div style="width:46px;height:46px;border-radius:50%;background:rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center;font-size:1.5rem;flex:0 0 auto">&#x2705;</div>
             <div style="line-height:1.2">
@@ -4367,15 +4367,15 @@ def main():
     _ini_a = (_uname or 'A').strip()[:1].upper()
     st.markdown(
         '<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;'
-        'background:#fff;border:1px solid #e7ede8;border-radius:16px;padding:13px 20px;margin:2px 0 18px;'
+        'background:#fff;border:1px solid #e7eaef;border-radius:16px;padding:13px 20px;margin:2px 0 18px;'
         'box-shadow:0 1px 3px rgba(20,60,40,.05)">'
         '<div style="line-height:1.15;min-width:0">'
-        '<div style="font-size:.66rem;letter-spacing:1.8px;text-transform:uppercase;color:#1B7A3C;font-weight:700">Panel de administración</div>'
+        '<div style="font-size:.66rem;letter-spacing:1.8px;text-transform:uppercase;color:#0c6e51;font-weight:700">Panel de administración</div>'
         f'<div style="font-weight:800;color:#14201a;font-size:1.2rem;letter-spacing:-.4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{_esc(_app_title)}</div></div>'
         '<div style="display:flex;align-items:center;gap:10px;flex:0 0 auto">'
         f'<div style="text-align:right;line-height:1.2"><div style="font-weight:700;color:#16201b;font-size:.9rem">{_esc(_uname)}</div>'
         f'<div style="color:#65726b;font-size:.76rem;text-transform:capitalize">{_esc(_urol)}</div></div>'
-        f'<div style="width:38px;height:38px;border-radius:50%;background:#1B7A3C;color:#fff;font-weight:800;'
+        f'<div style="width:38px;height:38px;border-radius:50%;background:#0c6e51;color:#fff;font-weight:800;'
         f'display:flex;align-items:center;justify-content:center;font-size:1rem;flex:0 0 auto">{_esc(_ini_a)}</div>'
         '</div></div>', unsafe_allow_html=True)
     # Sidebar branding admin: logo si existe
