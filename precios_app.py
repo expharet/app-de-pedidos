@@ -493,6 +493,83 @@ def _admin_seccion(titulo, icono=''):
         f'<span style="font-weight:800;color:#14201a;font-size:1.12rem;letter-spacing:-.3px">{_esc(_t)}</span>'
         '</div>', unsafe_allow_html=True)
 
+
+# ── Componentes "Finanzas": badge de estado, FSM timeline, timeline de eventos ──
+_ESTADO_STYLE = {
+    'Recibido':   ('#eef2f6', '#566472', '#dce1e8'),
+    'Confirmado': ('#eef6f2', '#0b5a42', 'rgba(12,110,81,.20)'),
+    'Preparando': ('#fbf6ea', '#7e560a', 'rgba(181,121,10,.22)'),
+    'Enviado':    ('#eef1fb', '#3730a3', 'rgba(79,70,229,.20)'),
+    'Entregado':  ('#e7f4ee', '#0b5a42', 'rgba(12,110,81,.30)'),
+    'Cancelado':  ('#fcf2f1', '#992c20', 'rgba(185,28,28,.20)'),
+}
+
+def estado_badge(estado):
+    """Pill de estado coloreado (estilo Finanzas)."""
+    _bg, _tx, _bd = _ESTADO_STYLE.get(estado, ('#eef2f6', '#566472', '#dce1e8'))
+    _ic = ESTADO_ICONS.get(estado, '📦')
+    return (f'<span style="display:inline-flex;align-items:center;gap:5px;background:{_bg};color:{_tx};'
+            f'border:1px solid {_bd};border-radius:999px;padding:3px 11px;font-size:.74rem;font-weight:700;'
+            f'letter-spacing:.01em;white-space:nowrap">{_ic} {_esc(estado)}</span>')
+
+def fsm_timeline_html(estado):
+    """Ciclo de vida del pedido (Recibido→…→Entregado): anteriores con ✓, actual
+    resaltado y pulsante, futuros en gris. Cancelado → aviso. Estilo Finanzas FSM."""
+    pasos = ['Recibido', 'Confirmado', 'Preparando', 'Enviado', 'Entregado']
+    if estado == 'Cancelado':
+        return ('<div style="background:#fcf2f1;border:1px solid rgba(185,28,28,.20);color:#992c20;'
+                'border-radius:14px;padding:12px 16px;font-size:.85rem;font-weight:600;margin:8px 0 4px">'
+                '❌ Pedido cancelado</div>')
+    _idx = pasos.index(estado) if estado in pasos else 0
+    _seg = ''
+    for _i, _p in enumerate(pasos):
+        _done = _i < _idx
+        _cur = _i == _idx
+        if _done:
+            _circ = 'background:#0c6e51;border-color:#0c6e51;color:#fff'
+            _mark = '✓'
+        elif _cur:
+            _circ = 'background:#0c6e51;border-color:#0c6e51;color:#fff;box-shadow:0 0 0 4px rgba(12,110,81,.16)'
+            _mark = ESTADO_ICONS.get(_p, '●')
+        else:
+            _circ = 'background:#fff;border-color:#dce1e8;color:#8b95a3'
+            _mark = ''
+        _lblc = '#131a21' if (_done or _cur) else '#8b95a3'
+        _lblw = '700' if _cur else ('600' if _done else '500')
+        _line = ('' if _i == 0 else
+                 f'<div style="flex:1;height:2px;margin-top:11px;background:{"#0c6e51" if _i <= _idx else "#e7eaef"}"></div>')
+        _seg += (_line +
+                 '<div style="display:flex;flex-direction:column;align-items:center;flex:0 0 auto;min-width:62px">'
+                 f'<div style="width:24px;height:24px;border-radius:50%;border:2px solid;display:flex;'
+                 f'align-items:center;justify-content:center;font-size:11px;font-weight:800;{_circ}">{_mark}</div>'
+                 f'<div style="margin-top:6px;font-size:.68rem;color:{_lblc};font-weight:{_lblw}">{_esc(_p)}</div>'
+                 '</div>')
+    return ('<div style="display:flex;align-items:flex-start;background:#f5f7f8;border:1px solid #e7eaef;'
+            f'border-radius:14px;padding:16px 18px;margin:8px 0 4px;overflow-x:auto">{_seg}</div>')
+
+def eventos_timeline_html(historial):
+    """Timeline vertical de eventos (historial de cambios): tarjetas con icono +
+    estado + fecha + usuario + nota. Estilo Finanzas historial-item."""
+    if not historial:
+        return '<div style="color:#8b95a3;font-size:.82rem;padding:6px 2px">Sin eventos registrados.</div>'
+    _rows = ''
+    for _h in reversed(historial):
+        _est = _h.get('estado', '')
+        _ic = ESTADO_ICONS.get(_est, '📜')
+        _fe = (_h.get('fecha', '') or '')[:16].replace('T', ' ')
+        _us = _h.get('usuario', '')
+        _no = _h.get('nota', '')
+        _no_html = f'<div style="color:#566472;font-size:.74rem;margin-top:2px">{_esc(_no)}</div>' if _no else ''
+        _rows += (
+            '<div style="display:flex;align-items:flex-start;gap:11px;background:#fff;border:1px solid #e7eaef;'
+            'border-left:3px solid #0c6e51;border-radius:10px;padding:9px 12px;margin-bottom:7px">'
+            f'<div style="font-size:1.05rem;opacity:.85;flex:0 0 auto">{_ic}</div>'
+            '<div style="min-width:0">'
+            f'<div style="font-weight:700;color:#131a21;font-size:.85rem">{_esc(_est)}</div>'
+            f'<div style="color:#8b95a3;font-size:.72rem">{_esc(_fe)}{(" · " + _esc(_us)) if _us else ""}</div>'
+            f'{_no_html}</div></div>')
+    return _rows
+
 # ─── BUSINESS LOGIC ──────────────────────────────────────────────────────
 def segmentar(email, clients):
     peds = [p for p in load_pedidos() if p.get('client_email') == email]
@@ -1421,14 +1498,14 @@ def render_gestion_pedidos():
     else:
         fe = f1.selectbox('Estado',['Todos']+ORDEN_ESTADOS,key='gp_e')
         _use_multi = False
-    fc=f2.text_input('Cliente/ID',key='gp_c')
+    fc=f2.text_input('🔍 Buscar (cliente, email o ID)',key='gp_c',placeholder='nombre, correo o PED-…')
     fd=f3.selectbox('Destino',['Todos']+sorted(set(p.get('destino','') for p in pedidos if p.get('destino'))),key='gp_d')
     fd1,fd2=st.columns(2)
     _fecha_desde = fd1.date_input('📅 Desde', value=date.today() - timedelta(days=90), key='gp_desde')
     _fecha_hasta = fd2.date_input('📅 Hasta', value=date.today(), key='gp_hasta')
     filt=[p for p in pedidos if
         ((_use_multi and p.get('estado') in fe) or (not _use_multi and (fe=='Todos' or p.get('estado')==fe))) and
-        (not fc or fc.lower() in (p.get('client_name','')+p.get('id','')).lower()) and
+        (not fc or fc.lower() in (p.get('client_name','')+p.get('id','')+p.get('client_email','')).lower()) and
         (fd=='Todos' or p.get('destino')==fd) and
         (str(_fecha_desde) <= p.get('fecha','')[:10] <= str(_fecha_hasta))
     ]
@@ -1441,10 +1518,46 @@ def render_gestion_pedidos():
     for ped in sorted(filt,key=lambda x:x.get('fecha',''),reverse=True):
         icon=ESTADO_ICONS.get(ped.get('estado',''),'📦')
         with st.expander(f"{icon} #{ped.get('id','').upper()} • {ped.get('client_name','N/A')} • {ped.get('destino','')} • ${ped.get('total_usd',0):,.2f}"):
+            _est_p = ped.get('estado', 'Recibido')
+            # Cabecera detallada (estilo Finanzas): badge + nº + total + ciclo de vida
+            st.markdown(
+                '<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:2px 0 4px">'
+                f'{estado_badge(_est_p)}'
+                f'<span style="font-weight:800;color:#131a21;font-size:1.02rem">#{_esc(ped.get("id","").upper())}</span>'
+                f'<span style="margin-left:auto;font-weight:800;color:#084a37;font-size:1.05rem;font-variant-numeric:tabular-nums">${ped.get("total_usd",0):,.2f} USD</span>'
+                '</div>', unsafe_allow_html=True)
+            st.markdown(fsm_timeline_html(_est_p), unsafe_allow_html=True)
             cl1,cl2,cl3=st.columns(3)
             cl1.markdown(f"**Cliente:** {ped.get('client_name','')}"); cl1.markdown(f"**Email:** {ped.get('client_email','')}")
             cl2.markdown(f"**Destino:** {ped.get('destino','')}"); cl2.markdown(f"**Fecha:** {ped.get('fecha','')[:10]}")
-            cl3.markdown(f"**Total:** ${ped.get('total_usd',0):,.2f}"); cl3.markdown(f"**Estado:** {ped.get('estado','')}")
+            cl3.markdown(f"**Modalidad:** {ped.get('tipo_precio','FOB')}"); cl3.markdown(f"**T. pago:** {ped.get('terminos_pago','') or '—'}")
+            # Desglose de productos (detallado)
+            _prod_p = ped.get('productos', [])
+            if _prod_p:
+                _rows_p = ''.join(
+                    '<tr>'
+                    f'<td style="padding:6px 10px;border-bottom:1px solid #eef2f6">{_esc(_ip.get("producto",""))}</td>'
+                    f'<td style="padding:6px 10px;border-bottom:1px solid #eef2f6;text-align:right;font-variant-numeric:tabular-nums">{_ip.get("cajas",0):,} cj</td>'
+                    f'<td style="padding:6px 10px;border-bottom:1px solid #eef2f6;text-align:right;font-variant-numeric:tabular-nums">{_ip.get("pallets",0):.2f} pal</td>'
+                    f'<td style="padding:6px 10px;border-bottom:1px solid #eef2f6;text-align:right;font-variant-numeric:tabular-nums">${_ip.get("precio_usd",0):.2f}</td>'
+                    f'<td style="padding:6px 10px;border-bottom:1px solid #eef2f6;text-align:right;font-weight:700;font-variant-numeric:tabular-nums">${_ip.get("total",0):,.2f}</td>'
+                    '</tr>' for _ip in _prod_p)
+                _tot_cj = sum(int(_ip.get('cajas',0)) for _ip in _prod_p)
+                _tot_pl = sum(float(_ip.get('pallets',0)) for _ip in _prod_p)
+                st.markdown(
+                    '<div style="background:#fff;border:1px solid #e7eaef;border-radius:12px;overflow:hidden;margin:8px 0 4px">'
+                    '<table style="width:100%;border-collapse:collapse;font-size:.82rem">'
+                    '<thead><tr style="background:#f5f7f8;color:#566472;font-size:.7rem;text-transform:uppercase;letter-spacing:.04em">'
+                    '<th style="padding:7px 10px;text-align:left">Producto</th><th style="padding:7px 10px;text-align:right">Cajas</th>'
+                    '<th style="padding:7px 10px;text-align:right">Pallets</th><th style="padding:7px 10px;text-align:right">$/cj</th>'
+                    '<th style="padding:7px 10px;text-align:right">Total</th></tr></thead>'
+                    f'<tbody>{_rows_p}</tbody>'
+                    f'<tfoot><tr style="background:#f5f7f8;font-weight:800;color:#084a37">'
+                    f'<td style="padding:7px 10px">TOTAL</td>'
+                    f'<td style="padding:7px 10px;text-align:right;font-variant-numeric:tabular-nums">{_tot_cj:,} cj</td>'
+                    f'<td style="padding:7px 10px;text-align:right;font-variant-numeric:tabular-nums">{_tot_pl:.2f} pal</td>'
+                    f'<td></td><td style="padding:7px 10px;text-align:right;font-variant-numeric:tabular-nums">${ped.get("total_usd",0):,.2f}</td>'
+                    '</tr></tfoot></table></div>', unsafe_allow_html=True)
             _bl_key = f'bl_{ped.get("id","")}'
             _bl_val = ped.get('bl_numero','')
             _bl_new = st.text_input('🛳️ Nº BL / Contenedor', value=_bl_val, key=_bl_key, placeholder='ej: MSKU1234567')
@@ -1517,11 +1630,8 @@ def render_gestion_pedidos():
                         save_pedidos(all_p); st.toast('Pedido actualizado',icon='✅'); st.rerun()
             hist_g=ped.get('historial_estados',[])
             if hist_g:
-                with st.expander('📜 Historial',expanded=False):
-                    for h in reversed(hist_g):
-                        h_ic=ESTADO_ICONS.get(h.get('estado',''),'📜'); h_fe=h.get('fecha','')[:16].replace('T',' ')
-                        h_no=h.get('nota',''); no_s=f' — {h_no}' if h_no else ''
-                        st.caption(f"{h_ic} **{h.get('estado','')}** • {h_fe} • {h.get('usuario','')}{no_s}")
+                with st.expander(f'📜 Timeline de eventos ({len(hist_g)})',expanded=False):
+                    st.markdown(eventos_timeline_html(hist_g), unsafe_allow_html=True)
             _pdf_b, _pdf_m, _pdf_x = build_order_pdf(ped)
             st.download_button('⬇️ Albarán PDF', data=_pdf_b, file_name=f"{ped.get('id','ped')}{_pdf_x}", mime=_pdf_m, key=f'pdf_adm_{ped.get("id","")}', use_container_width=True)
             st.markdown('**Cambiar Estado — clic rápido:**')
@@ -3112,37 +3222,18 @@ def render_portal_pedido():
                     _clr_map = {'Recibido':'#0066cc','Confirmado':'#28a745','Preparando':'#fd7e14','Enviado':'#6f42c1','Entregado':'#20c997','Cancelado':'#dc3545'}
                     _col = _clr_map.get(op_estado,'#666')
                     with st.expander(f'{op_icon} {op_id} | {op_fecha} | {op_tipo} | ${op_total:,.2f} USD', expanded=False):
-                        sc1, sc2, sc3 = st.columns(3)
-                        sc1.markdown(f'**{_T["order_status"]}**')
-                        sc1.markdown(f'<span style="color:{_col};font-weight:bold">{op_icon} {op_estado}</span>', unsafe_allow_html=True)
-                        sc2.markdown(f'**{_T["order_type"]}** {op_tipo}')
-                        sc2.markdown(f'**{_T["order_destination"]}** {op_dest if op_tipo=="CIF" and op_dest else _T["destination_fob"]}')
-                        sc3.markdown(f'**{_T["order_date"]}** {op_fecha}')
-                        sc3.markdown(f'**{_T["order_total_lbl"]}** ${op_total:,.2f} USD')
+                        st.markdown(
+                            '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:2px 0 4px">'
+                            f'{estado_badge(op_estado)}'
+                            f'<span style="color:#566472;font-size:.82rem">{op_tipo}{(" · " + _esc(op_dest)) if op_tipo=="CIF" and op_dest else ""} · {_esc(op_fecha)}</span>'
+                            f'<span style="margin-left:auto;font-weight:800;color:#084a37;font-variant-numeric:tabular-nums">${op_total:,.2f} USD</span>'
+                            '</div>', unsafe_allow_html=True)
+                        # Ciclo de vida del pedido (estilo Finanzas)
+                        st.markdown(fsm_timeline_html(op_estado), unsafe_allow_html=True)
                         op_hist = op.get('historial_estados', [])
                         if op_hist:
-                            st.markdown(f'**{_T["tracking_title"]}**')
-                            _pasos_tr = ['Recibido','Confirmado','Preparando','Enviado','Entregado']
-                            _idx_act = _pasos_tr.index(op_estado) if op_estado in _pasos_tr else -1
-                            _pc = st.columns(len(_pasos_tr))
-                            for _pi, _pe in enumerate(_pasos_tr):
-                                _ic = ESTADO_ICONS.get(_pe,'')
-                                _is_active = _pi == _idx_act and op_estado != 'Cancelado'
-                                _is_done = _pi < _idx_act and op_estado != 'Cancelado'
-                                if _is_active:
-                                    _pc[_pi].markdown(f'<div style="text-align:center;background:#0c6e51;color:white;border-radius:8px;padding:5px 2px;font-size:0.75em"><b>{_ic}<br>{_pe}</b></div>', unsafe_allow_html=True)
-                                elif _is_done:
-                                    _pc[_pi].markdown(f'<div style="text-align:center;background:#d4edda;color:#155724;border-radius:8px;padding:5px 2px;font-size:0.75em">{_ic}<br>{_pe}</div>', unsafe_allow_html=True)
-                                else:
-                                    _pc[_pi].markdown(f'<div style="text-align:center;background:#f0f0f0;color:#aaa;border-radius:8px;padding:5px 2px;font-size:0.75em">{_ic}<br>{_pe}</div>', unsafe_allow_html=True)
-                            st.markdown('')
                             with st.expander(_T['full_history'], expanded=False):
-                                for _h in reversed(op_hist):
-                                    _h_ic = ESTADO_ICONS.get(_h.get('estado',''),'📜')
-                                    _h_fe = _h.get('fecha','')[:16].replace('T',' ')
-                                    _h_no = _h.get('nota','')
-                                    _no_str = f' — {_h_no}' if _h_no else ''
-                                    st.caption(f'{_h_ic} **{_h.get("estado","")}** • {_h_fe}{_no_str}')
+                                st.markdown(eventos_timeline_html(op_hist), unsafe_allow_html=True)
                         if op.get('productos'):
                             st.markdown(f'**{_T["products_label"]}**')
                             for _pit in op.get('productos',[]):

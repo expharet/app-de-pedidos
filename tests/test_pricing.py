@@ -241,6 +241,29 @@ def test_send_status_email_sin_smtp_devuelve_false():
     assert P.send_status_email({"id": "X"}, "Enviado") is False  # sin email cliente
 
 
+# ── Componentes de detalle estilo Finanzas (badge / FSM / timeline) ─────────
+def test_estado_badge_incluye_estado_y_color():
+    b = P.estado_badge("Confirmado")
+    assert "Confirmado" in b and "border-radius:999px" in b
+
+
+def test_fsm_timeline_marca_pasos_previos_y_cancelado():
+    # "Enviado" → 3 pasos previos completados (✓): Recibido, Confirmado, Preparando
+    assert P.fsm_timeline_html("Enviado").count("✓") == 3
+    assert P.fsm_timeline_html("Recibido").count("✓") == 0
+    assert "cancelado" in P.fsm_timeline_html("Cancelado").lower()
+
+
+def test_eventos_timeline_una_tarjeta_por_evento():
+    hist = [
+        {"estado": "Recibido", "fecha": "2026-06-15T10:00", "usuario": "admin"},
+        {"estado": "Confirmado", "fecha": "2026-06-15T11:00", "usuario": "admin", "nota": "ok"},
+    ]
+    html = P.eventos_timeline_html(hist)
+    assert html.count("border-left:3px") == 2
+    assert P.eventos_timeline_html([]).count("Sin eventos") == 1
+
+
 # ── Símbolos de moneda (conversión de divisa en el portal) ──────────────────
 def test_simbolos_moneda_principales():
     assert P.MONEDA_SIMBOLO["USD"] == "$"
