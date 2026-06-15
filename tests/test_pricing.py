@@ -190,6 +190,57 @@ def test_dedupe_descarta_claves_vacias_o_no_dict():
     assert list(out.keys()) == ["ok@x.com"]
 
 
+# ── _merge_client_record: NO perder ni blanquear datos del cliente ──────────
+def test_merge_no_blanquea_campos_existentes():
+    existing = {"nombre": "Frutas X", "empresa": "X SL", "telefono": "+34 600",
+                "pais": "Spain", "extra_marketing": "lead-123"}
+    # llega un guardado con empresa/telefono VACÍOS → no deben borrarse
+    out = P._merge_client_record(existing, {"nombre": "Frutas X", "empresa": "", "telefono": ""})
+    assert out["empresa"] == "X SL"
+    assert out["telefono"] == "+34 600"
+    assert out["extra_marketing"] == "lead-123"   # conserva campos externos
+
+
+def test_merge_aplica_valores_nuevos_no_vacios():
+    out = P._merge_client_record({"telefono": "viejo"}, {"telefono": "+44 7000", "pais": "United Kingdom"})
+    assert out["telefono"] == "+44 7000"
+    assert out["pais"] == "United Kingdom"
+
+
+def test_merge_desde_vacio_crea_registro():
+    out = P._merge_client_record({}, {"nombre": "Nuevo", "empresa": ""})
+    assert out["nombre"] == "Nuevo"
+    assert out["empresa"] == ""   # campo nuevo aunque vacío
+
+
+# ── Aviso de estado al cliente (email + WhatsApp) ───────────────────────────
+PED_NOTIF = {"id": "PED-2026-001", "client_name": "Julio",
+             "client_email": "julio@x.com", "telefono": "+44 7700 900123"}
+
+
+def test_status_text_personalizado_por_estado():
+    t, b = P._client_status_text(PED_NOTIF, "Enviado")
+    assert t == "Pedido enviado"
+    assert "Julio" in b and "PED-2026-001" in b and "ENVIADO" in b
+
+
+def test_status_text_estado_desconocido_no_revienta():
+    t, b = P._client_status_text(PED_NOTIF, "EstadoRaro")
+    assert t == "Actualización de pedido"
+    assert "PED-2026-001" in b
+
+
+def test_wa_link_usa_telefono_limpio():
+    link = P._client_wa_link(PED_NOTIF, "Confirmado")
+    assert link.startswith("https://wa.me/447700900123?text=")  # sin espacios ni +
+
+
+def test_send_status_email_sin_smtp_devuelve_false():
+    # sin SMTP configurado no envía pero NO rompe (no bloquea el cambio de estado)
+    assert P.send_status_email(PED_NOTIF, "Enviado") is False
+    assert P.send_status_email({"id": "X"}, "Enviado") is False  # sin email cliente
+
+
 # ── Símbolos de moneda (conversión de divisa en el portal) ──────────────────
 def test_simbolos_moneda_principales():
     assert P.MONEDA_SIMBOLO["USD"] == "$"

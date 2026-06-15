@@ -1360,6 +1360,22 @@ def render_destinos():
 # ─── TAB GESTION PEDIDOS ──────────────────────────────────────────────
 def render_gestion_pedidos():
     st.markdown('## 📦 Gestión de Pedidos')
+    # Aviso de estado al cliente: resultado del email + botón WhatsApp de un clic.
+    _sn = st.session_state.get('_status_notified')
+    if _sn:
+        _ic = ESTADO_ICONS.get(_sn.get('estado',''), '📦')
+        _cli = _sn.get('cliente') or _sn.get('email') or 'el cliente'
+        if _sn.get('email_ok'):
+            st.success(f"{_ic} Pedido {_sn.get('pid','')} → **{_sn.get('estado','')}**. "
+                       f"Avisamos a **{_cli}** por email automáticamente.")
+        else:
+            st.info(f"{_ic} Pedido {_sn.get('pid','')} → **{_sn.get('estado','')}**. "
+                    f"El email automático no está configurado — avisa a **{_cli}** por WhatsApp 👇")
+        _wc1, _wc2 = st.columns([1, 3])
+        _wc1.link_button('📲 Avisar por WhatsApp', _sn.get('wa', 'https://wa.me/'), use_container_width=True)
+        if _wc2.button('✓ Listo / ocultar', key='status_notify_dismiss'):
+            st.session_state.pop('_status_notified', None)
+            st.rerun()
     pedidos=load_pedidos()
     # KPI filter: si vienen de sidebar 'En proceso', precargar estados pendientes
     _kpi_filter = st.session_state.pop('pedidos_filter_estado', None)
@@ -1426,7 +1442,13 @@ def render_gestion_pedidos():
                                 break
                         save_pedidos(_all_pe); st.cache_data.clear()
                         sync_finanzas(_all_pe[_ipe], _all_pe)
-                        st.toast(f'Estado actualizado: {_est_actual} -> {_nuevo_est}', icon='✅')
+                        # Avisar al cliente del nuevo estado (email auto + link WhatsApp)
+                        _eml_ok = send_status_email(_all_pe[_ipe], _nuevo_est)
+                        st.session_state['_status_notified'] = {
+                            'pid': _all_pe[_ipe].get('id', ''), 'estado': _nuevo_est,
+                            'email_ok': _eml_ok, 'cliente': _all_pe[_ipe].get('client_name', ''),
+                            'email': _all_pe[_ipe].get('client_email', ''),
+                            'wa': _client_wa_link(_all_pe[_ipe], _nuevo_est)}
                         st.rerun()
                     else:
                         st.toast('El estado no cambio', icon='ℹ')
@@ -1485,6 +1507,12 @@ def render_gestion_pedidos():
                                 break
                         save_pedidos(todos); st.cache_data.clear()
                         sync_finanzas(todos[_i], todos)
+                        _eml_ok = send_status_email(todos[_i], qe)
+                        st.session_state['_status_notified'] = {
+                            'pid': todos[_i].get('id', ''), 'estado': qe, 'email_ok': _eml_ok,
+                            'cliente': todos[_i].get('client_name', ''),
+                            'email': todos[_i].get('client_email', ''),
+                            'wa': _client_wa_link(todos[_i], qe)}
                         st.rerun()
 
 # ─── TAB CONFIGURACION ──────────────────────────────────────────────
@@ -1714,6 +1742,20 @@ def _migrate_clients_swap(clients):
         try: save_clients(_new)
         except Exception: pass
     return _new
+
+def _merge_client_record(existing, updates):
+    """Fusiona el registro de un cliente SIN perder datos: aplica `updates` pero
+    NUNCA sobreescribe un campo que ya tiene valor con uno vacío (evita borrar
+    nombre/empresa/teléfono/país al guardar datos o confirmar un pedido). Conserva
+    además cualquier campo extra del registro existente (p. ej. de Marketing)."""
+    out = dict(existing or {})
+    for _k, _v in (updates or {}).items():
+        if _v not in (None, '', [], {}):
+            out[_k] = _v          # valor nuevo no vacío → actualizar
+        elif _k not in out:
+            out[_k] = _v          # campo nuevo (aunque vacío) → crear
+        # si el valor nuevo es vacío y el campo ya existía → conservar el viejo
+    return out
 
 def _dedupe_portal_clients(pc):
     """Normaliza el padrón del portal: clave email en minúsculas + sin espacios, y fusiona
@@ -2553,6 +2595,77 @@ def send_order_email(ped):
         pass
     return sent  # #6: el llamador puede reflejar si el email salió de verdad
 
+
+# ── Aviso de estado al CLIENTE (email automático + link WhatsApp de un clic) ──
+ESTADO_MSG_CLIENTE = {
+    'Recibido':   ('Pedido recibido',      'hemos recibido tu pedido {pid} y lo estamos revisando. Te confirmamos en breve.'),
+    'Confirmado': ('Pedido confirmado',    '¡buenas noticias! Tu pedido {pid} ha sido CONFIRMADO. Empezamos a prepararlo.'),
+    'Preparando': ('Preparando tu pedido', 'tu pedido {pid} está EN PREPARACIÓN. Te avisamos en cuanto salga.'),
+    'Enviado':    ('Pedido enviado',       'tu pedido {pid} ha sido ENVIADO. En breve recibirás los detalles de la logística.'),
+    'Entregado':  ('Pedido entregado',     'tu pedido {pid} ha sido ENTREGADO. ¡Gracias por tu confianza!'),
+    'Cancelado':  ('Pedido cancelado',     'tu pedido {pid} ha sido CANCELADO. Si tienes cualquier duda, contáctanos.'),
+}
+
+def _client_status_text(ped, estado):
+    """Devuelve (titulo, cuerpo) del aviso de estado para el cliente."""
+    pid = (ped.get('id', '') or '').upper()
+    nombre = (ped.get('client_name', '') or '').strip()
+    _t, _b = ESTADO_MSG_CLIENTE.get(estado, ('Actualización de pedido',
+                                             'el estado de tu pedido {pid} es ahora: ' + str(estado) + '.'))
+    saludo = f'Hola {nombre}, ' if nombre else 'Hola, '
+    return _t, saludo + _b.format(pid=pid) + ' — Export Haret'
+
+def _client_wa_link(ped, estado):
+    """Link wa.me prefilled al teléfono del cliente para avisarle en un clic."""
+    import urllib.parse as _up
+    tel = ''.join(ch for ch in str(ped.get('telefono', '') or '') if ch.isdigit())
+    _t, _body = _client_status_text(ped, estado)
+    _q = _up.quote(_body)
+    return f'https://wa.me/{tel}?text={_q}' if tel else f'https://wa.me/?text={_q}'
+
+def send_status_email(ped, estado):
+    """Avisa al CLIENTE por email del nuevo estado de su pedido. Solo envía si hay
+    SMTP en secrets; si no, devuelve False sin romper ni bloquear el cambio."""
+    import smtplib
+    from email.mime.text import MIMEText
+    to_addr = (ped.get('client_email', '') or '').strip()
+    if not to_addr:
+        return False
+    pid = (ped.get('id', '') or '').upper()
+    _title, _body = _client_status_text(ped, estado)
+    subject = f'Export Haret — {_title} ({pid})'
+    sent = False
+    try:
+        try:
+            cfg = st.secrets.get('email', {})
+        except Exception:
+            cfg = {}
+        smtp_host = cfg.get('smtp_host', ''); smtp_port = int(cfg.get('smtp_port', 587))
+        smtp_user = cfg.get('smtp_user', ''); smtp_pass = cfg.get('smtp_pass', '')
+        from_addr = cfg.get('from_addr', smtp_user) or smtp_user
+        if smtp_host and smtp_user and smtp_pass:
+            _ic = ESTADO_ICONS.get(estado, '📦')
+            html = (f'<div style="font-family:Arial,sans-serif;color:#19231D">'
+                    f'<div style="background:#1B7A3C;padding:16px 22px;border-radius:10px">'
+                    f'<h2 style="margin:0;color:#fff">{_ic} {_esc(_title)}</h2></div>'
+                    f'<p style="font-size:15px;line-height:1.6;margin:18px 2px">{_esc(_body)}</p>'
+                    f'<p style="font-size:13px;color:#666;margin:2px">Pedido <b>{_esc(pid)}</b> · '
+                    f'Dudas: order@exportharet.com</p></div>')
+            msg = MIMEText(html, 'html', 'utf-8')
+            msg['Subject'] = subject; msg['From'] = from_addr; msg['To'] = to_addr
+            msg['Reply-To'] = 'order@exportharet.com'
+            with smtplib.SMTP(smtp_host, smtp_port) as server:
+                server.ehlo(); server.starttls(); server.ehlo()
+                server.login(smtp_user, smtp_pass)
+                server.sendmail(from_addr, [to_addr], msg.as_string())
+            log_email(to_addr, subject, 'status_smtp_enviado')
+            sent = True
+        else:
+            log_email(to_addr, subject, 'status_smtp_sin_config')
+    except Exception as e:
+        log_email(to_addr, subject, f'status_smtp_error:{str(e)[:120]}')
+    return sent
+
 def _eh_seccion(raw, num):
     """Cabecera de sección premium: chip numerado con degradado + título.
     Sustituye los '### 1️⃣ Título' básicos."""
@@ -2755,6 +2868,23 @@ def render_portal_pedido():
         f'{_strip}'
         '</div>', unsafe_allow_html=True)
 
+    # ── WhatsApp flotante de dudas (siempre visible) — reduce abandono ──
+    import urllib.parse as _upw
+    _wa_help_txt = ('Hi, I have a question about Export Haret.' if _en
+                    else 'Hola, tengo una consulta sobre Export Haret.')
+    _wa_help_url = 'https://wa.me/34641076116?text=' + _upw.quote(_wa_help_txt)
+    st.markdown(
+        f'<a href="{_wa_help_url}" target="_blank" rel="noopener" '
+        'aria-label="WhatsApp" title="¿Dudas? Escríbenos por WhatsApp" '
+        'style="position:fixed;right:18px;bottom:84px;z-index:70;width:54px;height:54px;'
+        'border-radius:50%;background:#25D366;display:flex;align-items:center;justify-content:center;'
+        'box-shadow:0 6px 18px rgba(0,0,0,.22);text-decoration:none">'
+        '<svg width="30" height="30" viewBox="0 0 32 32" aria-hidden="true"><path fill="#fff" '
+        'd="M16 .5C7.4.5.5 7.4.5 16c0 2.8.7 5.4 2 7.8L.5 31.5l7.9-2c2.3 1.2 4.9 1.9 7.6 1.9 '
+        '8.6 0 15.5-6.9 15.5-15.5S24.6.5 16 .5zm0 28.3c-2.4 0-4.7-.6-6.7-1.8l-.5-.3-4.7 1.2 '
+        '1.3-4.6-.3-.5c-1.3-2.1-2-4.5-2-7 0-7.2 5.9-13.1 13.1-13.1S29.1 8.8 29.1 16 23.2 28.8 16 28.8zm7.2-9.8c-.4-.2-2.3-1.1-2.7-1.3-.4-.1-.6-.2-.9.2-.3.4-1 1.3-1.2 1.5-.2.2-.4.3-.8.1-.4-.2-1.6-.6-3.1-1.9-1.1-1-1.9-2.3-2.1-2.7-.2-.4 0-.6.2-.8.2-.2.4-.4.5-.7.2-.2.2-.4.4-.6.1-.3 0-.5 0-.7-.1-.2-.9-2.1-1.2-2.9-.3-.8-.6-.7-.9-.7h-.7c-.2 0-.6.1-.9.4-.3.4-1.2 1.2-1.2 2.9 0 1.7 1.2 3.4 1.4 3.6.2.2 2.5 3.8 6 5.3.8.4 1.5.6 2 .7.8.3 1.6.2 2.2.1.7-.1 2.3-.9 2.6-1.8.3-.9.3-1.6.2-1.8-.1-.1-.3-.2-.7-.4z"/></svg></a>',
+        unsafe_allow_html=True)
+
     _eh_seccion(_T['step1'], 1)
     # Email form with explicit "Acceder" button
     _eml_benef = ('We use it to save your order and follow up — no spam, no commitment.'
@@ -2915,10 +3045,19 @@ def render_portal_pedido():
                       st.error(_T.get('err_nombre', '✏️ Ingresa tu nombre completo'))
                   else:
                       _now_sv = datetime.now().isoformat()
-                      portal_clients[_eml_sv] = {'nombre': _nm_sv, 'empresa': empresa, 'telefono': telefono, 'pais': pais, 'email': _eml_sv, 'fecha_registro': portal_clients.get(_eml_sv, {}).get('fecha_registro', _now_sv), 'pedidos': portal_clients.get(_eml_sv, {}).get('pedidos', [])}
+                      # Fusión segura: no perder campos existentes ni blanquearlos
+                      portal_clients[_eml_sv] = _merge_client_record(
+                          portal_clients.get(_eml_sv, {}),
+                          {'nombre': _nm_sv, 'empresa': empresa, 'telefono': telefono, 'pais': pais, 'email': _eml_sv})
+                      portal_clients[_eml_sv].setdefault('fecha_registro', _now_sv)
+                      portal_clients[_eml_sv].setdefault('pedidos', [])
                       save_portal_clients(portal_clients)
                       _adm_sv = load_clients()
-                      _adm_sv[_eml_sv] = {'nombre': _nm_sv, 'email': _eml_sv, 'empresa': empresa, 'telefono': telefono, 'pais': pais, 'fecha_registro': _adm_sv.get(_eml_sv, {}).get('fecha_registro', _now_sv), 'pedidos_ids': _adm_sv.get(_eml_sv, {}).get('pedidos_ids', []), 'origen': _adm_sv.get(_eml_sv, {}).get('origen','portal_cliente')}
+                      _adm_sv[_eml_sv] = _merge_client_record(
+                          _adm_sv.get(_eml_sv, {}),
+                          {'nombre': _nm_sv, 'email': _eml_sv, 'empresa': empresa, 'telefono': telefono, 'pais': pais, 'origen': 'portal_cliente'})
+                      _adm_sv[_eml_sv].setdefault('fecha_registro', _now_sv)
+                      _adm_sv[_eml_sv].setdefault('pedidos_ids', [])
                       save_clients(_adm_sv)
                       st.cache_data.clear()
                       st.success('' + _nm_sv)
@@ -3968,14 +4107,23 @@ def render_portal_pedido():
                 todos.append(ped)
                 save_pedidos(todos)
                 sync_finanzas(ped, todos)
-                # Registrar / actualizar cliente en portal
-                portal_clients[email_input] = {
-                    'nombre': nombre, 'empresa': empresa, 'telefono': telefono,
-                    'pais': pais, 'email': email_input,
-                    'fecha_registro': portal_clients.get(email_input, {}).get('fecha_registro', datetime.now().isoformat()),
-                    'pedidos': portal_clients.get(email_input, {}).get('pedidos', []) + [pid],
-                }
-                save_portal_clients(portal_clients); _adm = load_clients(); _adm[email_input] = {'nombre': nombre, 'email': email_input, 'empresa': empresa, 'telefono': telefono, 'pais': pais, 'fecha_registro': _adm.get(email_input, {}).get('fecha_registro', datetime.now().isoformat()), 'pedidos_ids': list(set(_adm.get(email_input, {}).get('pedidos_ids', []) + [pid])), 'origen': 'portal_cliente'}; save_clients(_adm)
+                # Registrar / actualizar cliente en portal — FUSIÓN segura (no pierde
+                # ni blanquea datos existentes; solo añade el nuevo pedido).
+                _now_cf = datetime.now().isoformat()
+                portal_clients[email_input] = _merge_client_record(
+                    portal_clients.get(email_input, {}),
+                    {'nombre': nombre, 'empresa': empresa, 'telefono': telefono, 'pais': pais, 'email': email_input})
+                portal_clients[email_input].setdefault('fecha_registro', _now_cf)
+                portal_clients[email_input]['pedidos'] = list(dict.fromkeys(
+                    (portal_clients.get(email_input, {}).get('pedidos', []) or []) + [pid]))
+                save_portal_clients(portal_clients)
+                _adm = load_clients()
+                _adm[email_input] = _merge_client_record(
+                    _adm.get(email_input, {}),
+                    {'nombre': nombre, 'email': email_input, 'empresa': empresa, 'telefono': telefono, 'pais': pais, 'origen': 'portal_cliente'})
+                _adm[email_input].setdefault('fecha_registro', _now_cf)
+                _adm[email_input]['pedidos_ids'] = list(set((_adm.get(email_input, {}).get('pedidos_ids', []) or []) + [pid]))
+                save_clients(_adm)
                 # Log email y envio real a order@exportharet.com
                 log_email(email_input, f'Confirmación pedido {pid}', 'portal_cliente')
                 _email_ok = send_order_email(ped)  # #6: refleja si el email salió de verdad
