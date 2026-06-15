@@ -1,0 +1,40 @@
+name: tests
+
+# Corre la suite de pytest en cada push y pull request. Si los tests del flujo
+# de pedido (precio/volumen/flete/conversión) se ponen en rojo, el check falla
+# y se ve en GitHub antes de que llegue al cliente.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  pytest:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+
+      - name: Instalar dependencias
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest
+
+      - name: Ejecutar tests
+        run: python -m pytest tests/ -q
