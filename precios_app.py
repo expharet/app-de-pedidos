@@ -2830,6 +2830,17 @@ def render_portal_pedido():
                 if _saved_cart:
                     st.session_state.portal_carrito = _saved_cart
                     st.session_state['_cart_was_restored'] = True
+                    # Sembrar los inputs (qty/unit) para que el pre-pass fresco y la
+                    # lista muestren las cantidades restauradas (si no, se borrarían).
+                    _code_to_idx_r = {p.get('codigo'): _ri for _ri, p in enumerate(prods)}
+                    for _it_r in _saved_cart:
+                        _cir = _it_r.get('codigo')
+                        if _cir in _code_to_idx_r:
+                            _ixr = _code_to_idx_r[_cir]
+                            _iur = _it_r.get('unidad', 'Pallets')
+                            _qvr = _it_r.get('pallets', 0) if _iur == 'Pallets' else _it_r.get('cajas', 0)
+                            st.session_state[f'portal_qty_{_cir}_{_ixr}'] = int(round(_qvr))
+                            st.session_state[f'portal_unit_{_cir}_{_ixr}'] = (_T['unit_pallets'] if _iur == 'Pallets' else _T['unit_boxes'])
         _client_orders_all = [p for p in load_pedidos() if p.get('client_email','').lower() == email_input.lower()]
         _n_orders = len(_client_orders_all)
         tab_datos, tab_historial = st.tabs([_T['tab_datos'], _T['tab_pedidos'].format(n=_n_orders)])
@@ -3172,6 +3183,41 @@ def render_portal_pedido():
         div[data-testid="stNumberInput"] input { min-height: 40px !important; font-size: 0.95rem !important; }
     }
     </style>''', unsafe_allow_html=True)
+    # Vaciar pedido: resetear los inputs a 0 AQUÍ, antes de leerlos y de instanciar
+    # los widgets (evita el error "no se puede modificar tras instanciar" y el desync
+    # visual de Streamlit al borrar la clave). Lo dispara el botón "Vaciar pedido".
+    if st.session_state.pop('_portal_clear_qty', False):
+        for _vi, _vp in enumerate(prods):
+            st.session_state[f"portal_qty_{_vp.get('codigo','')}_{_vi}"] = 0
+
+    # ── FIX desfase: reconstruir el carrito FRESCO desde los inputs actuales ANTES
+    # de pintar la barra de progreso, el resumen y la lista. Antes, esos bloques
+    # leían el carrito del run anterior (p. ej. ponías 3 pallets y arriba contaba 2).
+    # Al recalcular aquí y asignarlo a portal_carrito, TODO el run es consistente.
+    _fresh_pal_total = 0.0
+    _fresh_rows = []
+    for _pi, _pp in enumerate(prods):
+        _cod_p = _pp.get('codigo', '')
+        _qv = st.session_state.get(f'portal_qty_{_cod_p}_{_pi}', 0) or 0
+        if _qv <= 0:
+            continue
+        _gi_p = data.get('config', {}).get('grupos', {}).get(_pp.get('grupo', ''), {})
+        _cxp_p = int(_gi_p.get('cajas_pallet', _pp.get('cajas_pallet', 160))) if isinstance(_gi_p, dict) else 160
+        _uv = st.session_state.get(f'portal_unit_{_cod_p}_{_pi}', _T['unit_pallets'])
+        _is_pal_p = (_uv == _T['unit_pallets'])
+        _cj_p = int(_qv * _cxp_p) if _is_pal_p else int(_qv)
+        _pal_p = float(_qv) if _is_pal_p else round(_cj_p / max(_cxp_p, 1), 2)
+        _fresh_pal_total += _pal_p
+        _fresh_rows.append({'codigo': _cod_p,
+                            'producto': _pp.get('descripcion', '') or _pp.get('producto', '') or _cod_p,
+                            'cajas': _cj_p, 'pallets': _pal_p, 'cxp': _cxp_p,
+                            'unidad': 'Pallets' if _is_pal_p else 'Cajas'})
+    for _fr in _fresh_rows:
+        _pu_fr = get_precio_con_volumen(_fr['codigo'], destino, tipo_precio, data, max(_fresh_pal_total, 1)) or 0
+        _fr['precio_usd'] = _pu_fr
+        _fr['total'] = round(_fr['cajas'] * _pu_fr, 2)
+    st.session_state.portal_carrito = _fresh_rows
+
     # Banner pedido mínimo
     _current_pallets = sum(i.get('pallets',0) for i in st.session_state.portal_carrito)
     # ── Indicador de volumen
@@ -3258,7 +3304,9 @@ def render_portal_pedido():
         _vc_cols = st.columns([5, 2])
         with _vc_cols[1]:
             if st.button(_T.get('clear_cart','🗑️ Vaciar carrito'), key='portal_vaciar_top', use_container_width=True, type='secondary'):
+                st.session_state['_portal_clear_qty'] = True   # se procesa antes de los inputs
                 st.session_state.portal_carrito = []
+                st.session_state['_cart_saved_snap'] = None
                 st.rerun()
         # PATCH GROUP-AGG: Resumen por Grupo de Embalaje
         _grp_cfg = data.get('config',{}).get('grupos',{})
@@ -3336,18 +3384,8 @@ def render_portal_pedido():
     st.markdown(f'<div class="eh-shop-h">Frutas disponibles <span>{_shop_sub}</span></div>', unsafe_allow_html=True)
     st.markdown('<hr class="eh-row-div" style="margin-top:0">', unsafe_allow_html=True)
 
-    # #1 fix: total de pallets FRESCO leído de los inputs actuales (no del carrito del
-    # run anterior) → el precio por volumen es correcto en el mismo run, sin desfase.
-    _total_pallets_fresh = 0.0
-    for _pi, _pp in enumerate(prods):
-        _cod_p = _pp.get('codigo', '')
-        _qv = st.session_state.get(f'portal_qty_{_cod_p}_{_pi}', 0) or 0
-        if _qv <= 0:
-            continue
-        _gi_p = data.get('config', {}).get('grupos', {}).get(_pp.get('grupo', ''), {})
-        _cxp_p = int(_gi_p.get('cajas_pallet', _pp.get('cajas_pallet', 160))) if isinstance(_gi_p, dict) else 160
-        _uv = st.session_state.get(f'portal_unit_{_cod_p}_{_pi}', _T['unit_pallets'])
-        _total_pallets_fresh += float(_qv) if _uv == _T['unit_pallets'] else (float(_qv) / max(_cxp_p, 1))
+    # Total de pallets FRESCO ya calculado arriba (mismo run, sin desfase).
+    _total_pallets_fresh = _fresh_pal_total
 
     # Reconstruir carrito basado en los valores actuales de los inputs
     _new_carrito = []
@@ -3704,7 +3742,9 @@ def render_portal_pedido():
         if tipo_precio == 'FOB':
             st.caption(_T['cart_fob'])
         if st.button(_T['clear_cart'], key='portal_vaciar', use_container_width=False):
+            st.session_state['_portal_clear_qty'] = True   # se procesa antes de los inputs
             st.session_state.portal_carrito = []
+            st.session_state['_cart_saved_snap'] = None
             st.rerun()
     st.markdown('---')
 
