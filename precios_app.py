@@ -3217,13 +3217,13 @@ def render_portal_pedido():
         _specs = ' · '.join([s for s in [_kg_lbl, (f'{cxp} cj/pallet' if cxp else ''),
                              (f'Grupo {_grp_x}' if _grp_x else '')] if s])
         _added_mark = ' <span class="eh-row-added">✓ en tu pedido</span>' if _ex_qty > 0 else ''
-        _r = st.columns([0.5, 3.0, 1.7, 3.0], gap='small', vertical_alignment='center')
+        _r = st.columns([0.45, 2.4, 1.35, 3.8], gap='small', vertical_alignment='center')
         _r[0].markdown(f'<div class="eh-row-ic">{_svg_html}</div>', unsafe_allow_html=True)
         _r[1].markdown(
             f'<div class="eh-row-nm">{_esc(nombre_prod)}{_added_mark}</div>'
             f'<div class="eh-row-sp">{_specs}</div>', unsafe_allow_html=True)
         # Controles: cantidad + unidad en LÍNEA (compacto). precio→col2, cajas→col1
-        _ctrl = _r[3].columns([3, 2], gap='small', vertical_alignment='center')
+        _ctrl = _r[3].columns([1.15, 1], gap='small', vertical_alignment='center')
         gc = [_r[1], _r[2], _ctrl[0], _ctrl[1], _r[1]]
         # Col 1: Precio por caja
         _mon_x = data.get('config',{}).get('destinos_moneda',{}).get(destino,'USD') if tipo_precio=='CIF' else 'USD'
