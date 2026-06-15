@@ -423,19 +423,27 @@ def init_session():
         if k not in st.session_state: st.session_state[k] = v
 
 def login_page():
-    # Branding: logo si existe, sino texto sin emoji
+    # Login premium centrado (coherente con el portal Pro).
     import os as _osL
-    _l1, _l2, _l3 = st.columns([1, 2, 1])
+    _l1, _l2, _l3 = st.columns([1, 1.5, 1])
     with _l2:
+        st.markdown('<div style="height:28px"></div>', unsafe_allow_html=True)
         if _osL.path.exists('logo.png'):
-            st.image('logo.png', use_container_width=True)
+            _lc1, _lc2, _lc3 = st.columns([1, 2, 1])
+            with _lc2:
+                st.image('logo.png', use_container_width=True)
         else:
-            st.markdown('<div style="text-align:center;padding:30px 0 10px"><h1 style="margin:0">Export Haret</h1></div>', unsafe_allow_html=True)
-        st.markdown('<div style="text-align:center;color:#6b7280;margin-bottom:24px">Sistema de Gestión de Pedidos</div>', unsafe_allow_html=True)
-        st.markdown('#### 🔐 Iniciar Sesión')
-        email = st.text_input('Email', placeholder='usuario@exportharet.com')
-        pwd = st.text_input('Contraseña', type='password')
-        if st.button('Entrar →', use_container_width=True, type='primary'):
+            st.markdown('<div style="text-align:center"><h1 style="margin:0;color:#0F4F29">Export Haret</h1></div>', unsafe_allow_html=True)
+        st.markdown(
+            '<div style="text-align:center;margin:8px 0 16px">'
+            '<div style="font-size:.72rem;letter-spacing:2px;text-transform:uppercase;color:#1B7A3C;font-weight:700">Panel de administración</div>'
+            '<div style="font-weight:800;color:#14201a;font-size:1.5rem;letter-spacing:-.5px;margin-top:4px">Inicia sesión</div>'
+            '</div>', unsafe_allow_html=True)
+        with st.form('admin_login_form', clear_on_submit=False):
+            email = st.text_input('Email', placeholder='usuario@exportharet.com')
+            pwd = st.text_input('Contraseña', type='password')
+            _ok = st.form_submit_button('Entrar →', use_container_width=True, type='primary')
+        if _ok:
             h = hashlib.md5(pwd.encode()).hexdigest()
             if email in USERS and USERS[email]['pwd'] == h:
                 st.session_state.logged_in = True
@@ -444,10 +452,46 @@ def login_page():
                 st.session_state.user_nombre = USERS[email]['nombre']
                 registrar_acceso(email=email, nombre=USERS[email]['nombre'], rol=USERS[email]['rol'])
                 st.rerun()
-            else: st.error('❌ Email o contraseña incorrectos')
-        st.markdown('---')
-        st.caption('🔒 Acceso restringido al personal autorizado.')
-        # credentials hidden for security
+            else:
+                st.error('❌ Email o contraseña incorrectos')
+        st.markdown('<div style="text-align:center;color:#8a978f;font-size:.8rem;margin:10px 0 4px">🔒 Acceso restringido al personal autorizado</div>', unsafe_allow_html=True)
+        if st.button('← Volver al portal de clientes', key='login_back', use_container_width=True):
+            st.session_state.app_mode = 'portal'
+            st.query_params.clear()
+            st.rerun()
+
+
+def _admin_css():
+    """Refinamiento visual del panel admin (coherente con el portal Pro):
+    métricas como tarjetas, pestañas y separadores limpios. Se inyecta una vez."""
+    st.markdown('''<style>
+      /* El admin necesita más ancho que el portal (tablas, catálogo, pedidos) */
+      [data-testid="stAppViewContainer"] .block-container{ max-width:1180px !important; }
+      /* KPI / métricas del área principal → tarjetas premium */
+      [data-testid="stMain"] [data-testid="stMetric"]{
+        background:#fff; border:1px solid #e7ede8; border-radius:14px;
+        padding:13px 16px; box-shadow:0 1px 2px rgba(20,60,40,.04); }
+      [data-testid="stMain"] [data-testid="stMetricLabel"] p{ color:#65726b; font-weight:600; font-size:.84rem; }
+      [data-testid="stMain"] [data-testid="stMetricValue"]{ color:#0F4F29; font-weight:800; }
+      /* Pestañas admin más sobrias */
+      .stTabs [data-baseweb="tab-list"]{ gap:2px; flex-wrap:wrap; }
+      .stTabs [data-baseweb="tab"]{ padding:8px 14px; font-size:.92rem; }
+      /* Separadores finos y con menos aire (había dobles ---) */
+      [data-testid="stMain"] hr{ margin:.7rem 0; border-top:1px solid #eef2ef; }
+      /* Sidebar: métricas compactas sin caja */
+      [data-testid="stSidebar"] [data-testid="stMetric"]{ padding:2px 0; }
+      [data-testid="stSidebar"] [data-testid="stMetricValue"]{ font-size:1.15rem; color:#0F4F29; }
+    </style>''', unsafe_allow_html=True)
+
+
+def _admin_seccion(titulo, icono=''):
+    """Cabecera de sección admin uniforme (eyebrow + título), estilo Pro."""
+    _t = f'{icono} {titulo}'.strip()
+    st.markdown(
+        '<div style="display:flex;align-items:center;gap:9px;margin:18px 0 10px">'
+        '<span style="width:22px;height:2px;background:#1B7A3C;border-radius:2px"></span>'
+        f'<span style="font-weight:800;color:#14201a;font-size:1.12rem;letter-spacing:-.3px">{_esc(_t)}</span>'
+        '</div>', unsafe_allow_html=True)
 
 # ─── BUSINESS LOGIC ──────────────────────────────────────────────────────
 def segmentar(email, clients):
@@ -537,13 +581,7 @@ def calc_sla(pedidos):
 
 # ─── TAB DASHBOARD ─────────────────────────────────────────────
 def render_dashboard():
-    import os as _os
-    if _os.path.exists('logo.png'):
-        from PIL import Image as _Img
-        _logo = _Img.open('logo.png')
-        _lc1, _lc2, _lc3 = st.columns([1, 2, 1])
-        with _lc2: st.image(_logo, width=220)
-    st.markdown('## 📊 Dashboard Ejecutivo')
+    _admin_seccion('Resumen ejecutivo', '📊')
     pedidos=load_pedidos(); clients=load_clients(); data=load_data()
     c1,c2,c3,c4=st.columns(4)
     fac=sum(p.get('total_usd',0) for p in pedidos)
@@ -553,16 +591,14 @@ def render_dashboard():
     c2.metric('💵 Facturación',f'${fac:,.0f}','USD')
     c3.metric('👥 Clientes',f'{len(clients):,}',f'{vip} VIP')
     c4.metric('📬 Hoy',hoy_peds,'nuevos')
-    st.markdown('---')
-    st.markdown('### 📋 Pedidos por Estado')
+    _admin_seccion('Pedidos por estado', '📋')
     ec={}
     for p in pedidos: ec[p.get('estado','Recibido')]=ec.get(p.get('estado','Recibido'),0)+1
     if ec:
         cols=st.columns(len(ORDEN_ESTADOS))
         for i,e in enumerate(ORDEN_ESTADOS): cols[i].metric(f"{ESTADO_ICONS.get(e,'')} {e}",ec.get(e,0))
     else: st.info('ℹ️ No hay pedidos. Crea uno en el tab **Hacer Pedido**.')
-    st.markdown('---')
-    st.markdown('### 📈 Facturación Mensual (USD)')
+    _admin_seccion('Facturación mensual (USD)', '📈')
     if pedidos:
         _mes_data = {}
         for _p in pedidos:
@@ -573,7 +609,7 @@ def render_dashboard():
             _df_chart = pd.DataFrame({'Mes': _meses_sorted, 'Total USD': [round(_mes_data[m], 2) for m in _meses_sorted]}).set_index('Mes')
             st.bar_chart(_df_chart, use_container_width=True, height=250)
     else: st.info('📊 Gráfico disponible cuando haya pedidos.')
-    st.markdown('---')
+    st.markdown('')
     with st.expander('⏱ SLA de Procesos', expanded=False):
         _,ss=calc_sla(pedidos)
         s1,s2,s3,s4=st.columns(4)
@@ -581,12 +617,10 @@ def render_dashboard():
         s2.metric('⚠️ Críticos',ss['crit'])
         s3.metric('⏱ Prom.h',f"{ss['prom']:.1f}h")
         s4.metric('📊 Trans.',ss['tot'])
-    st.markdown('---')
-    st.markdown('---')
     # —— Alertas pedidos nuevos ——
     _nuevos = [p for p in pedidos if p.get('estado','') == 'Recibido']
     if _nuevos:
-        st.markdown(f'### 🔔 Pedidos Nuevos Sin Atender ({len(_nuevos)})')
+        _admin_seccion(f'Pedidos nuevos sin atender ({len(_nuevos)})', '🔔')
         _col_alerta = 'background:#fff3cd;border-left:4px solid #ffc107;border-radius:6px;padding:10px 14px;margin:4px 0'
         for _np in sorted(_nuevos, key=lambda x: x.get('fecha',''), reverse=True)[:5]:
             _np_id = _np.get('id','').upper()
@@ -597,8 +631,7 @@ def render_dashboard():
             st.markdown(f'<div style="{_col_alerta}">📦 <b>{_np_id}</b> — {_np_cliente} — <b>${_np_total:,.2f} USD</b> — {_np_dest} — <small style="color:#888">{_np_fecha}</small></div>', unsafe_allow_html=True)
         if len(_nuevos) > 5:
             st.caption(f'... y {len(_nuevos)-5} pedido(s) más en el tab 📦 Pedidos')
-    st.markdown('---')
-    st.markdown('### ⭐ Segmentación')
+    _admin_seccion('Segmentación de clientes', '⭐')
     segs={'VIP':0,'Regular':0,'Nuevo':0}
     for e in clients: seg=segmentar(e,clients)['segmento']; segs[seg]=segs.get(seg,0)+1
     sg1,sg2,sg3=st.columns(3)
@@ -4323,26 +4356,28 @@ def main():
 
     # ── MODO ADMIN (STAFF LOGIN REQUERIDO) ────────────────────────────────────
     if not st.session_state.logged_in:
-        # Show back to portal button
-        col_back, col_form = st.columns([1, 3])
-        with col_back:
-            if st.button('← Portal Clientes', key='go_portal'):
-                st.session_state.app_mode = 'portal'
-                st.query_params.clear()
-                st.rerun()
-        with col_form:
-            login_page()
+        login_page()
         return
 
-    # Admin panel
-    import os as _osa
-    if _osa.path.exists('logo.png'):
-        from PIL import Image as _ImgA
-        _logoA = _ImgA.open('logo.png')
-        _al1, _al2, _al3 = st.columns([2, 1, 2])
-        with _al2: st.image(_logoA, width=160)
-    _app_title = load_app_config().get("app_title", "📊 Export Haret — Panel de Administración")
-    st.markdown(f'<div style="background:linear-gradient(90deg,#1B7A3C,#176836);padding:16px 24px;border-radius:8px;margin-bottom:20px;"><h2 style="color:white;margin:0">{_app_title}</h2></div>', unsafe_allow_html=True)
+    # Admin panel — cabecera limpia (el logo va en el sidebar; sin duplicados)
+    _admin_css()
+    _app_title = load_app_config().get("app_title", "Export Haret — Panel de Administración")
+    _uname = st.session_state.get('user_nombre', '') or ''
+    _urol = st.session_state.get('user_rol', '') or ''
+    _ini_a = (_uname or 'A').strip()[:1].upper()
+    st.markdown(
+        '<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;'
+        'background:#fff;border:1px solid #e7ede8;border-radius:16px;padding:13px 20px;margin:2px 0 18px;'
+        'box-shadow:0 1px 3px rgba(20,60,40,.05)">'
+        '<div style="line-height:1.15;min-width:0">'
+        '<div style="font-size:.66rem;letter-spacing:1.8px;text-transform:uppercase;color:#1B7A3C;font-weight:700">Panel de administración</div>'
+        f'<div style="font-weight:800;color:#14201a;font-size:1.2rem;letter-spacing:-.4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{_esc(_app_title)}</div></div>'
+        '<div style="display:flex;align-items:center;gap:10px;flex:0 0 auto">'
+        f'<div style="text-align:right;line-height:1.2"><div style="font-weight:700;color:#16201b;font-size:.9rem">{_esc(_uname)}</div>'
+        f'<div style="color:#65726b;font-size:.76rem;text-transform:capitalize">{_esc(_urol)}</div></div>'
+        f'<div style="width:38px;height:38px;border-radius:50%;background:#1B7A3C;color:#fff;font-weight:800;'
+        f'display:flex;align-items:center;justify-content:center;font-size:1rem;flex:0 0 auto">{_esc(_ini_a)}</div>'
+        '</div></div>', unsafe_allow_html=True)
     # Sidebar branding admin: logo si existe
     try:
         import os as _osSB
@@ -4350,23 +4385,22 @@ def main():
             st.sidebar.image('logo.png', use_container_width=True)
         else:
             st.sidebar.markdown('### Export Haret')
-        st.sidebar.caption('Panel de Administración')
+        st.sidebar.caption('Panel de administración')
     except Exception:
         st.sidebar.markdown(f'# {_app_title}')
-    st.sidebar.markdown(f'**{st.session_state.user_nombre}** | {st.session_state.user_rol}')
     st.sidebar.markdown('---')
     pedidos = load_pedidos()
     clients = load_clients()
-    st.sidebar.metric('📦 Pedidos', len(pedidos))
+    _sm1, _sm2 = st.sidebar.columns(2)
+    _sm1.metric('📦 Pedidos', len(pedidos))
+    _sm2.metric('👥 Clientes', len(clients))
     st.sidebar.metric('💵 Facturación', f"${sum(p.get('total_usd',0) for p in pedidos):,.0f}")
-    st.sidebar.metric('👥 Clientes', len(clients))
     pending = len([p for p in pedidos if p.get('estado') in ['Recibido','Confirmado','Preparando']])
     # KPI clickable - filtra Pedidos por estados pendientes
     if st.sidebar.button(f'⏳ En proceso: {pending}', use_container_width=True, key='kpi_en_proceso', help='Click para filtrar Pedidos por estados activos'):
         st.session_state['pedidos_filter_estado'] = ['Recibido','Confirmado','Preparando']
         st.session_state['admin_active_tab'] = 'pedidos'
         st.rerun()
-    st.sidebar.markdown('---')
     st.sidebar.markdown('---')
     with st.sidebar.expander(LANG_TEXTS[st.session_state.get('portal_lang','es')]['share_portal_title'], expanded=False):
         _portal_url = 'https://exportharet-pedidos.streamlit.app/'
