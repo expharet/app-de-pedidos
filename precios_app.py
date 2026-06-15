@@ -2961,36 +2961,55 @@ def render_portal_pedido():
     /* Mobile: hide sticky header, products will stack */
     @media (max-width: 768px) {
         .eh-cat-header { display: none; }
-        /* PEND5: cards verticales reales en movil */
-        div[data-testid="stHorizontalBlock"]:has(div[data-testid="stNumberInput"]) {
+        /* ── Fila de producto "Pro" en movil: nombre+precio en una linea,
+              cantidad+unidad lado a lado debajo. Limpio, sin caja con borde. ──
+           OUTER = la fila (contiene un bloque anidado). INNER = los controles. */
+        /* OUTER: fila del producto */
+        div[data-testid="stHorizontalBlock"]:has(div[data-testid="stHorizontalBlock"]) {
             display: flex !important;
-            flex-direction: column !important;
-            gap: 8px !important;
-            padding: 14px !important;
-            border: 1px solid #d6e1f0 !important;
-            border-radius: 12px !important;
-            margin-bottom: 10px !important;
-            background: #fff !important;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.04) !important;
+            flex-direction: row !important;
+            flex-wrap: wrap !important;
+            align-items: center !important;
+            gap: 3px 10px !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            border: none !important;
+            background: transparent !important;
+            box-shadow: none !important;
         }
-        div[data-testid="stHorizontalBlock"]:has(div[data-testid="stNumberInput"]) > div {
-            width: 100% !important;
-            min-width: 100% !important;
-            flex: 1 1 100% !important;
+        div[data-testid="stHorizontalBlock"]:has(div[data-testid="stHorizontalBlock"]) > div:nth-child(1) {
+            flex: 0 0 auto !important; width: auto !important; min-width: 0 !important;
+        }
+        div[data-testid="stHorizontalBlock"]:has(div[data-testid="stHorizontalBlock"]) > div:nth-child(2) {
+            flex: 1 1 0 !important; width: auto !important; min-width: 0 !important;
+        }
+        div[data-testid="stHorizontalBlock"]:has(div[data-testid="stHorizontalBlock"]) > div:nth-child(3) {
+            flex: 0 0 auto !important; width: auto !important; min-width: 0 !important; margin-left: auto !important;
+        }
+        div[data-testid="stHorizontalBlock"]:has(div[data-testid="stHorizontalBlock"]) > div:nth-child(4) {
+            flex: 1 1 100% !important; width: 100% !important; min-width: 100% !important; margin-top: 7px !important;
+        }
+        /* INNER: cantidad + unidad lado a lado (no apilados) */
+        div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"]:has(div[data-testid="stNumberInput"]) {
+            display: flex !important;
+            flex-direction: row !important;
+            flex-wrap: nowrap !important;
+            gap: 8px !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            border: none !important;
+            background: transparent !important;
+            box-shadow: none !important;
+        }
+        div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"]:has(div[data-testid="stNumberInput"]) > div {
+            flex: 1 1 0 !important; width: auto !important; min-width: 0 !important;
+        }
+        div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"]:has(div[data-testid="stNumberInput"]) > div:nth-child(1) {
+            flex: 1.3 1 0 !important;
         }
         div[data-testid="stNumberInput"] button {
-            min-width: 52px !important;
-            min-height: 52px !important;
-        }
-        /* Make product rows stack vertically on mobile */
-        div[data-testid="stHorizontalBlock"]:has(div[data-testid="stNumberInput"]) {
-            flex-wrap: wrap !important;
-            gap: 6px !important;
-            padding: 10px 12px !important;
-            border: 1px solid #e5e7eb;
-            border-radius: 10px;
-            margin-bottom: 8px;
-            background: #fff;
+            min-width: 40px !important;
+            min-height: 42px !important;
         }
     }
     /* PEND3: Sticky Guardar Precios admin */
@@ -3003,7 +3022,10 @@ def render_portal_pedido():
     /* Cleaner product row styling */
     .eh-cat-row-marker { display:none; }
     /* Compact cart banner button alignment */
-    .eh-cart-banner-actions { display:flex; gap:8px; align-items:center; justify-content:flex-end; } @media (max-width: 768px) { div[data-testid="stNumberInput"] button { min-width: 36px !important; min-height: 36px !important; font-size: 1rem !important; } div[data-testid="stNumberInput"] input { min-height: 36px !important; font-size: 0.95rem !important; } div[data-testid="stHorizontalBlock"]:has(div[data-testid="stNumberInput"]) { padding: 10px 12px !important; gap: 10px !important; flex-direction: column !important; } div[data-testid="stHorizontalBlock"]:has(div[data-testid="stNumberInput"]) > div { width: 100% !important; min-width: 100% !important; padding: 4px 0 !important; min-height: 28px !important; } div[data-testid="stHorizontalBlock"]:has(div[data-testid="stNumberInput"]) div[data-testid="stMarkdown"] { padding: 6px 0 8px !important; line-height: 1.5 !important; min-height: 32px !important; display: block !important; } div[data-testid="stHorizontalBlock"]:has(div[data-testid="stNumberInput"]) div[data-testid="stMarkdown"] p, div[data-testid="stHorizontalBlock"]:has(div[data-testid="stNumberInput"]) div[data-testid="stMarkdown"] div { line-height: 1.5 !important; margin: 0 0 4px !important; } }
+    .eh-cart-banner-actions { display:flex; gap:8px; align-items:center; justify-content:flex-end; }
+    @media (max-width: 768px) {
+        div[data-testid="stNumberInput"] input { min-height: 40px !important; font-size: 0.95rem !important; }
+    }
     </style>''', unsafe_allow_html=True)
     # Banner pedido mínimo
     _current_pallets = sum(i.get('pallets',0) for i in st.session_state.portal_carrito)
