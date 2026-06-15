@@ -2965,6 +2965,16 @@ def render_portal_pedido():
         background:#fff !important; border-color:#e6ece8 !important; opacity:.55; }
       .st-key-btn_lang_es button[kind="primary"], .st-key-btn_lang_en button[kind="primary"] {
         background:#eef5f0 !important; border:1px solid #dce1e8 !important; opacity:1; }
+      /* Móvil: mantener etiqueta + banderas en UNA fila (no apiladas) */
+      @media (max-width:768px){
+        div[data-testid="stHorizontalBlock"]:has(.st-key-btn_lang_es){
+          flex-direction:row !important; flex-wrap:nowrap !important; align-items:center !important;
+          justify-content:flex-end !important; gap:7px !important; }
+        div[data-testid="stHorizontalBlock"]:has(.st-key-btn_lang_es) > div{
+          flex:0 0 auto !important; width:auto !important; min-width:0 !important; }
+        div[data-testid="stHorizontalBlock"]:has(.st-key-btn_lang_es) > div:first-child{ flex:1 1 auto !important; }
+        div[data-testid="stHorizontalBlock"]:has(.st-key-btn_lang_es) > div:first-child > div{ padding-top:6px !important; }
+      }
     </style>''', unsafe_allow_html=True)
     _lbtn_c1, _lbtn_c2, _lbtn_c3 = st.columns([9, 1, 1])
     with _lbtn_c1:
@@ -3069,7 +3079,9 @@ def render_portal_pedido():
                     else 'Hola, tengo una consulta sobre Export Haret.')
     _wa_help_url = 'https://wa.me/34641076116?text=' + _upw.quote(_wa_help_txt)
     st.markdown(
-        f'<a href="{_wa_help_url}" target="_blank" rel="noopener" '
+        '<style>@media (max-width:768px){.eh-wa-fab{width:46px !important;height:46px !important;'
+        'right:12px !important;bottom:78px !important}.eh-wa-fab svg{width:25px !important;height:25px !important}}</style>'
+        f'<a class="eh-wa-fab" href="{_wa_help_url}" target="_blank" rel="noopener" '
         'aria-label="WhatsApp" title="¿Dudas? Escríbenos por WhatsApp" '
         'style="position:fixed;right:18px;bottom:84px;z-index:70;width:54px;height:54px;'
         'border-radius:50%;background:#25D366;display:flex;align-items:center;justify-content:center;'
@@ -3480,21 +3492,21 @@ def render_portal_pedido():
     /* Mobile: hide sticky header, products will stack */
     @media (max-width: 768px) {
         .eh-cat-header { display: none; }
-        /* ── Fila de producto "Pro" en movil: nombre+precio en una linea,
-              cantidad+unidad lado a lado debajo. Limpio, sin caja con borde. ──
+        /* ── Móvil: cada producto = TARJETA limpia. Línea 1: icono + nombre +
+              precio. Debajo: ficha + controles (cantidad + unidad) cómodos. ──
            OUTER = la fila (contiene un bloque anidado). INNER = los controles. */
-        /* OUTER: fila del producto */
         div[data-testid="stHorizontalBlock"]:has(div[data-testid="stHorizontalBlock"]) {
             display: flex !important;
             flex-direction: row !important;
             flex-wrap: wrap !important;
             align-items: center !important;
-            gap: 3px 10px !important;
-            padding: 0 !important;
-            margin: 0 !important;
-            border: none !important;
-            background: transparent !important;
-            box-shadow: none !important;
+            gap: 4px 12px !important;
+            padding: 13px 15px !important;
+            margin: 0 0 12px !important;
+            border: 1px solid #e7eaef !important;
+            border-radius: 14px !important;
+            background: #ffffff !important;
+            box-shadow: 0 1px 2px rgba(18,28,42,.05) !important;
         }
         div[data-testid="stHorizontalBlock"]:has(div[data-testid="stHorizontalBlock"]) > div:nth-child(1) {
             flex: 0 0 auto !important; width: auto !important; min-width: 0 !important;
@@ -3506,14 +3518,14 @@ def render_portal_pedido():
             flex: 0 0 auto !important; width: auto !important; min-width: 0 !important; margin-left: auto !important;
         }
         div[data-testid="stHorizontalBlock"]:has(div[data-testid="stHorizontalBlock"]) > div:nth-child(4) {
-            flex: 1 1 100% !important; width: 100% !important; min-width: 100% !important; margin-top: 7px !important;
+            flex: 1 1 100% !important; width: 100% !important; min-width: 100% !important; margin-top: 11px !important;
         }
-        /* INNER: cantidad + unidad lado a lado (no apilados) */
+        /* INNER: cantidad + unidad lado a lado (no apilados), cómodos */
         div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"]:has(div[data-testid="stNumberInput"]) {
             display: flex !important;
             flex-direction: row !important;
             flex-wrap: nowrap !important;
-            gap: 8px !important;
+            gap: 9px !important;
             padding: 0 !important;
             margin: 0 !important;
             border: none !important;
@@ -3524,11 +3536,24 @@ def render_portal_pedido():
             flex: 1 1 0 !important; width: auto !important; min-width: 0 !important;
         }
         div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"]:has(div[data-testid="stNumberInput"]) > div:nth-child(1) {
-            flex: 1.3 1 0 !important;
+            flex: 1.25 1 0 !important;
         }
         div[data-testid="stNumberInput"] button {
-            min-width: 40px !important;
-            min-height: 42px !important;
+            min-width: 44px !important;
+            min-height: 46px !important;
+        }
+        /* Las tarjetas ya separan; fuera divisores sueltos entre filas */
+        .eh-row-div { display: none !important; }
+        /* Selector de idioma: inline a la derecha (no apilado en bloques grandes) */
+        div[data-testid="stHorizontalBlock"]:has(.st-key-btn_lang_es){
+            flex-direction: row !important; flex-wrap: nowrap !important;
+            align-items: center !important; justify-content: flex-end !important; gap: 7px !important;
+        }
+        div[data-testid="stHorizontalBlock"]:has(.st-key-btn_lang_es) > div{
+            flex: 0 0 auto !important; width: auto !important; min-width: 0 !important;
+        }
+        div[data-testid="stHorizontalBlock"]:has(.st-key-btn_lang_es) > div:first-child{
+            flex: 1 1 auto !important;
         }
     }
     /* PEND3: Sticky Guardar Precios admin */
