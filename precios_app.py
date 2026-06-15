@@ -2610,28 +2610,24 @@ def render_portal_pedido():
     # Progress bar - steps indicator
     _step1_done = bool(st.session_state.get('portal_email',''))
     _step2_done = bool(st.session_state.get('portal_carrito',[]))
-    _step_html = f'''<div style="display:flex;align-items:center;gap:0;margin:0 0 18px 0;background:#f8faff;border-radius:10px;padding:10px 16px">
-  <div style="flex:1;text-align:center">
-    <div style="background:#1B7A3C;color:white;border-radius:50%;width:28px;height:28px;display:inline-flex;align-items:center;justify-content:center;font-weight:bold;font-size:0.85em">1</div>
-    <div style="font-size:0.75em;color:#1B7A3C;font-weight:bold;margin-top:2px">{_T["progress_step1"]}</div>
-  </div>
-  <div style="flex:0.5;height:3px;background:#d7e3da;border-radius:2px"></div>
-  <div style="flex:1;text-align:center">
-    <div style="background:#93A99B;color:white;border-radius:50%;width:28px;height:28px;display:inline-flex;align-items:center;justify-content:center;font-weight:bold;font-size:0.85em">2</div>
-    <div style="font-size:0.75em;color:#93A99B;margin-top:2px">{_T["progress_step2"]}</div>
-  </div>
-  <div style="flex:0.5;height:3px;background:#d7e3da;border-radius:2px"></div>
-  <div style="flex:1;text-align:center">
-    <div style="background:#93A99B;color:white;border-radius:50%;width:28px;height:28px;display:inline-flex;align-items:center;justify-content:center;font-weight:bold;font-size:0.85em">3</div>
-    <div style="font-size:0.75em;color:#93A99B;margin-top:2px">{_T["progress_step3"]}</div>
-  </div>
-  <div style="flex:0.5;height:3px;background:#d7e3da;border-radius:2px"></div>
-  <div style="flex:1;text-align:center">
-    <div style="background:#93A99B;color:white;border-radius:50%;width:28px;height:28px;display:inline-flex;align-items:center;justify-content:center;font-weight:bold;font-size:0.85em">4</div>
-    <div style="font-size:0.75em;color:#93A99B;margin-top:2px">{_T["progress_step4"]}</div>
-  </div>
-</div>'''
-    st.markdown(_step_html, unsafe_allow_html=True)
+    # Stepper "Pro": barra fina blanca con estados (hecho / actual / pendiente)
+    _stp_state = (['done', 'done', 'on', 'off'] if _step1_done else ['on', 'off', 'off', 'off'])
+    _stp_lbls = [_T["progress_step1"], _T["progress_step2"], _T["progress_step3"], _T["progress_step4"]]
+    _seg = ''
+    for _i, (_lbl, _stt) in enumerate(zip(_stp_lbls, _stp_state), 1):
+        _nbg = '#1B7A3C' if _stt in ('on', 'done') else '#e7ece8'
+        _nc = '#fff' if _stt in ('on', 'done') else '#737d77'
+        _txt = '#16201b' if _stt != 'off' else '#a3aaa3'
+        _bgc = '#f3f7f4' if _stt == 'on' else 'transparent'
+        _ico = '✓' if _stt == 'done' else str(_i)
+        _br = ';border-right:1px solid #ebefec' if _i < 4 else ''
+        _seg += (f'<div style="flex:1;display:flex;align-items:center;justify-content:center;gap:7px;'
+                 f'padding:11px 6px;background:{_bgc};font-size:.82rem;font-weight:600;color:{_txt}{_br}">'
+                 f'<span style="width:19px;height:19px;border-radius:50%;background:{_nbg};color:{_nc};'
+                 f'font-size:11px;font-weight:800;display:inline-flex;align-items:center;justify-content:center">{_ico}</span>'
+                 f'{_lbl}</div>')
+    st.markdown(f'<div style="display:flex;border:1px solid #ebefec;border-radius:12px;overflow:hidden;'
+                f'background:#fff;margin:0 0 18px">{_seg}</div>', unsafe_allow_html=True)
 
     # Banner comercial: invita al cliente a simular su pedido y ver precios por volumen
     _promo = {
