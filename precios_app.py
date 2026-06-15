@@ -2957,25 +2957,29 @@ def render_portal_pedido():
                             _repeat_prods = op.get('productos', [])
                             if _repeat_prods:
                                 st.session_state.portal_carrito = []
-                                _rep_data = load_data()
+                                # Índice POR LISTA ACTIVA (prods) — el mismo que usan el
+                                # bucle y el pre-pass. Usar el catálogo completo desalinearía
+                                # las claves si hay productos inactivos. La unidad se siembra
+                                # con la ETIQUETA traducida (en EN, 'Boxes' no 'Cajas').
+                                _code_to_idx_rp = {p.get('codigo',''): _i for _i, p in enumerate(prods)}
+                                _rep_loaded = 0
                                 for _rp in _repeat_prods:
                                     _rp_cod = _rp.get('codigo','')
                                     _rp_cajas = int(_rp.get('cajas',0))
                                     _rp_pallets = float(_rp.get('pallets',0))
                                     _rp_unit = _rp.get('unidad','Pallets')
-                                    _rp_prod = _rp.get('producto','')
-                                    _rp_precio = float(_rp.get('precio_usd',0))
-                                    _rp_total = float(_rp.get('total',0))
-                                    if _rp_cajas > 0:
-                                        st.session_state.portal_carrito.append({'codigo':_rp_cod,'producto':_rp_prod,'cajas':_rp_cajas,'pallets':_rp_pallets,'precio_usd':_rp_precio,'total':_rp_total,'unidad':_rp_unit})
-                                        for _ri, _p2 in enumerate(_rep_data.get('products',[])):
-                                            if _p2.get('codigo','') == _rp_cod:
-                                                _rqv = _rp_pallets if _rp_unit=='Pallets' else _rp_cajas
-                                                st.session_state[f'portal_qty_{_rp_cod}_{_ri}'] = int(_rqv)
-                                                st.session_state[f'portal_unit_{_rp_cod}_{_ri}'] = _rp_unit
-                                                break
-                                st.success(_T['order_repeat_loaded'].format(pid=op_id))
-                                st.rerun()
+                                    if _rp_cajas > 0 and _rp_cod in _code_to_idx_rp:
+                                        _ri = _code_to_idx_rp[_rp_cod]
+                                        _rqv = _rp_pallets if _rp_unit == 'Pallets' else _rp_cajas
+                                        st.session_state[f'portal_qty_{_rp_cod}_{_ri}'] = int(round(_rqv))
+                                        st.session_state[f'portal_unit_{_rp_cod}_{_ri}'] = (_T['unit_pallets'] if _rp_unit == 'Pallets' else _T['unit_boxes'])
+                                        _rep_loaded += 1
+                                st.session_state['_cart_saved_snap'] = None  # forzar recálculo/guardado
+                                if _rep_loaded:
+                                    st.success(_T['order_repeat_loaded'].format(pid=op_id))
+                                    st.rerun()
+                                else:
+                                    st.warning(_T['order_no_products'])
                             else:
                                 st.warning(_T['order_no_products'])
                         if can_cancel:
