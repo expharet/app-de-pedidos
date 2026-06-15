@@ -2509,6 +2509,44 @@ def _eh_seccion(raw, num):
         f'<span class="eh-sec-title">{t}</span></div>', unsafe_allow_html=True)
 
 
+# ── Tienda visual: ilustración de línea + color de fondo por fruta ──────────────
+_ART_VERDE = '#1B7A3C'
+_ART_NARA = '#C66A2E'
+# (svg_inner, stroke, bg) — SVG de línea simple por familia de fruta
+_FRUIT_ART = {
+    'pitahaya': ('<path d="M30 18C40 18 47 28 47 38C47 48 39 53 30 53C21 53 13 48 13 38C13 28 20 18 30 18Z"/><path d="M30 18C30 12 27 8 23 7M30 18C30 12 33 8 37 7M30 18C25 15 21 15 17 17M30 18C35 15 39 15 43 17"/>', _ART_NARA, '#FFF3DE'),
+    'dragon':   ('<path d="M30 18C40 18 47 28 47 38C47 48 39 53 30 53C21 53 13 48 13 38C13 28 20 18 30 18Z"/><path d="M30 18C30 12 27 8 23 7M30 18C35 15 39 15 43 17"/>', _ART_NARA, '#FFF3DE'),
+    'granadilla':('<circle cx="30" cy="34" r="18"/><path d="M30 16V9M30 9C26 9 24 7 24 5M30 9C34 9 36 7 36 5"/>', _ART_VERDE, '#EAF6E0'),
+    'maracu':   ('<ellipse cx="30" cy="32" rx="17" ry="20"/><ellipse cx="30" cy="32" rx="9" ry="11"/>', _ART_NARA, '#FDEEDD'),
+    'passion':  ('<ellipse cx="30" cy="32" rx="17" ry="20"/><ellipse cx="30" cy="32" rx="9" ry="11"/>', _ART_NARA, '#FDEEDD'),
+    'babaco':   ('<path d="M30 12 44 24 40 50 20 50 16 24Z"/><path d="M30 12V7"/>', _ART_VERDE, '#FBF7DE'),
+    'cacao':    ('<circle cx="30" cy="33" r="17"/><path d="M22 33 Q30 24 38 33 Q30 42 22 33Z"/>', _ART_NARA, '#F3E9DF'),
+    'physalis': ('<circle cx="30" cy="34" r="14"/><path d="M30 20 18 12M30 20 42 12M30 20 30 9"/>', _ART_NARA, '#FBEFD6'),
+    'tomate':   ('<ellipse cx="30" cy="33" rx="13" ry="18"/><path d="M30 15V8"/>', _ART_NARA, '#FBEAE0'),
+    'tamarillo':('<ellipse cx="30" cy="33" rx="13" ry="18"/><path d="M30 15V8"/>', _ART_NARA, '#FBEAE0'),
+    'pepino':   ('<path d="M22 22C22 16 38 16 38 22 38 40 34 50 30 50 26 50 22 40 22 22Z"/>', _ART_VERDE, '#EAF6E0'),
+    'cucumber': ('<path d="M22 22C22 16 38 16 38 22 38 40 34 50 30 50 26 50 22 40 22 22Z"/>', _ART_VERDE, '#EAF6E0'),
+    'lulo':     ('<circle cx="30" cy="34" r="16"/><path d="M30 18 22 11M30 18 38 11"/>', _ART_NARA, '#FBEFD6'),
+    'naranjilla':('<circle cx="30" cy="34" r="16"/><path d="M30 18 22 11M30 18 38 11"/>', _ART_NARA, '#FBEFD6'),
+    'melon':    ('<circle cx="30" cy="34" r="17"/><path d="M16 28 Q30 38 44 28M16 36 Q30 46 44 36"/>', _ART_VERDE, '#EAF6E0'),
+    'taxo':     ('<ellipse cx="30" cy="33" rx="13" ry="19"/>', _ART_NARA, '#FDEEDD'),
+}
+_FRUIT_ART_DEFAULT = ('<circle cx="30" cy="33" r="17"/><path d="M30 16V9"/>', _ART_VERDE, '#EAF6E0')
+
+
+def _fruit_art(nombre):
+    """Devuelve (svg_html, bg_color) para la tarjeta de la fruta según su nombre."""
+    n = (nombre or '').lower()
+    for k, (inner, stroke, bg) in _FRUIT_ART.items():
+        if k in n:
+            svg = (f'<svg viewBox="0 0 60 60" fill="none" stroke="{stroke}" stroke-width="2.6" '
+                   f'stroke-linecap="round" stroke-linejoin="round">{inner}</svg>')
+            return svg, bg
+    inner, stroke, bg = _FRUIT_ART_DEFAULT
+    return (f'<svg viewBox="0 0 60 60" fill="none" stroke="{stroke}" stroke-width="2.6" '
+            f'stroke-linecap="round" stroke-linejoin="round">{inner}</svg>'), bg
+
+
 def render_portal_pedido():
     """Página pública para que los clientes hagan pedidos. No requiere login de staff."""
     st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
@@ -3118,18 +3156,23 @@ def render_portal_pedido():
             _grp_html.append('</div>')
             with st.expander('📦 ' + _T['group_summary'], expanded=False):
                 st.markdown(''.join(line.lstrip() for line in '\n'.join(_grp_html).split('\n')), unsafe_allow_html=True)
-    # PATCH P11: Sticky header
-    st.markdown(
-        f'<div class="eh-cat-header">'
-        f'<div>{_T["col_product"]}</div>'
-        f'<div>{_T["col_price"]}</div>'
-        f'<div>{_T["col_qty"]}</div>'
-        f'<div>{_T["col_unit"]}</div>'
-        f'<div>{_T["col_boxes"]}</div>'
-        '</div>',
-        unsafe_allow_html=True
-    )
-    st.markdown('<hr style="margin:4px 0 6px;border-color:#e0e0e0">', unsafe_allow_html=True)
+    # ── Tienda visual: cabecera + estilos de tarjeta ──
+    st.markdown('''<style>
+    .eh-card-top{height:92px;border-radius:13px;display:flex;align-items:center;justify-content:center;position:relative;margin-bottom:9px}
+    .eh-card-top svg{width:54px;height:54px}
+    .eh-card-star{position:absolute;top:8px;left:8px;background:#C66A2E;color:#fff;font-size:10px;font-weight:800;padding:2px 9px;border-radius:20px}
+    .eh-card-nm{font-weight:800;font-size:1.02rem;color:#1b2420;line-height:1.2}
+    .eh-card-chip{background:#dcfce7;color:#15803d;font-size:.64rem;font-weight:800;padding:2px 7px;border-radius:8px;margin-left:5px;white-space:nowrap}
+    .eh-card-pr{margin:3px 0 0;line-height:1.15;white-space:nowrap}
+    .eh-card-pr b{font-size:1.34rem}
+    .eh-card-u{font-size:.72rem;color:#8a948c;margin-left:3px}
+    .eh-card-kg{display:block;font-size:.7rem;color:#a3aaa3;margin-top:2px}
+    .eh-card-cj{font-size:.74rem;color:#15803d;font-weight:700;margin-top:5px}
+    .eh-shop-h{font-size:1.18rem;font-weight:800;color:#0F4F29;margin:8px 0 4px}
+    .eh-shop-h span{font-weight:500;font-size:.85rem;color:#7c847a}
+    div[data-testid="stVerticalBlockBorderWrapper"]{border-radius:16px}
+    </style>''', unsafe_allow_html=True)
+    st.markdown('<div class="eh-shop-h">🛍️ Nuestra tienda <span>· toca para añadir — el precio por caja baja con el volumen</span></div>', unsafe_allow_html=True)
 
     # #1 fix: total de pallets FRESCO leído de los inputs actuales (no del carrito del
     # run anterior) → el precio por volumen es correcto en el mismo run, sin desfase.
@@ -3171,7 +3214,16 @@ def render_portal_pedido():
         else:
             _ex_qty = 0
 
-        gc = st.columns([2.4, 2.3, 3.5, 2, 1.6])
+        # TIENDA VISUAL: rejilla de 3 tarjetas; las 5 "columnas" rinden dentro de la tarjeta
+        if idx % 3 == 0:
+            _row_cols = st.columns(3, gap='medium')
+        _svg_html, _bg_card = _fruit_art(nombre_prod)
+        _star_html = '<span class="eh-card-star">★ Top</span>' if _grp_x in ('A', 'B') else ''
+        _cc = _row_cols[idx % 3].container(border=True)
+        _cc.markdown(
+            f'<div class="eh-card-top" style="background:{_bg_card}">{_star_html}{_svg_html}</div>',
+            unsafe_allow_html=True)
+        gc = [_cc, _cc, _cc, _cc, _cc]
         # Col 0: Nombre + specs del producto
         _kg_lbl = f'{_kg_x:.1f} {_T["unit_kg_per_box"]}'.replace('.',',') if _kg_x else ''
         _min_cant_p = int(p.get('min_cantidad', 0) or 0)
@@ -3275,9 +3327,7 @@ def render_portal_pedido():
                 'descuento_vol': (lambda _b: round((_b - precio_u) / _b, 4) if _b and _b > precio_u else 0)(get_precio_con_volumen(cod, destino, tipo_precio, data, 1))
             })
         else:
-            gc[4].markdown('<span style="color:#ccc;font-size:0.85rem">—</span>', unsafe_allow_html=True)
-
-        st.markdown('<hr style="margin:2px 0 2px;border-color:#f0f0f0">', unsafe_allow_html=True)
+            gc[4].markdown('<span style="color:#cfd6cf;font-size:0.82rem">·</span>', unsafe_allow_html=True)
 
     # Sincronizar carrito SIN rerun forzado: el st.rerun() hacía que la pantalla
     # saltara al inicio al elegir la cantidad (el cliente perdía de vista el producto).
