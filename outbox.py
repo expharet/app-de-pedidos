@@ -168,3 +168,31 @@ def fetch_carts() -> dict | None:
     except (requests.RequestException, ValueError):
         pass
     return None
+
+
+def publish_catalog(data: dict) -> bool:
+    """Vuelca el catálogo (productos, precios, destinos, MÁRGENES, grupos…) al Gist
+    para que los cambios del admin sobrevivan a reinicios de Streamlit Cloud y el
+    cliente vea siempre los precios/márgenes actuales."""
+    return _patch_file("precios_data.json", data)
+
+
+def fetch_catalog() -> dict | None:
+    """Lee el catálogo desde el Gist (None si no hay/ falla)."""
+    gist_id = _gist_id()
+    if not gist_id:
+        return None
+    token = _token()
+    headers = {"Accept": "application/vnd.github+json"}
+    if token:
+        headers["Authorization"] = f"token {token}"
+    try:
+        r = requests.get(f"https://api.github.com/gists/{gist_id}",
+                         headers=headers, timeout=10)
+        if r.status_code == 200:
+            content = (r.json().get("files", {})
+                       .get("precios_data.json", {}).get("content"))
+            return json.loads(content) if content else None
+    except (requests.RequestException, ValueError):
+        pass
+    return None

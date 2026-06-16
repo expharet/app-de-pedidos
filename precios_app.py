@@ -352,7 +352,14 @@ def load_email_log(): return _load(EMAIL_FILE, [])
 def load_app_config():
     return _load(APP_CONFIG_FILE, {"app_title": "📊 Export Haret — Panel de Administración"})
 def save_app_config(cfg): _save(APP_CONFIG_FILE, cfg)
-def save_data(d): _save(DATA_FILE,d); st.cache_data.clear()
+def save_data(d):
+    _save(DATA_FILE, d)
+    st.cache_data.clear()
+    if outbox:
+        try:
+            outbox.publish_catalog(d)  # durable en el Gist (precios/márgenes sobreviven a reinicios)
+        except Exception as e:
+            logger.warning(f'publish_catalog falló: {e}')
 def save_clients(c): _save(CLIENTS_FILE,c)
 def save_pedidos(p):
     _save(PEDIDOS_FILE, p)
@@ -405,6 +412,15 @@ def hidratar_pedidos_gist():
             if remoto_carts is not None:
                 _save(PORTAL_CARTS_FILE, remoto_carts)
                 logger.info(f'hidratados {len(remoto_carts)} carritos desde el Gist')
+        # 4) Catálogo (precios, márgenes, destinos, grupos): el Gist es la verdad
+        #    durable. Así los ajustes del admin sobreviven a reinicios y el cliente
+        #    ve SIEMPRE los precios/márgenes vigentes. Solo reemplaza si es válido.
+        if hasattr(outbox, 'fetch_catalog'):
+            remoto_cat = outbox.fetch_catalog()
+            if isinstance(remoto_cat, dict) and remoto_cat.get('products'):
+                _save(DATA_FILE, remoto_cat)
+                st.cache_data.clear()
+                logger.info('catálogo hidratado desde el Gist (precios/márgenes durables)')
     except Exception as e:
         logger.warning(f'hidratar gist falló: {e}')
 def _esc(s):
@@ -1014,15 +1030,32 @@ def render_catalogo():
                 _margen_mkt = 0.0
             st.metric('\U0001f4b1 Moneda / Flete', f'{_moneda_dest} | ${_dest_flete_v:.2f}/Kilo')
 
-        # ── Tabla estilo Excel: filas=pallets, columnas=productos ────
+        # ── Opciones de vista: detalle por pallet + moneda del cliente ───
+        _tg1, _tg2 = st.columns(2)
+        with _tg1:
+            _ver_detalle = st.toggle('Ver detalle pallet a pallet', value=False, key='cat_ver_detalle',
+                                     help='Por defecto se muestran los tramos clave de volumen (1, 2, 3, 5, 10, 20+)')
+        with _tg2:
+            _ver_moneda = st.toggle(f'Ver en moneda del cliente ({_moneda_dest})', value=False, key='cat_ver_moneda',
+                                    help='Muestra el precio en la divisa del destino (referencial; la transacción se hace en USD)',
+                                    disabled=(_cat_tipo == 'FOB' or _moneda_dest == 'USD' or _rate_cat == 1.0))
+        _use_dest_cur = bool(_ver_moneda and _cat_tipo == 'CIF' and _moneda_dest != 'USD' and _rate_cat != 1.0)
+        _disp_rate = _rate_cat if _use_dest_cur else 1.0
+        _disp_sym = _sym_cat if _use_dest_cur else '$'
+        _disp_cur = _moneda_dest if _use_dest_cur else 'USD'
+
+        # ── Leyenda ──
         if _cat_tipo == 'FOB':
             st.caption('Precios **FOB** (en origen, sin flete) | Todos los precios en USD/caja. A mayor volumen total del pedido, menor precio.')
         else:
             _marg_txt = f' | Margen mercado: **+{_margen_mkt:.1f}%**' if _margen_mkt else ''
-            st.caption(f'Precios **CIF** hasta **{_dest_sel}** | Flete: **${_dest_flete_v:.2f} USD/Kilo**{_marg_txt} | Todos los precios en USD/caja. A mayor volumen total del pedido, menor precio.')
+            _cur_txt = (f' | En **{_disp_cur}** (1 USD = {_disp_sym}{_rate_cat:.4f}; referencial)'
+                        if _use_dest_cur else ' | Precios en USD/caja')
+            st.caption(f'Precios **CIF** hasta **{_dest_sel}** | Flete: **${_dest_flete_v:.2f} USD/Kilo**{_marg_txt}{_cur_txt}. A mayor volumen total del pedido, menor precio.')
 
         # Precio de un producto a N pallets (CIF ajustado al destino + margen de
         # mercado del destino; o FOB fijo). El margen NO aplica a FOB (en origen).
+        # Devuelve SIEMPRE en USD; la conversión a la moneda del cliente es al mostrar.
         def _precio_en(_p, _n_plt):
             _precios_plt = _p.get('precios_plt', [])
             if _precios_plt:
@@ -1044,9 +1077,7 @@ def render_catalogo():
 
         # ── Vista FÁCIL: una FILA por fruta, columnas = tramos clave de volumen.
         # Por defecto solo los tramos donde el precio cambia de verdad (no 23 filas
-        # casi iguales). Toggle para ver el detalle pallet a pallet.
-        _ver_detalle = st.toggle('Ver detalle pallet a pallet', value=False, key='cat_ver_detalle',
-                                 help='Por defecto se muestran los tramos clave de volumen (1, 2, 3, 5, 10, 20+)')
+        # casi iguales). Los valores se muestran en la moneda elegida (USD o destino).
         _tiers = list(range(1, 24)) if _ver_detalle else [1, 2, 3, 5, 10, 20]
         _tier_lbl = {_t: (f'{_t} pal' if _t < 20 else '20+ pal') for _t in _tiers}
 
@@ -1055,7 +1086,8 @@ def render_catalogo():
             _name = (_p.get('producto','') or _p.get('descripcion','') or _p.get('codigo',''))
             _row = {'Fruta': _name}
             for _t in _tiers:
-                _row[_tier_lbl[_t]] = _precio_en(_p, _t)
+                _pv = _precio_en(_p, _t)
+                _row[_tier_lbl[_t]] = round(_pv * _disp_rate, 2) if _pv is not None else None
             _tbl_rows.append(_row)
         df_plt = pd.DataFrame(_tbl_rows).set_index('Fruta')
 
@@ -1075,10 +1107,13 @@ def render_catalogo():
                     _out.append(f'background-color:rgba(12,110,81,{0.05 + _pct*0.22:.3f});text-align:right;font-weight:600')
             return _out
 
-        _df_styled = df_plt.style.apply(_style_row, axis=1).format('${:.2f}', na_rep='—')
+        _fmt_money = lambda _v: (f'{_disp_sym}{_v:,.2f}' if pd.notna(_v) else '—')
+        _df_styled = df_plt.style.apply(_style_row, axis=1).format(_fmt_money, na_rep='—')
         st.dataframe(_df_styled, use_container_width=True, height=min(60 + 36*(len(prods_vis)+1), 760))
 
-        st.caption('Verde = precio más bajo (más volumen). Cada fila es una fruta; las columnas son tramos de pallets. La app aplica automáticamente el precio del total de pallets del pedido.')
+        st.caption(f'Verde = precio más bajo (más volumen). Cada fila es una fruta; las columnas son tramos de pallets. Precios en **{_disp_cur}/caja**'
+                   + (' (referencial; el cobro es en USD)' if _use_dest_cur else '')
+                   + '. La app aplica automáticamente el precio del total de pallets del pedido.')
 
         # ── Consultor: precio a los pallets que tú quieras ─────────────
         st.markdown('---')
@@ -1090,7 +1125,8 @@ def render_catalogo():
         _custom_rows = []
         for _p in prods_vis:
             _name = (_p.get('producto','') or _p.get('descripcion','') or _p.get('codigo',''))
-            _custom_rows.append({'Fruta': _name, _custom_col: _precio_en(_p, int(_n_custom))})
+            _pvc = _precio_en(_p, int(_n_custom))
+            _custom_rows.append({'Fruta': _name, _custom_col: (round(_pvc * _disp_rate, 2) if _pvc is not None else None)})
         df_custom = pd.DataFrame(_custom_rows).set_index('Fruta')
         def _style_custom(col):
             _vals = pd.to_numeric(col, errors='coerce').dropna()
@@ -1108,8 +1144,9 @@ def render_catalogo():
             return _out
         with _qc2:
             _mon_c = ('FOB (sin flete)' if _cat_tipo == 'FOB' else f'CIF hasta {_dest_sel}')
-            st.caption(f'Precio USD/caja a **{int(_n_custom)} pallets** · {_mon_c}')
-            st.dataframe(df_custom.style.apply(_style_custom, axis=0).format('${:.2f}', na_rep='—'),
+            st.caption(f'Precio en **{_disp_cur}/caja** a **{int(_n_custom)} pallets** · {_mon_c}'
+                       + (' (referencial; el cobro es en USD)' if _use_dest_cur else ''))
+            st.dataframe(df_custom.style.apply(_style_custom, axis=0).format(_fmt_money, na_rep='—'),
                          use_container_width=True, height=min(60 + 36*(len(prods_vis)+1), 620))
 
         # ── Descarga cat\u00e1logo ─────────────────────────────────────────
