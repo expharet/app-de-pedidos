@@ -1669,8 +1669,8 @@ def render_gestion_pedidos():
 
 # ─── TAB CONFIGURACION ──────────────────────────────────────────────
 def render_configuracion():
-    st.markdown('## ⚙️ Configuración del Sistema')
-    st.markdown('### Usuarios del Sistema')
+    _admin_seccion('Configuración del sistema', '⚙️')
+    _admin_seccion('Usuarios', '👤')
     _users_file = 'users_custom.json'
     _users_data = _load(_users_file, {})
     _all_users_display = []
@@ -1683,32 +1683,38 @@ def render_configuracion():
         st.dataframe(pd.DataFrame(_all_users_display), use_container_width=True, hide_index=True)
     else:
         st.info('\u2139\ufe0f No hay usuarios configurados. Usa el panel de abajo para agregar uno.')
-    with st.expander('➕ Agregar / Cambiar Contraseña de Usuario', expanded=False):
-        _un1, _un2 = st.columns(2)
-        _new_email = _un1.text_input('Email del usuario', key='cfg_new_email', placeholder='usuario@exportharet.com')
-        _new_nombre = _un2.text_input('Nombre', key='cfg_new_nombre')
-        _np1, _np2, _np3 = st.columns(3)
-        _new_pwd = _np1.text_input('🔑 Contraseña', type='password', key='cfg_new_pwd')
-        _new_rol = _np2.selectbox('Rol', ['admin', 'ventas'], key='cfg_new_rol')
-        _np3.markdown('<br>', unsafe_allow_html=True)
-        if _np3.button('💾 Guardar Usuario', key='cfg_save_user', type='primary'):
-            if not _new_email or not _new_pwd:
-                st.error('Email y contraseña son obligatorios')
+    # Alta / cambio de contraseña — formulario limpio (tarjeta + botón ancho)
+    with st.expander('➕ Añadir usuario o cambiar contraseña', expanded=False):
+        with st.form('cfg_user_form', clear_on_submit=False):
+            _un1, _un2 = st.columns(2)
+            _new_email = _un1.text_input('Email', placeholder='usuario@exportharet.com')
+            _new_nombre = _un2.text_input('Nombre')
+            _np1, _np2 = st.columns(2)
+            _new_pwd = _np1.text_input('Contraseña', type='password')
+            _new_rol = _np2.selectbox('Rol', ['admin', 'ventas'])
+            st.caption('Si el email ya existe, se actualiza su contraseña y rol.')
+            _save_user = st.form_submit_button('💾 Guardar usuario', type='primary', use_container_width=True)
+        if _save_user:
+            import re as _re_us
+            _em_us = (_new_email or '').strip().lower()
+            if not _re_us.match(r'^[^@\s]+@[^@\s]+\.[^@\s]+$', _em_us):
+                st.error('❌ Email no válido')
+            elif not _new_pwd:
+                st.error('❌ La contraseña es obligatoria')
             else:
-                _users_data[_new_email] = {'pwd': hashlib.md5(_new_pwd.encode()).hexdigest(), 'rol': _new_rol, 'nombre': _new_nombre or _new_email}
+                _users_data[_em_us] = {'pwd': hashlib.md5(_new_pwd.encode()).hexdigest(), 'rol': _new_rol, 'nombre': (_new_nombre or '').strip() or _em_us}
                 _save(_users_file, _users_data)
-                st.toast(f'Usuario {_new_email} guardado', icon='✅')
+                st.toast(f'Usuario {_em_us} guardado', icon='✅')
                 st.rerun()
     if _users_data:
-        with st.expander('🗑️ Eliminar Usuario Custom', expanded=False):
+        with st.expander('🗑️ Eliminar usuario', expanded=False):
             _del_user = st.selectbox('Usuario a eliminar', list(_users_data.keys()), key='cfg_del_user')
             if st.button('🗑️ Eliminar', key='cfg_del_btn', type='secondary'):
                 del _users_data[_del_user]
                 _save(_users_file, _users_data)
                 st.toast(f'Usuario {_del_user} eliminado')
                 st.rerun()
-    st.markdown('---')
-    st.markdown('### Log de Emails')
+    _admin_seccion('Log de emails', '✉️')
     elog=load_email_log()
     if elog:
         df_e=pd.DataFrame(elog[-20:][::-1])
