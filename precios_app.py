@@ -447,7 +447,7 @@ def login_page():
             '<div style="font-weight:800;color:#14201a;font-size:1.5rem;letter-spacing:-.5px;margin-top:4px">Inicia sesión</div>'
             '</div>', unsafe_allow_html=True)
         with st.form('admin_login_form', clear_on_submit=False):
-            email = st.text_input('Email', placeholder='usuario@exportharet.com')
+            email = st.text_input('Email')
             pwd = st.text_input('Contraseña', type='password')
             _ok = st.form_submit_button('Entrar →', use_container_width=True, type='primary')
         if _ok:
@@ -1365,7 +1365,7 @@ def render_hacer_pedido():
     # Paso 1: Cliente
     st.markdown('### 1️⃣ Datos del Cliente')
     cl1,cl2=st.columns(2)
-    c_email=cl1.text_input('Email',placeholder='cliente@empresa.com',key='hp_email')
+    c_email=cl1.text_input('Email',key='hp_email')
     c_name=cl2.text_input('Nombre',placeholder='Nombre / Empresa',key='hp_nombre')
     seg=None
     if c_email and c_email in clients:
@@ -1687,7 +1687,7 @@ def render_configuracion():
     with st.expander('➕ Añadir usuario o cambiar contraseña', expanded=False):
         with st.form('cfg_user_form', clear_on_submit=False):
             _un1, _un2 = st.columns(2)
-            _new_email = _un1.text_input('Email', placeholder='usuario@exportharet.com')
+            _new_email = _un1.text_input('Email')
             _new_nombre = _un2.text_input('Nombre')
             _np1, _np2 = st.columns(2)
             _new_pwd = _np1.text_input('Contraseña', type='password')
@@ -1949,7 +1949,7 @@ def render_clientes():
         st.caption('Crea la cuenta del cliente. Cuando entre al portal con su email, '
                    'ya aparecerá registrado y con sus datos cargados.')
         _ac1, _ac2 = st.columns(2)
-        _ac_email = _ac1.text_input('📧 Email *', key='ac_email', placeholder='cliente@empresa.com')
+        _ac_email = _ac1.text_input('📧 Email *', key='ac_email')
         _ac_nombre = _ac2.text_input('👤 Nombre / contacto *', key='ac_nombre')
         _ac3, _ac4 = st.columns(2)
         _ac_empresa = _ac3.text_input('🏢 Empresa', key='ac_empresa')
