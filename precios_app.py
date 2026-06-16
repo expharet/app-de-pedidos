@@ -1008,15 +1008,21 @@ def render_catalogo():
             _sym_cat = MONEDA_SIMBOLO.get(_moneda_dest, _moneda_dest)
             _dest_flete = dests.get(_dest_sel, 0)
             _dest_flete_v = float(_dest_flete.get('factor', _dest_flete) if isinstance(_dest_flete, dict) else _dest_flete if isinstance(_dest_flete, (int, float)) else 0)
+            try:
+                _margen_mkt = float(cfg.get('destinos_margen', {}).get(_dest_sel, 0) or 0)
+            except (TypeError, ValueError):
+                _margen_mkt = 0.0
             st.metric('\U0001f4b1 Moneda / Flete', f'{_moneda_dest} | ${_dest_flete_v:.2f}/Kilo')
 
         # ── Tabla estilo Excel: filas=pallets, columnas=productos ────
         if _cat_tipo == 'FOB':
             st.caption('Precios **FOB** (en origen, sin flete) | Todos los precios en USD/caja. A mayor volumen total del pedido, menor precio.')
         else:
-            st.caption(f'Precios **CIF** hasta **{_dest_sel}** | Flete: **${_dest_flete_v:.2f} USD/Kilo** | Todos los precios en USD/caja. A mayor volumen total del pedido, menor precio.')
+            _marg_txt = f' | Margen mercado: **+{_margen_mkt:.1f}%**' if _margen_mkt else ''
+            st.caption(f'Precios **CIF** hasta **{_dest_sel}** | Flete: **${_dest_flete_v:.2f} USD/Kilo**{_marg_txt} | Todos los precios en USD/caja. A mayor volumen total del pedido, menor precio.')
 
-        # Precio de un producto a N pallets (CIF ajustado al destino, o FOB fijo)
+        # Precio de un producto a N pallets (CIF ajustado al destino + margen de
+        # mercado del destino; o FOB fijo). El margen NO aplica a FOB (en origen).
         def _precio_en(_p, _n_plt):
             _precios_plt = _p.get('precios_plt', [])
             if _precios_plt:
@@ -1026,14 +1032,15 @@ def render_catalogo():
                     _fob_f = float(_p.get('precio_fob_final', 0) or 0)
                     return round(_fob_f, 4) if _fob_f > 0 else None
                 if _precio_base:
-                    return round(float(_precio_base) - flete_ref + _dest_flete_v, 4)
+                    _pp = (float(_precio_base) - flete_ref + _dest_flete_v) * (1 + _margen_mkt / 100.0)
+                    return round(_pp, 4)
                 return None
             _pc = float(_p.get('precio_compra', 0) or 0)
             if _cat_tipo == 'FOB':
                 _fob_f = float(_p.get('precio_fob_final', 0) or 0)
                 return round(_fob_f, 4) if _fob_f > 0 else (round(_pc, 4) if _pc > 0 else None)
             _mg = float(_p.get('margen_pct', 0.1) or 0.1)
-            return round(_pc * (1 + _mg) + _dest_flete_v, 4) if _pc > 0 else None
+            return round((_pc * (1 + _mg) + _dest_flete_v) * (1 + _margen_mkt / 100.0), 4) if _pc > 0 else None
 
         # ── Vista FÁCIL: una FILA por fruta, columnas = tramos clave de volumen.
         # Por defecto solo los tramos donde el precio cambia de verdad (no 23 filas
