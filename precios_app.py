@@ -4138,8 +4138,12 @@ def render_portal_pedido():
         _kg_lbl = f'{_kg_x:.1f} {_T["unit_kg_per_box"]}'.replace('.', ',') if _kg_x else ''
         _min_cant_p = int(p.get('min_cantidad', 0) or 0)
         _min_unit_p = str(p.get('min_unidad', 'Pallets') or 'Pallets')
-        _specs = ' · '.join([s for s in [_kg_lbl, (f'{cxp} cj/pallet' if cxp else ''),
-                             (f'Grupo {_grp_x}' if _grp_x else '')] if s])
+        # Ficha mínima y clara: peso por caja + cuántas cajas entran en un pallet.
+        # Se quita "Grupo X" (jerga interna; el resumen por grupo ya lo explica) y la
+        # info de cajas/pallet se muestra UNA sola vez aquí (no se repite abajo).
+        _cajas_pallet_lbl = (f'{cxp} boxes/pallet' if st.session_state.get('portal_lang') == 'en'
+                             else f'{cxp} cajas/pallet') if cxp else ''
+        _specs = ' · '.join([s for s in [_kg_lbl, _cajas_pallet_lbl] if s])
         _added_mark = ' <span class="eh-row-added">✓ en tu pedido</span>' if _ex_qty > 0 else ''
         _r = st.columns([0.45, 2.4, 1.35, 3.8], gap='small', vertical_alignment='center')
         _r[0].markdown(f'<div class="eh-row-ic">{_svg_html}</div>', unsafe_allow_html=True)
@@ -4216,13 +4220,18 @@ def render_portal_pedido():
         # Col 4: Cajas calculadas (solo informacion) — PATCH 8
         if qty_val > 0:
             _n_cajas, _n_pallets = cajas_y_pallets(qty_val, unit_sel, cxp)  # fuente única
+            _en_eq = st.session_state.get('portal_lang') == 'en'
+            # UNA línea clara con el equivalente (el otro dato ya está en el input):
+            #  · si elige PALLETS → cuántas cajas son en total
+            #  · si elige CAJAS   → a cuántos pallets equivale
             if unit_sel == 'Pallets':
-                _cajas_label = f'**{_n_cajas:,}** cj'
-                _cajas_sub = f'<small style="color:#666">{int(qty_val)} pal \u00d7 {cxp} cj/pal</small>'
+                _eq_txt = (f'= <b>{_n_cajas:,} boxes</b>' if _en_eq else f'= <b>{_n_cajas:,} cajas</b>')
             else:
-                _cajas_label = f'**{_n_cajas:,}** cj'
-                _cajas_sub = f'<small style="color:#666">≈ {_n_pallets:.2f} pal ({cxp} cj/pal)</small>'
-            gc[4].markdown(f'{_cajas_label}\n{_cajas_sub}', unsafe_allow_html=True)
+                _pal_disp = (f'{_n_pallets:.0f}' if abs(_n_pallets - round(_n_pallets)) < 0.05 else f'{_n_pallets:.1f}')
+                if not _en_eq:
+                    _pal_disp = _pal_disp.replace('.', ',')  # decimal con coma en español
+                _eq_txt = f'≈ <b>{_pal_disp} pallets</b>'
+            gc[4].markdown(f'<div style="color:#0c6e51;font-size:.92rem;margin-top:1px">{_eq_txt}</div>', unsafe_allow_html=True)
             # Validar cantidad mínima
             if _min_cant_p > 0:
                 _qty_in_unit = qty_val if unit_sel == _min_unit_p else (
