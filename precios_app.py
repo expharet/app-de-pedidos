@@ -999,6 +999,38 @@ def render_catalogo():
 
         st.caption('Verde = precio más bajo (más volumen). Cada fila es una fruta; las columnas son tramos de pallets. La app aplica automáticamente el precio del total de pallets del pedido.')
 
+        # ── Consultor: precio a los pallets que tú quieras ─────────────
+        st.markdown('---')
+        _admin_seccion('Consultar precio a un volumen exacto', '🔢')
+        _qc1, _qc2 = st.columns([1, 3])
+        _n_custom = _qc1.number_input('Pallets a consultar', min_value=1, max_value=200, value=3, step=1,
+                                      key='cat_n_custom', help='Escribe cuántos pallets del pedido quieres consultar')
+        _custom_col = f'Precio a {int(_n_custom)} pal'
+        _custom_rows = []
+        for _p in prods_vis:
+            _name = (_p.get('producto','') or _p.get('descripcion','') or _p.get('codigo',''))
+            _custom_rows.append({'Fruta': _name, _custom_col: _precio_en(_p, int(_n_custom))})
+        df_custom = pd.DataFrame(_custom_rows).set_index('Fruta')
+        def _style_custom(col):
+            _vals = pd.to_numeric(col, errors='coerce').dropna()
+            if len(_vals) < 2:
+                return ['text-align:right'] * len(col)
+            _vmin, _vmax = _vals.min(), _vals.max()
+            _out = []
+            for _v in col:
+                _vn = pd.to_numeric(_v, errors='coerce')
+                if pd.isna(_vn):
+                    _out.append('text-align:right;color:#c6ccd6')
+                else:
+                    _pct = (_vmax - _vn) / (_vmax - _vmin) if _vmax > _vmin else 0
+                    _out.append(f'background-color:rgba(12,110,81,{0.05 + _pct*0.22:.3f});text-align:right;font-weight:700')
+            return _out
+        with _qc2:
+            _mon_c = ('FOB (sin flete)' if _cat_tipo == 'FOB' else f'CIF hasta {_dest_sel}')
+            st.caption(f'Precio USD/caja a **{int(_n_custom)} pallets** · {_mon_c}')
+            st.dataframe(df_custom.style.apply(_style_custom, axis=0).format('${:.2f}', na_rep='—'),
+                         use_container_width=True, height=min(60 + 36*(len(prods_vis)+1), 620))
+
         # ── Descarga cat\u00e1logo ─────────────────────────────────────────
         st.markdown('---')
         _dlc1, _dlc2 = st.columns(2)
