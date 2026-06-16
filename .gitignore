@@ -12,3 +12,6 @@ portal_carritos.json
 pedidos_data.json
 email_log.json
 pending_emails.json
+admin_sessions.json
+accesos_log.json
+users_custom.json

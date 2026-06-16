@@ -423,6 +423,75 @@ def registrar_acceso(email, nombre, rol):
 def load_min_log(): return _load(MIN_LOG_FILE, [])
 def save_min_log(data): _save(MIN_LOG_FILE, data)
 
+# ─── SESIÓN ADMIN PERSISTENTE (sobrevive al refresco; caduca por inactividad) ──
+ADMIN_SESSIONS_FILE = 'admin_sessions.json'
+_ADMIN_SESSION_TTL_S = 5 * 3600   # 5 h de inactividad
+
+def _admin_sessions_load():
+    return _load(ADMIN_SESSIONS_FILE, {})
+
+def _admin_sessions_purge(s):
+    """Quita sesiones caducadas por inactividad."""
+    _now = datetime.now()
+    out = {}
+    for _k, _v in (s or {}).items():
+        try:
+            if (_now - datetime.fromisoformat(_v.get('last', ''))).total_seconds() < _ADMIN_SESSION_TTL_S:
+                out[_k] = _v
+        except (ValueError, TypeError):
+            continue
+    return out
+
+def admin_session_new(email, nombre, rol):
+    """Crea un token de sesión y lo guarda. Devuelve el token (va en la URL)."""
+    import uuid as _uuid
+    tok = _uuid.uuid4().hex
+    s = _admin_sessions_purge(_admin_sessions_load())
+    s[tok] = {'email': email, 'nombre': nombre, 'rol': rol, 'last': datetime.now().isoformat()}
+    _save(ADMIN_SESSIONS_FILE, s)
+    return tok
+
+def admin_session_resume(tok):
+    """Si el token existe y no caducó por inactividad, devuelve sus datos; si no, None."""
+    if not tok:
+        return None
+    s = _admin_sessions_load()
+    rec = s.get(tok)
+    if not isinstance(rec, dict):
+        return None
+    try:
+        _last = datetime.fromisoformat(rec.get('last', ''))
+    except (ValueError, TypeError):
+        return None
+    if (datetime.now() - _last).total_seconds() >= _ADMIN_SESSION_TTL_S:
+        s.pop(tok, None); _save(ADMIN_SESSIONS_FILE, s)
+        return None
+    return rec
+
+def admin_session_touch(tok):
+    """Renueva la última actividad (desliza la ventana de 5 h). No escribe más de
+    una vez por minuto para no machacar el disco en cada rerun."""
+    if not tok:
+        return
+    import streamlit as _st
+    _now = datetime.now()
+    _last_touch = _st.session_state.get('_admin_tok_touched')
+    if _last_touch and (_now - _last_touch).total_seconds() < 60:
+        return
+    s = _admin_sessions_load()
+    if tok in s:
+        s[tok]['last'] = _now.isoformat()
+        _save(ADMIN_SESSIONS_FILE, s)
+        _st.session_state['_admin_tok_touched'] = _now
+
+def admin_session_end(tok):
+    if not tok:
+        return
+    s = _admin_sessions_load()
+    if s.pop(tok, None) is not None:
+        _save(ADMIN_SESSIONS_FILE, s)
+
+
 # ─── AUTH ────────────────────────────────────────────────────────────────
 def init_session():
     defaults = {'logged_in':False,'user_email':'','user_rol':'','user_nombre':'','carrito':[]}
@@ -457,6 +526,11 @@ def login_page():
                 st.session_state.user_email = email
                 st.session_state.user_rol = USERS[email]['rol']
                 st.session_state.user_nombre = USERS[email]['nombre']
+                # Sesión persistente: token en la URL para sobrevivir al refresco
+                _tok = admin_session_new(email, USERS[email]['nombre'], USERS[email]['rol'])
+                st.session_state['_admin_tok'] = _tok
+                st.query_params['view'] = 'admin'
+                st.query_params['s'] = _tok
                 registrar_acceso(email=email, nombre=USERS[email]['nombre'], rol=USERS[email]['rol'])
                 st.rerun()
             else:
@@ -4520,9 +4594,22 @@ def main():
         return
 
     # ── MODO ADMIN (STAFF LOGIN REQUERIDO) ────────────────────────────────────
+    # Reanudar sesión tras refrescar: si hay token válido en la URL (?s=...),
+    # restaurar el login sin pedir credenciales (hasta 5 h de inactividad).
+    if not st.session_state.get('logged_in'):
+        _tok_url = st.query_params.get('s', '')
+        _rec_sess = admin_session_resume(_tok_url)
+        if _rec_sess:
+            st.session_state.logged_in = True
+            st.session_state.user_email = _rec_sess.get('email', '')
+            st.session_state.user_rol = _rec_sess.get('rol', '')
+            st.session_state.user_nombre = _rec_sess.get('nombre', '')
+            st.session_state['_admin_tok'] = _tok_url
     if not st.session_state.logged_in:
         login_page()
         return
+    # Actividad: renueva la ventana de inactividad de 5 h (máx. 1 escritura/min)
+    admin_session_touch(st.session_state.get('_admin_tok'))
 
     # Admin panel — cabecera limpia (el logo va en el sidebar; sin duplicados)
     _admin_css()
@@ -4581,12 +4668,20 @@ def main():
         st.caption('🔓 Acceso público, sin login.')
     st.sidebar.markdown('---')
     if st.sidebar.button('🌐 Ver Portal Clientes', use_container_width=True, key='admin_go_portal'):
+        admin_session_end(st.session_state.get('_admin_tok'))
+        st.session_state['_admin_tok'] = None
         st.session_state.app_mode = 'portal'
         st.session_state.logged_in = False
         st.query_params.clear()
         st.rerun()
     if st.sidebar.button('🚪 Cerrar Sesión', use_container_width=True):
+        admin_session_end(st.session_state.get('_admin_tok'))
+        st.session_state['_admin_tok'] = None
         st.session_state.logged_in = False
+        try:
+            del st.query_params['s']   # quita el token de la URL (sigue en ?view=admin)
+        except Exception:
+            pass
         st.rerun()
     st.sidebar.caption(LANG_TEXTS[st.session_state.get('portal_lang','es')]['sidebar_footer'])
 
