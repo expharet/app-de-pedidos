@@ -3557,11 +3557,29 @@ def render_portal_pedido():
 
         with tab_historial:
             if _client_orders_all:
-                st.markdown('<div style="border-top:1px solid #e7eaef;margin:14px 0 10px"></div>', unsafe_allow_html=True)
-                st.markdown('📦 **' + _T['tab_pedidos'].format(n=_n_orders).replace('📦 ', '') + '**'
-                            + ('  ·  toca un pedido para ver el detalle o repetirlo'
-                               if st.session_state.get('portal_lang') != 'en'
-                               else '  ·  tap an order to see details or reorder'))
+                # Botón ANCHO y llamativo "Mis pedidos (N)" — un desplegable claro y
+                # visible. Al pulsarlo se muestran u ocultan los pedidos del cliente.
+                st.markdown('<div style="border-top:1px solid #e7eaef;margin:16px 0 12px"></div>', unsafe_allow_html=True)
+                _es_ord = st.session_state.get('portal_lang') != 'en'
+                _open_ord = bool(st.session_state.get('portal_show_orders'))
+                _chev = '▲' if _open_ord else '▼'
+                _verb = (('Ocultar' if _open_ord else 'Ver') if _es_ord else ('Hide' if _open_ord else 'View'))
+                st.markdown('<style>div[class*="st-key-portal_toggle_orders"] button{'
+                            'background:#eef6f2 !important;border:1.5px solid #cfe3d9 !important;'
+                            'color:#0b5a42 !important;font-weight:800 !important;font-size:1.02rem !important;'
+                            'border-radius:14px !important;padding:15px 18px !important}'
+                            'div[class*="st-key-portal_toggle_orders"] button:hover{'
+                            'border-color:#0c6e51 !important;background:#e3efe9 !important}</style>',
+                            unsafe_allow_html=True)
+                _ord_lbl = (f'📦   {_verb} mis pedidos  ·  {_n_orders}   {_chev}' if _es_ord
+                            else f'📦   {_verb} my orders  ·  {_n_orders}   {_chev}')
+                if st.button(_ord_lbl, key='portal_toggle_orders', use_container_width=True):
+                    st.session_state['portal_show_orders'] = not _open_ord
+                    st.rerun()
+            if _client_orders_all and st.session_state.get('portal_show_orders'):
+                st.caption('👇 ' + ('Toca un pedido para ver el detalle o repetirlo'
+                                    if st.session_state.get('portal_lang') != 'en'
+                                    else 'Tap an order to see the detail or reorder'))
                 for op in sorted(_client_orders_all, key=lambda x: x.get('fecha',''), reverse=True):
                     op_id = op.get('id','')
                     op_fecha = op.get('fecha','')[:10]
