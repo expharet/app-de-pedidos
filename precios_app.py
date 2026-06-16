@@ -3128,6 +3128,21 @@ def _fruit_art(nombre):
             f'stroke-linecap="round" stroke-linejoin="round">{inner}</svg>'), bg
 
 
+def _portal_reset_identity():
+    """Limpia la identidad del portal en ESTA sesión (email, datos, cantidades, paso),
+    conservando el idioma y SIN borrar el carrito durable (Gist/archivo): al volver a
+    entrar con el email se restaura. Sube el nonce para montar un campo de email vacío.
+    Lo usan 'Salir de la cuenta' y 'Cambiar correo'."""
+    _nonce_next = st.session_state.get('_portal_eml_nonce', 0) + 1
+    for _k in list(st.session_state.keys()):
+        if _k.startswith('portal_') and _k != 'portal_lang':
+            st.session_state.pop(_k, None)
+    for _k in ['_portal_last_confirmed_email', '_cart_restored_for', '_cart_was_restored',
+               '_scroll_step2', '_scroll_step1', '_scroll_step3', '_email_invalid']:
+        st.session_state.pop(_k, None)
+    st.session_state['_portal_eml_nonce'] = _nonce_next
+
+
 def render_portal_pedido():
     """Página pública para que los clientes hagan pedidos. No requiere login de staff."""
     st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
@@ -3283,17 +3298,20 @@ def render_portal_pedido():
         _chips.append(_chip(_sv, _accent=True))
     _strip = ('<div style="margin-top:15px;display:flex;flex-wrap:wrap;gap:8px">'
               + ''.join(_chips) + '</div>')
-    st.markdown(
-        '<div style="margin:8px 0 22px">'
-        '<div style="display:flex;align-items:center;gap:9px;margin-bottom:7px">'
-        '<span style="width:26px;height:2px;background:#0c6e51;border-radius:2px"></span>'
-        f'<span style="font-size:.72rem;letter-spacing:1.8px;text-transform:uppercase;'
-        f'color:#0c6e51;font-weight:700">{_promo[0]}</span></div>'
-        f'<div style="font-weight:800;color:#14201a;font-size:2rem;letter-spacing:-.8px;'
-        f'margin:0 0 6px;line-height:1.05">{_promo[1]}</div>'
-        f'<div style="color:#65726b;font-size:1rem;line-height:1.55;max-width:560px">{_promo[2]}</div>'
-        f'{_strip}'
-        '</div>', unsafe_allow_html=True)
+    # Hero grande SOLO para el visitante nuevo (sin identificar). Una vez que el
+    # cliente entra, se oculta para reducir ruido y centrar la vista en el paso activo.
+    if not (st.session_state.get('portal_email') or '').strip():
+        st.markdown(
+            '<div style="margin:8px 0 22px">'
+            '<div style="display:flex;align-items:center;gap:9px;margin-bottom:7px">'
+            '<span style="width:26px;height:2px;background:#0c6e51;border-radius:2px"></span>'
+            f'<span style="font-size:.72rem;letter-spacing:1.8px;text-transform:uppercase;'
+            f'color:#0c6e51;font-weight:700">{_promo[0]}</span></div>'
+            f'<div style="font-weight:800;color:#14201a;font-size:2rem;letter-spacing:-.8px;'
+            f'margin:0 0 6px;line-height:1.05">{_promo[1]}</div>'
+            f'<div style="color:#65726b;font-size:1rem;line-height:1.55;max-width:560px">{_promo[2]}</div>'
+            f'{_strip}'
+            '</div>', unsafe_allow_html=True)
 
     # ── WhatsApp flotante de dudas (siempre visible) — reduce abandono ──
     import urllib.parse as _upw
@@ -3324,30 +3342,53 @@ def render_portal_pedido():
     # para montar un input NUEVO y vacío (borrar la clave del widget no limpia el
     # texto ya pintado en Streamlit). Así el logout deja el correo realmente vacío.
     _eml_key = f"portal_email_input_{st.session_state.get('_portal_eml_nonce', 0)}"
-    with st.form('portal_email_form', clear_on_submit=False):
-        _email_form_raw = st.text_input(_T['email_label'], placeholder=_T['email_ph'], key=_eml_key, value=st.session_state.portal_email)
-        st.caption('🔒 ' + _eml_benef)
-        _acceder_clicked = st.form_submit_button(_T.get('btn_acceder', '🔓 Acceder'), type='primary', use_container_width=True)
-    if _acceder_clicked:
-        import re as _re_eml
-        _eml_trim = (_email_form_raw or '').strip()
-        # #7 Validación amable: si el formato no es válido, avisamos junto al campo
-        # (borde rojo + mensaje) en vez de dejar pasar un correo erróneo.
-        if _eml_trim and not _re_eml.match(r'^[^@\s]+@[^@\s]+\.[^@\s]+$', _eml_trim):
-            st.session_state['_email_invalid'] = True
-        else:
-            st.session_state.pop('_email_invalid', None)
-            if _eml_trim and _eml_trim != st.session_state.portal_email:
-                st.session_state.portal_email = _eml_trim
+    # Paso 1 = "sombra" una vez identificado: el formulario de email grande solo se
+    # muestra al visitante nuevo. Si ya hay correo, el paso 1 lo resume la bienvenida
+    # + la tarjeta de perfil de abajo (que ya muestra el correo). Menos ruido.
+    _already_in = bool((st.session_state.get('portal_email') or '').strip())
+    if not _already_in:
+        with st.form('portal_email_form', clear_on_submit=False):
+            _email_form_raw = st.text_input(_T['email_label'], placeholder=_T['email_ph'], key=_eml_key, value=st.session_state.portal_email)
+            st.caption('🔒 ' + _eml_benef)
+            _acceder_clicked = st.form_submit_button(_T.get('btn_acceder', '🔓 Acceder'), type='primary', use_container_width=True)
+        if _acceder_clicked:
+            import re as _re_eml
+            _eml_trim = (_email_form_raw or '').strip()
+            # #7 Validación amable: si el formato no es válido, avisamos junto al campo
+            # (borde rojo + mensaje) en vez de dejar pasar un correo erróneo.
+            if _eml_trim and not _re_eml.match(r'^[^@\s]+@[^@\s]+\.[^@\s]+$', _eml_trim):
+                st.session_state['_email_invalid'] = True
+            else:
+                st.session_state.pop('_email_invalid', None)
+                if _eml_trim and _eml_trim != st.session_state.portal_email:
+                    st.session_state.portal_email = _eml_trim
+                    st.rerun()
+                elif _eml_trim:
+                    st.session_state.portal_email = _eml_trim
+        if st.session_state.get('_email_invalid'):
+            st.markdown('<style>div[class*="st-key-portal_email_input"] input{border-color:#dc3545 !important;'
+                        'box-shadow:0 0 0 3px rgba(220,53,69,.12) !important}</style>', unsafe_allow_html=True)
+            st.markdown('<div style="color:#dc3545;font-size:.85rem;margin:-6px 0 4px">'
+                        + _esc(_T.get('err_email_friendly', 'Revisa el correo: parece que falta la @ o el dominio (ej. nombre@empresa.com).'))
+                        + '</div>', unsafe_allow_html=True)
+    else:
+        # Ya identificado: no repetir el campo de email (lo resume el perfil de abajo).
+        # Una línea fina con el correo + "Cambiar" por si se equivocó al escribirlo.
+        _email_form_raw = st.session_state.get('portal_email', '')
+        _acceder_clicked = False
+        _el1, _el2 = st.columns([7, 3])
+        with _el1:
+            st.markdown(
+                '<div style="display:flex;align-items:center;gap:9px;padding:10px 14px;border:1px solid #e7eaef;'
+                'background:#fff;border-radius:12px;font-size:.93rem;color:#16201b;height:100%;box-sizing:border-box">'
+                '<span style="font-size:1.05rem">📧</span>'
+                f'<b style="font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{_esc(_email_form_raw)}</b>'
+                '</div>', unsafe_allow_html=True)
+        with _el2:
+            if st.button(('✏️ Change email' if st.session_state.get('portal_lang') == 'en' else '✏️ Cambiar correo'),
+                         key='portal_change_email', use_container_width=True):
+                _portal_reset_identity()
                 st.rerun()
-            elif _eml_trim:
-                st.session_state.portal_email = _eml_trim
-    if st.session_state.get('_email_invalid'):
-        st.markdown('<style>div[class*="st-key-portal_email_input"] input{border-color:#dc3545 !important;'
-                    'box-shadow:0 0 0 3px rgba(220,53,69,.12) !important}</style>', unsafe_allow_html=True)
-        st.markdown('<div style="color:#dc3545;font-size:.85rem;margin:-6px 0 4px">'
-                    + _esc(_T.get('err_email_friendly', 'Revisa el correo: parece que falta la @ o el dominio (ej. nombre@empresa.com).'))
-                    + '</div>', unsafe_allow_html=True)
     # Email SIEMPRE normalizado (minúsculas + sin espacios): es la clave única del cliente.
     # Evita fichas duplicadas tipo "Demo@x" vs "demo@x" en el padrón y en la lista del admin.
     email_input = (st.session_state.portal_email or (_email_form_raw or '').strip()).strip().lower()
@@ -3419,6 +3460,9 @@ def render_portal_pedido():
                 if _saved_cart:
                     st.session_state.portal_carrito = _saved_cart
                     st.session_state['_cart_was_restored'] = True
+                    # Volvía a mitad de un pedido: saltar directo a los productos
+                    # (paso 2 ya resuelto), sin pedirle confirmar la entrega otra vez.
+                    st.session_state['portal_step2_confirmed'] = True
                     # Sembrar los inputs (qty/unit) para que el pre-pass fresco y la
                     # lista muestren las cantidades restauradas (si no, se borrarían).
                     _code_to_idx_r = {p.get('codigo'): _ri for _ri, p in enumerate(prods)}
@@ -3620,19 +3664,7 @@ def render_portal_pedido():
             if st.button(_out_lbl, key='portal_salir_cuenta', use_container_width=True,
                          help=('Sign out. Your unfinished order is saved for next time.' if _lang_en0
                                else 'Cierra la sesión. Tu pedido sin terminar queda guardado para la próxima.')):
-                # Logout: vaciar la identidad de ESTA sesión (email, datos, cantidades),
-                # pero NO borrar el carrito durable del Gist/archivo: al volver a entrar
-                # con su email se restaura. Conservamos el idioma.
-                _nonce_next = st.session_state.get('_portal_eml_nonce', 0) + 1
-                for _k in list(st.session_state.keys()):
-                    if _k.startswith('portal_') and _k != 'portal_lang':
-                        st.session_state.pop(_k, None)
-                for _k in ['_portal_last_confirmed_email', '_cart_restored_for',
-                           '_cart_was_restored', '_scroll_step2', '_scroll_step1',
-                           '_email_invalid']:
-                    st.session_state.pop(_k, None)
-                # Nonce nuevo → el campo de email se monta vacío en el próximo render
-                st.session_state['_portal_eml_nonce'] = _nonce_next
+                _portal_reset_identity()
                 st.session_state['_just_logged_out'] = True
                 st.rerun()
     # "Volver atrás": desplazar la vista de vuelta al paso 1 (sus datos), una vez.
@@ -3701,7 +3733,9 @@ def render_portal_pedido():
         f'<div style="color:#65726b;font-size:.85rem">{_esc(_ship_s)}</div></div>'
         '</div>', unsafe_allow_html=True)
 
-    with st.expander('🚚 ' + _T.get('edit_shipping', 'Cambiar modalidad de envío'), expanded=False):
+    # Abierto mientras el cliente decide (paso 2 activo); plegado una vez confirmado.
+    _ship_open = not bool(st.session_state.get('portal_step2_confirmed'))
+    with st.expander('🚚 ' + _T.get('edit_shipping', 'Cambiar modalidad de envío'), expanded=_ship_open):
         t1, t2 = st.columns([1, 2])
         tipo_precio = t1.radio(_T['price_type_label'], ['FOB', 'CIF'], key='portal_tipo', horizontal=False,
             format_func=lambda x: _tp_labels.get(x, x), help=_T['price_type_help'])
@@ -3722,7 +3756,43 @@ def render_portal_pedido():
             t2.info(_T['fob_info'])
             t2.caption(_T['fob_origin'])
 
+    # ── Compuerta del asistente: el paso 3 (productos) solo aparece tras CONFIRMAR
+    #    la entrega. Así el paso 1 y 2 quedan compactos ("sombra") y la vista se
+    #    centra en lo que toca, sin volcar toda la página de golpe.
+    _step2_ok = bool(st.session_state.get('portal_step2_confirmed'))
+    _lang_en2 = st.session_state.get('portal_lang') == 'en'
+    if not _step2_ok:
+        if st.button(('✅ Confirm delivery and pick my fruits →' if _lang_en2
+                      else '✅ Confirmar entrega y elegir mis frutas →'),
+                     type='primary', use_container_width=True, key='portal_confirm_step2'):
+            st.session_state['portal_step2_confirmed'] = True
+            st.session_state['_scroll_step3'] = True
+            st.rerun()
+        st.caption('🔒 ' + ('You can change the delivery option anytime.' if _lang_en2
+                            else 'Podrás cambiar la modalidad de entrega cuando quieras.'))
+        st.markdown(f'<div style="text-align:center;color:#888;margin-top:28px"><small>{LANG_TEXTS[st.session_state.get("portal_lang","es")]["footer_text"]}</small></div>', unsafe_allow_html=True)
+        return
+    # Entrega confirmada (paso 2 = sombra): la tarjeta-resumen y el expander
+    # "Cambiar modalidad" de arriba bastan para cambiarla sin re-confirmar.
+
     # ── PASO 3: Selección de Productos ───────────────────────────────
+    st.markdown('<div id="eh-step3-anchor" style="position:relative;top:-70px"></div>', unsafe_allow_html=True)
+    if st.session_state.pop('_scroll_step3', False):
+        import streamlit.components.v1 as _components
+        _components.html(
+            """<script>
+            (function(){
+              const tryScroll = (n) => {
+                const doc = window.parent && window.parent.document;
+                const el = doc && doc.getElementById('eh-step3-anchor');
+                if (el) { el.scrollIntoView({behavior:'smooth', block:'start'}); }
+                else if (n < 20) { setTimeout(()=>tryScroll(n+1), 120); }
+              };
+              setTimeout(()=>tryScroll(0), 250);
+            })();
+            </script>""",
+            height=0,
+        )
     _eh_seccion(_T['step3'], 3)
     if st.session_state.pop('_cart_was_restored', False):
         st.success(_T.get('cart_restored', 'Retomamos tu pedido.'), icon=None)
