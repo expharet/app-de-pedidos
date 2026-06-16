@@ -942,66 +942,62 @@ def render_catalogo():
         else:
             st.caption(f'Precios **CIF** hasta **{_dest_sel}** | Flete: **${_dest_flete_v:.2f} USD/Kilo** | Todos los precios en USD/caja. A mayor volumen total del pedido, menor precio.')
 
-        N_PALLETS = 23  # columnas en el Excel (1..23 pallets)
-        # Construir filas: cada fila = 1 pallet, cada columna = 1 producto
+        # Precio de un producto a N pallets (CIF ajustado al destino, o FOB fijo)
+        def _precio_en(_p, _n_plt):
+            _precios_plt = _p.get('precios_plt', [])
+            if _precios_plt:
+                _idx = min(_n_plt - 1, len(_precios_plt) - 1)
+                _precio_base = _precios_plt[_idx]
+                if _cat_tipo == 'FOB':
+                    _fob_f = float(_p.get('precio_fob_final', 0) or 0)
+                    return round(_fob_f, 4) if _fob_f > 0 else None
+                if _precio_base:
+                    return round(float(_precio_base) - flete_ref + _dest_flete_v, 4)
+                return None
+            _pc = float(_p.get('precio_compra', 0) or 0)
+            if _cat_tipo == 'FOB':
+                _fob_f = float(_p.get('precio_fob_final', 0) or 0)
+                return round(_fob_f, 4) if _fob_f > 0 else (round(_pc, 4) if _pc > 0 else None)
+            _mg = float(_p.get('margen_pct', 0.1) or 0.1)
+            return round(_pc * (1 + _mg) + _dest_flete_v, 4) if _pc > 0 else None
+
+        # ── Vista FÁCIL: una FILA por fruta, columnas = tramos clave de volumen.
+        # Por defecto solo los tramos donde el precio cambia de verdad (no 23 filas
+        # casi iguales). Toggle para ver el detalle pallet a pallet.
+        _ver_detalle = st.toggle('Ver detalle pallet a pallet', value=False, key='cat_ver_detalle',
+                                 help='Por defecto se muestran los tramos clave de volumen (1, 2, 3, 5, 10, 20+)')
+        _tiers = list(range(1, 24)) if _ver_detalle else [1, 2, 3, 5, 10, 20]
+        _tier_lbl = {_t: (f'{_t} pal' if _t < 20 else '20+ pal') for _t in _tiers}
+
         _tbl_rows = []
-        _col_names = []
         for _p in prods_vis:
-            _short_name = (_p.get('producto','') or _p.get('descripcion','') or _p.get('codigo',''))[:18]
-            _col_names.append(_short_name)
-        _col_names_full = [_p.get('producto','') or _p.get('descripcion','') or _p.get('codigo','') for _p in prods_vis]
-
-        for _n_plt in range(1, N_PALLETS + 1):
-            _row = {'Pallets': str(_n_plt)}
-            for _pi, _p in enumerate(prods_vis):
-                _cod = _p.get('codigo', '')
-                _precios_plt = _p.get('precios_plt', [])
-                if _precios_plt:
-                    _idx = min(_n_plt - 1, len(_precios_plt) - 1)
-                    _precio_base = _precios_plt[_idx]  # precio CIF incluye flete ref (Madrid)
-                    if _cat_tipo == 'FOB':
-                        # FOB: usar precio_fob_final directo (col 12 Excel), igual en todas las filas
-                        _fob_f = float(_p.get('precio_fob_final', 0) or 0)
-                        _precio_final = round(_fob_f, 4) if _fob_f > 0 else None
-                    elif _precio_base:
-                        # CIF: ajustar precio de volumen por flete del destino seleccionado
-                        _precio_final = round(float(_precio_base) - flete_ref + _dest_flete_v, 4)
-                    else:
-                        _precio_final = None
-                else:
-                    # Sin tabla directa
-                    _pc = float(_p.get('precio_compra', 0) or 0)
-                    if _cat_tipo == 'FOB':
-                        _fob_f = float(_p.get('precio_fob_final', 0) or 0)
-                        _precio_final = round(_fob_f, 4) if _fob_f > 0 else (round(_pc, 4) if _pc > 0 else None)
-                    else:
-                        _mg = float(_p.get('margen_pct', 0.1) or 0.1)
-                        _precio_final = round(_pc * (1 + _mg) + _dest_flete_v, 4) if _pc > 0 else None
-                _row[_col_names[_pi]] = _precio_final
+            _name = (_p.get('producto','') or _p.get('descripcion','') or _p.get('codigo',''))
+            _row = {'Fruta': _name}
+            for _t in _tiers:
+                _row[_tier_lbl[_t]] = _precio_en(_p, _t)
             _tbl_rows.append(_row)
+        df_plt = pd.DataFrame(_tbl_rows).set_index('Fruta')
 
-        df_plt = pd.DataFrame(_tbl_rows).set_index('Pallets')
+        # Color por FILA: más barato (más volumen) = verde más intenso.
+        def _style_row(row):
+            _vals = pd.to_numeric(row, errors='coerce').dropna()
+            if len(_vals) < 2:
+                return ['text-align:right'] * len(row)
+            _vmin, _vmax = _vals.min(), _vals.max()
+            _out = []
+            for _v in row:
+                _vn = pd.to_numeric(_v, errors='coerce')
+                if pd.isna(_vn):
+                    _out.append('text-align:right;color:#c6ccd6')
+                else:
+                    _pct = (_vmax - _vn) / (_vmax - _vmin) if _vmax > _vmin else 0  # 1 = el más barato
+                    _out.append(f'background-color:rgba(12,110,81,{0.05 + _pct*0.22:.3f});text-align:right;font-weight:600')
+            return _out
 
-        # Colorear: precio mas bajo = verde oscuro, mas alto = blanco
-        def _style_plt(df):
-            styles = pd.DataFrame('', index=df.index, columns=df.columns)
-            for _col in df.columns:
-                _vals = pd.to_numeric(df[_col], errors='coerce').dropna()
-                if len(_vals) < 2: continue
-                _vmin, _vmax = _vals.min(), _vals.max()
-                for _idx_r in df.index:
-                    _v = pd.to_numeric(df.loc[_idx_r, _col], errors='coerce')
-                    if pd.isna(_v): continue
-                    _pct = (_v - _vmin) / (_vmax - _vmin) if _vmax > _vmin else 0
-                    _g = int(200 + _pct * 55)  # 200-255
-                    _r = int(210 - _pct * 50)  # 160-210
-                    styles.loc[_idx_r, _col] = f'background-color:rgb({_r},{_g},{_r});font-weight:bold;text-align:right'
-            return styles
+        _df_styled = df_plt.style.apply(_style_row, axis=1).format('${:.2f}', na_rep='—')
+        st.dataframe(_df_styled, use_container_width=True, height=min(60 + 36*(len(prods_vis)+1), 760))
 
-        _df_styled = df_plt.style.apply(_style_plt, axis=None).format('${:.2f}', na_rep='—')
-        st.dataframe(_df_styled, use_container_width=True, height=min(50 + 38*(N_PALLETS+1), 950))
-
-        st.caption('\U0001f7e2 Verde = precio m\u00e1s bajo (m\u00e1s volumen). La app usa autom\u00e1ticamente el precio correspondiente al total de pallets del pedido.')
+        st.caption('Verde = precio más bajo (más volumen). Cada fila es una fruta; las columnas son tramos de pallets. La app aplica automáticamente el precio del total de pallets del pedido.')
 
         # ── Descarga cat\u00e1logo ─────────────────────────────────────────
         st.markdown('---')
@@ -1012,13 +1008,13 @@ def render_catalogo():
             _wb_dl = _WB()
             _ws_dl = _wb_dl.active
             _ws_dl.title = 'Precios'
-            _hdr_dl = ['Pallets'] + _col_names_full
+            _hdr_dl = ['Fruta'] + list(df_plt.columns)
             _ws_dl.append(_hdr_dl)
             for _cell in _ws_dl[1]:
                 _cell.font = _Font(bold=True, color='FFFFFF')
                 _cell.fill = _Fill(start_color='1B7A3C', end_color='1B7A3C', fill_type='solid')
             for _row_d in _tbl_rows:
-                _ws_dl.append([_row_d.get('Pallets','')] + [_row_d.get(c,'') for c in df_plt.columns])
+                _ws_dl.append([_row_d.get('Fruta','')] + [_row_d.get(c,'') for c in df_plt.columns])
             _out_dl = io.BytesIO(); _wb_dl.save(_out_dl); _out_dl.seek(0)
             _dlc1.download_button('\U0001f4e5 Descargar Excel', data=_out_dl.getvalue(),
                 file_name=f'catalogo_{_dest_sel.replace("/","_")}.xlsx',
