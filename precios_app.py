@@ -3212,6 +3212,12 @@ def render_portal_pedido():
     for k, v in [('portal_email',''),('portal_registered',False),('portal_client_data',{}),('portal_carrito',[])]:
         if k not in st.session_state: st.session_state[k] = v
 
+    # Aviso de sesión cerrada (tras "Salir de la cuenta")
+    if st.session_state.pop('_just_logged_out', False):
+        st.toast('Sesión cerrada ✓ — tu pedido sin terminar queda guardado para la próxima vez.'
+                 if st.session_state.get('portal_lang') != 'en'
+                 else 'Logged out ✓ — your unfinished order is saved for next time.', icon='👋')
+
     # Pre-fill email from last confirmed order (persistence #17)
     if not st.session_state.get('portal_email') and st.session_state.get('_portal_last_confirmed_email'):
         st.session_state['portal_email'] = st.session_state['_portal_last_confirmed_email']
@@ -3308,13 +3314,18 @@ def render_portal_pedido():
         '1.3-4.6-.3-.5c-1.3-2.1-2-4.5-2-7 0-7.2 5.9-13.1 13.1-13.1S29.1 8.8 29.1 16 23.2 28.8 16 28.8zm7.2-9.8c-.4-.2-2.3-1.1-2.7-1.3-.4-.1-.6-.2-.9.2-.3.4-1 1.3-1.2 1.5-.2.2-.4.3-.8.1-.4-.2-1.6-.6-3.1-1.9-1.1-1-1.9-2.3-2.1-2.7-.2-.4 0-.6.2-.8.2-.2.4-.4.5-.7.2-.2.2-.4.4-.6.1-.3 0-.5 0-.7-.1-.2-.9-2.1-1.2-2.9-.3-.8-.6-.7-.9-.7h-.7c-.2 0-.6.1-.9.4-.3.4-1.2 1.2-1.2 2.9 0 1.7 1.2 3.4 1.4 3.6.2.2 2.5 3.8 6 5.3.8.4 1.5.6 2 .7.8.3 1.6.2 2.2.1.7-.1 2.3-.9 2.6-1.8.3-.9.3-1.6.2-1.8-.1-.1-.3-.2-.7-.4z"/></svg></a>',
         unsafe_allow_html=True)
 
+    st.markdown('<div id="eh-step1-anchor" style="position:relative;top:-70px"></div>', unsafe_allow_html=True)
     _eh_seccion(_T['step1'], 1)
     # Email form with explicit "Acceder" button
     _eml_benef = ('We use it to save your order and follow up — no spam, no commitment.'
                   if st.session_state.get('portal_lang') == 'en'
                   else 'Lo usamos para guardar tu pedido y darte seguimiento — sin spam ni compromiso.')
+    # Clave dinámica del campo email: al "Salir de la cuenta" se incrementa el nonce
+    # para montar un input NUEVO y vacío (borrar la clave del widget no limpia el
+    # texto ya pintado en Streamlit). Así el logout deja el correo realmente vacío.
+    _eml_key = f"portal_email_input_{st.session_state.get('_portal_eml_nonce', 0)}"
     with st.form('portal_email_form', clear_on_submit=False):
-        _email_form_raw = st.text_input(_T['email_label'], placeholder=_T['email_ph'], key='portal_email_input', value=st.session_state.portal_email)
+        _email_form_raw = st.text_input(_T['email_label'], placeholder=_T['email_ph'], key=_eml_key, value=st.session_state.portal_email)
         st.caption('🔒 ' + _eml_benef)
         _acceder_clicked = st.form_submit_button(_T.get('btn_acceder', '🔓 Acceder'), type='primary', use_container_width=True)
     if _acceder_clicked:
@@ -3332,7 +3343,7 @@ def render_portal_pedido():
             elif _eml_trim:
                 st.session_state.portal_email = _eml_trim
     if st.session_state.get('_email_invalid'):
-        st.markdown('<style>.st-key-portal_email_input input{border-color:#dc3545 !important;'
+        st.markdown('<style>div[class*="st-key-portal_email_input"] input{border-color:#dc3545 !important;'
                     'box-shadow:0 0 0 3px rgba(220,53,69,.12) !important}</style>', unsafe_allow_html=True)
         st.markdown('<div style="color:#dc3545;font-size:.85rem;margin:-6px 0 4px">'
                     + _esc(_T.get('err_email_friendly', 'Revisa el correo: parece que falta la @ o el dominio (ej. nombre@empresa.com).'))
@@ -3592,6 +3603,55 @@ def render_portal_pedido():
     # ── PASO 2: Tipo de precio + Destino ─────────────────────────────────────
     # Ancla para el auto-scroll cuando un cliente reconocido entra (salta al paso 2).
     st.markdown('<div id="eh-step2-anchor" style="position:relative;top:-70px"></div>', unsafe_allow_html=True)
+    # ── Barra de cuenta: "Volver atrás" (sube a sus datos, paso 1) y "Salir de la
+    #    cuenta" (cierra sesión conservando el carrito durable). Solo si ya hay email.
+    if (st.session_state.get('portal_email') or '').strip():
+        _lang_en0 = st.session_state.get('portal_lang') == 'en'
+        _bk_lbl = '← Back to my details' if _lang_en0 else '← Volver atrás'
+        _out_lbl = '🚪 Log out' if _lang_en0 else '🚪 Salir de la cuenta'
+        _nav_l, _nav_a, _nav_b = st.columns([4, 3, 3])
+        with _nav_a:
+            if st.button(_bk_lbl, key='portal_volver_atras', use_container_width=True,
+                         help=('Go back to your contact details (step 1)' if _lang_en0
+                               else 'Vuelve a tus datos de contacto (paso 1)')):
+                st.session_state['_scroll_step1'] = True
+                st.rerun()
+        with _nav_b:
+            if st.button(_out_lbl, key='portal_salir_cuenta', use_container_width=True,
+                         help=('Sign out. Your unfinished order is saved for next time.' if _lang_en0
+                               else 'Cierra la sesión. Tu pedido sin terminar queda guardado para la próxima.')):
+                # Logout: vaciar la identidad de ESTA sesión (email, datos, cantidades),
+                # pero NO borrar el carrito durable del Gist/archivo: al volver a entrar
+                # con su email se restaura. Conservamos el idioma.
+                _nonce_next = st.session_state.get('_portal_eml_nonce', 0) + 1
+                for _k in list(st.session_state.keys()):
+                    if _k.startswith('portal_') and _k != 'portal_lang':
+                        st.session_state.pop(_k, None)
+                for _k in ['_portal_last_confirmed_email', '_cart_restored_for',
+                           '_cart_was_restored', '_scroll_step2', '_scroll_step1',
+                           '_email_invalid']:
+                    st.session_state.pop(_k, None)
+                # Nonce nuevo → el campo de email se monta vacío en el próximo render
+                st.session_state['_portal_eml_nonce'] = _nonce_next
+                st.session_state['_just_logged_out'] = True
+                st.rerun()
+    # "Volver atrás": desplazar la vista de vuelta al paso 1 (sus datos), una vez.
+    if st.session_state.pop('_scroll_step1', False):
+        import streamlit.components.v1 as _components
+        _components.html(
+            """<script>
+            (function(){
+              const tryScroll = (n) => {
+                const doc = window.parent && window.parent.document;
+                const el = doc && doc.getElementById('eh-step1-anchor');
+                if (el) { el.scrollIntoView({behavior:'smooth', block:'start'}); }
+                else if (n < 20) { setTimeout(()=>tryScroll(n+1), 120); }
+              };
+              setTimeout(()=>tryScroll(0), 250);
+            })();
+            </script>""",
+            height=0,
+        )
     _eh_seccion(_T['step2'], 2)
     # Si el cliente acaba de ser reconocido, desplazar la vista al paso 2 (una vez).
     if st.session_state.pop('_scroll_step2', False):
