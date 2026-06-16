@@ -353,13 +353,28 @@ def load_app_config():
     return _load(APP_CONFIG_FILE, {"app_title": "📊 Export Haret — Panel de Administración"})
 def save_app_config(cfg): _save(APP_CONFIG_FILE, cfg)
 def save_data(d):
+    """Guarda el catálogo en local Y en el Gist durable. Devuelve True si el cambio
+    quedó DURABLE (sobrevive a reinicios de Streamlit Cloud). Si el Gist está
+    configurado pero la subida falla, AVISA al admin para que no crea que un cambio
+    delicado (p. ej. un margen) quedó guardado cuando no es así."""
     _save(DATA_FILE, d)
     st.cache_data.clear()
-    if outbox:
+    if not (outbox and outbox.configurado()):
+        return False  # sin Gist configurado: solo local (no durable en Cloud)
+    try:
+        ok = bool(outbox.publish_catalog(d))  # durable en el Gist (precios/márgenes)
+    except Exception as e:
+        logger.warning(f'publish_catalog falló: {e}')
+        ok = False
+    if not ok:
         try:
-            outbox.publish_catalog(d)  # durable en el Gist (precios/márgenes sobreviven a reinicios)
-        except Exception as e:
-            logger.warning(f'publish_catalog falló: {e}')
+            st.toast('⚠️ El cambio se guardó en local pero NO se pudo subir a la copia '
+                     'durable (Gist). Podría perderse si la app se reinicia. Revisa el '
+                     'token de GitHub en Configuración y vuelve a guardar.', icon='⚠️')
+        except Exception:
+            pass
+        logger.warning('publish_catalog devolvió False: cambio NO durable')
+    return ok
 def save_clients(c): _save(CLIENTS_FILE,c)
 def save_pedidos(p):
     _save(PEDIDOS_FILE, p)
@@ -1293,6 +1308,14 @@ def render_catalogo():
         st.markdown('### \U0001f30d Gestionar Destinos, Fletes y M\u00e1rgenes')
         st.caption('Flete en USD/Kilo. **Margen %** = sobreprecio de mercado por destino (p. ej. Espa\u00f1a 0 %, UK 8 %). '
                    'A\u00f1ade, edita o elimina destinos directamente en la tabla.')
+        # Indicador de durabilidad: que el admin sepa si lo que guarda sobrevive a reinicios
+        if outbox and outbox.configurado():
+            st.success('\u2705 **Durabilidad activa** \u2014 lo que guardes aqu\u00ed se respalda en el Gist y el '
+                       'cliente lo seguir\u00e1 viendo aunque la app se reinicie.', icon='\U0001f512')
+        else:
+            st.error('\u26a0\ufe0f **SIN durabilidad** \u2014 el Gist no est\u00e1 configurado. Los cambios se guardan solo en '
+                     'local y **se perder\u00e1n si la app se reinicia**. Config\u00faralo en Configuraci\u00f3n \u2192 token de GitHub.',
+                     icon='\u26a0\ufe0f')
         _dest_margen = cfg.get('destinos_margen', {})
         _dest_rows = []
         for _dn, _dv in dests.items():
@@ -1330,8 +1353,13 @@ def render_catalogo():
             data['config']['destinos'] = _new_d
             data['config']['destinos_moneda'] = _new_m
             data['config']['destinos_margen'] = _new_g
-            save_data(data)
-            st.toast('Destinos guardados \u2705', icon='\u2705')
+            _durable = save_data(data)
+            if _durable:
+                st.toast('Destinos y m\u00e1rgenes guardados \u2014 durables \u2705 (el cliente los ver\u00e1 tras reiniciar)', icon='\u2705')
+            elif outbox and outbox.configurado():
+                st.toast('\u26a0\ufe0f Guardado en local pero la copia durable (Gist) fall\u00f3. Revisa el token y reintenta.', icon='\u26a0\ufe0f')
+            else:
+                st.toast('Guardado en local. \u26a0\ufe0f Configura el Gist para que sobreviva a reinicios.', icon='\u26a0\ufe0f')
             st.rerun()
         st.markdown('---')
         st.markdown('### \U0001f4b9 Tipos de Cambio en Tiempo Real')
