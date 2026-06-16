@@ -141,3 +141,30 @@ def fetch_clients() -> dict | None:
     except (requests.RequestException, ValueError):
         pass
     return None
+
+
+def publish_carts(carts: dict) -> bool:
+    """Vuelca los carritos pendientes (por email) al Gist, para que el cliente
+    pueda retomar su pedido sin terminar aunque Streamlit Cloud reinicie."""
+    return _patch_file("portal_carritos.json", carts)
+
+
+def fetch_carts() -> dict | None:
+    """Lee los carritos pendientes del Gist (None si no hay/ falla)."""
+    gist_id = _gist_id()
+    if not gist_id:
+        return None
+    token = _token()
+    headers = {"Accept": "application/vnd.github+json"}
+    if token:
+        headers["Authorization"] = f"token {token}"
+    try:
+        r = requests.get(f"https://api.github.com/gists/{gist_id}",
+                         headers=headers, timeout=10)
+        if r.status_code == 200:
+            content = (r.json().get("files", {})
+                       .get("portal_carritos.json", {}).get("content"))
+            return json.loads(content) if content else {}
+    except (requests.RequestException, ValueError):
+        pass
+    return None

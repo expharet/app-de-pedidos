@@ -398,6 +398,13 @@ def hidratar_pedidos_gist():
                 local_cli.update(faltan)
                 _save(PORTAL_CLIENTS_FILE, local_cli)
                 logger.info(f'hidratados {len(faltan)} clientes desde el Gist')
+        # 3) Carritos pendientes: el Gist es la verdad durable (sobrevive a reinicios).
+        #    Permite "sigue donde lo dejaste" aunque el contenedor de Cloud se reinicie.
+        if hasattr(outbox, 'fetch_carts'):
+            remoto_carts = outbox.fetch_carts()
+            if remoto_carts is not None:
+                _save(PORTAL_CARTS_FILE, remoto_carts)
+                logger.info(f'hidratados {len(remoto_carts)} carritos desde el Gist')
     except Exception as e:
         logger.warning(f'hidratar gist falló: {e}')
 def _esc(s):
@@ -2163,6 +2170,11 @@ def load_portal_carts():
 
 def save_portal_carts(c):
     _save(PORTAL_CARTS_FILE, c)
+    if outbox:
+        try:
+            outbox.publish_carts(c)  # durable en el Gist (sobrevive a reinicios de Cloud)
+        except Exception as e:
+            logger.warning(f'publish_carts falló: {e}')
 
 def get_fob_price(codigo, data):
     for p in data.get('products', []):
