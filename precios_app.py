@@ -3372,23 +3372,11 @@ def render_portal_pedido():
                         + _esc(_T.get('err_email_friendly', 'Revisa el correo: parece que falta la @ o el dominio (ej. nombre@empresa.com).'))
                         + '</div>', unsafe_allow_html=True)
     else:
-        # Ya identificado: no repetir el campo de email (lo resume el perfil de abajo).
-        # Una línea fina con el correo + "Cambiar" por si se equivocó al escribirlo.
+        # Ya identificado: el paso 1 lo resume UNA sola tarjeta de perfil abajo
+        # (saludo + correo + país + "Cambiar correo"). Aquí no se pinta nada para
+        # no repetir el correo tres veces (era el ruido del paso 1).
         _email_form_raw = st.session_state.get('portal_email', '')
         _acceder_clicked = False
-        _el1, _el2 = st.columns([7, 3])
-        with _el1:
-            st.markdown(
-                '<div style="display:flex;align-items:center;gap:9px;padding:10px 14px;border:1px solid #e7eaef;'
-                'background:#fff;border-radius:12px;font-size:.93rem;color:#16201b;height:100%;box-sizing:border-box">'
-                '<span style="font-size:1.05rem">📧</span>'
-                f'<b style="font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{_esc(_email_form_raw)}</b>'
-                '</div>', unsafe_allow_html=True)
-        with _el2:
-            if st.button(('✏️ Change email' if st.session_state.get('portal_lang') == 'en' else '✏️ Cambiar correo'),
-                         key='portal_change_email', use_container_width=True):
-                _portal_reset_identity()
-                st.rerun()
     # Email SIEMPRE normalizado (minúsculas + sin espacios): es la clave única del cliente.
     # Evita fichas duplicadas tipo "Demo@x" vs "demo@x" en el padrón y en la lista del admin.
     email_input = (st.session_state.portal_email or (_email_form_raw or '').strip()).strip().lower()
@@ -3438,7 +3426,7 @@ def render_portal_pedido():
                         st.session_state['portal_tipo'] = _lo.get('tipo_precio')
                     if _lo.get('destino'):
                         st.session_state['portal_dest'] = _lo.get('destino')
-            st.success(_T['welcome_back'].format(name=client_data.get('nombre') or email_input))
+            # Saludo integrado en la tarjeta de perfil (abajo) — sin recuadro extra.
         else:
             # Email nuevo/no reconocido: limpiar datos de un cliente anterior
             if st.session_state.get('portal_last_email') != email_input:
@@ -3476,27 +3464,54 @@ def render_portal_pedido():
                             st.session_state[f'portal_unit_{_cir}_{_ixr}'] = (_T['unit_pallets'] if _iur == 'Pallets' else _T['unit_boxes'])
         _client_orders_all = [p for p in load_pedidos() if p.get('client_email','').lower() == email_input.lower()]
         _n_orders = len(_client_orders_all)
-        tab_datos, tab_historial = st.tabs([_T['tab_datos'], _T['tab_pedidos'].format(n=_n_orders)])
+        # Pestañas SOLO si hay historial: un cliente sin pedidos no necesita la
+        # pestaña vacía "Mis Pedidos (0)" — se muestra la tarjeta directa (más limpio).
+        if _n_orders > 0:
+            tab_datos, tab_historial = st.tabs([_T['tab_datos'], _T['tab_pedidos'].format(n=_n_orders)])
+        else:
+            tab_datos = st.container()
+            tab_historial = st.container()
 
         with tab_datos:
             # Cliente reconocido: mostrar resumen limpio y plegar el formulario.
             # Solo se despliega si quiere editar — así llega antes a los productos.
             if is_registered and not show_register:
                 _ini = (client_data.get('nombre') or email_input or '·').strip()[:1].upper()
-                _sub = ' · '.join([x for x in [client_data.get('empresa',''), client_data.get('pais',''), email_input] if x])
+                _nm = client_data.get('nombre') or email_input
+                _hello = ('Welcome back' if st.session_state.get('portal_lang') == 'en' else 'Bienvenido de vuelta')
+                # Subtítulo SIN repetir el nombre: correo · país (· empresa si la hay)
+                _sub = ' · '.join([x for x in [email_input, client_data.get('pais',''), client_data.get('empresa','')] if x])
+                # UNA sola tarjeta: saludo + identidad + "Listo para pedir". Sin recuadro
+                # de bienvenida aparte ni línea de correo repetida — paso 1 limpio.
                 st.markdown(
-                    '<div style="display:flex;align-items:center;gap:13px;padding:13px 15px;border:1px solid #e7eaef;'
-                    'background:#eef6f2;border-radius:14px;margin:2px 0 4px">'
-                    f'<div style="width:42px;height:42px;border-radius:50%;background:#0c6e51;color:#fff;font-weight:800;'
-                    f'font-size:1.05rem;display:flex;align-items:center;justify-content:center;flex:0 0 auto">{_esc(_ini)}</div>'
-                    '<div style="min-width:0;line-height:1.3">'
-                    f'<div style="font-weight:700;color:#16201b;font-size:1.02rem">{_esc(client_data.get("nombre") or email_input)}</div>'
-                    f'<div style="color:#65726b;font-size:.85rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{_esc(_sub)}</div></div>'
-                    '<div style="margin-left:auto;flex:0 0 auto;background:#eef6f2;color:#0b5a42;font-size:.72rem;font-weight:700;'
-                    f'padding:5px 11px;border-radius:20px;white-space:nowrap">✓ {_esc(_T.get("client_ready","Listo para pedir"))}</div>'
+                    '<div style="display:flex;align-items:center;gap:13px;padding:14px 16px;border:1px solid #d8e6df;'
+                    'background:#eef6f2;border-radius:14px;margin:2px 0 6px">'
+                    f'<div style="width:44px;height:44px;border-radius:50%;background:#0c6e51;color:#fff;font-weight:800;'
+                    f'font-size:1.1rem;display:flex;align-items:center;justify-content:center;flex:0 0 auto">{_esc(_ini)}</div>'
+                    '<div style="min-width:0;line-height:1.35">'
+                    f'<div style="color:#0b5a42;font-size:.72rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase">{_esc(_hello)}</div>'
+                    f'<div style="font-weight:800;color:#14201a;font-size:1.12rem">{_esc(_nm)}</div>'
+                    f'<div style="color:#65726b;font-size:.83rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{_esc(_sub)}</div></div>'
+                    '<div style="margin-left:auto;flex:0 0 auto;background:#fff;color:#0b5a42;font-size:.72rem;font-weight:700;'
+                    f'border:1px solid #cfe3d9;padding:6px 12px;border-radius:20px;white-space:nowrap">✓ {_esc(_T.get("client_ready","Listo para pedir"))}</div>'
                     '</div>', unsafe_allow_html=True)
                 _form_host = st.expander('✏️ ' + _T.get('edit_data', 'Editar mis datos'), expanded=False)
             else:
+                # Cliente nuevo (registro): línea fina con el correo + "Cambiar correo"
+                # por si se equivocó, ya que aún no tiene el botón de "Salir".
+                _ne1, _ne2 = st.columns([7, 3])
+                with _ne1:
+                    st.markdown(
+                        '<div style="display:flex;align-items:center;gap:9px;padding:10px 14px;border:1px solid #e7eaef;'
+                        'background:#fff;border-radius:12px;font-size:.93rem;color:#16201b;height:100%;box-sizing:border-box">'
+                        '<span style="font-size:1.05rem">📧</span>'
+                        f'<b style="font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{_esc(email_input)}</b>'
+                        '</div>', unsafe_allow_html=True)
+                with _ne2:
+                    if st.button(('✏️ Change email' if st.session_state.get('portal_lang') == 'en' else '✏️ Cambiar correo'),
+                                 key='portal_change_email', use_container_width=True):
+                        _portal_reset_identity()
+                        st.rerun()
                 _form_host = st.container()
             with _form_host:
               c1, c2 = st.columns(2)
@@ -3542,9 +3557,7 @@ def render_portal_pedido():
                       st.rerun()
 
         with tab_historial:
-            if not _client_orders_all:
-                st.info(_T['no_orders'])
-            else:
+            if _client_orders_all:
                 st.markdown(f'#### 📋 {_n_orders} Pedido(s) realizados')
                 for op in sorted(_client_orders_all, key=lambda x: x.get('fecha',''), reverse=True):
                     op_id = op.get('id','')
