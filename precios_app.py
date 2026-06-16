@@ -1302,6 +1302,8 @@ def render_catalogo():
     with sub3:
         st.markdown('### \U0001f4c2 Importar desde Excel')
         st.info('\U0001f4a1 El archivo Excel debe tener la hoja **TABLA PRECIOS** con la estructura est\u00e1ndar de Export Haret (fila 6 = cabeceras, filas 7+ = productos, columnas 16-24 = precios 1-9 pallets).')
+        st.success('Los precios del Excel son la **BASE**. Los **m\u00e1rgenes de mercado por destino** '
+                   '(pesta\u00f1a **Destinos & Monedas**) se gestionan en la app y **NO se sobrescriben** al reimportar.')
         _uploaded = st.file_uploader('Subir Cotizaciones.xlsx', type=['xlsx','xls'], key='excel_uploader_cat')
         if _uploaded:
             try:
@@ -1319,6 +1321,9 @@ def render_catalogo():
                         else:
                             prods.append(_np); _new_c += 1
                     data['products'] = list(_prev_map.values()) + [p for p in prods if p.get('codigo') not in _prev_map]
+                    # IMPORTANTE: solo se actualizan productos y flete por destino. Los
+                    # MÁRGENES de mercado (config.destinos_margen) y demás config NO se
+                    # tocan → los márgenes que pusiste en la app sobreviven al reimport.
                     if _parsed_dests: data['config']['destinos'] = _parsed_dests
                     save_data(data)
                     st.success(f'Importado: {_upd_c} actualizados, {_new_c} nuevos.')
