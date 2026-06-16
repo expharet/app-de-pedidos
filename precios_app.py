@@ -3464,13 +3464,12 @@ def render_portal_pedido():
                             st.session_state[f'portal_unit_{_cir}_{_ixr}'] = (_T['unit_pallets'] if _iur == 'Pallets' else _T['unit_boxes'])
         _client_orders_all = [p for p in load_pedidos() if p.get('client_email','').lower() == email_input.lower()]
         _n_orders = len(_client_orders_all)
-        # Pestañas SOLO si hay historial: un cliente sin pedidos no necesita la
-        # pestaña vacía "Mis Pedidos (0)" — se muestra la tarjeta directa (más limpio).
-        if _n_orders > 0:
-            tab_datos, tab_historial = st.tabs([_T['tab_datos'], _T['tab_pedidos'].format(n=_n_orders)])
-        else:
-            tab_datos = st.container()
-            tab_historial = st.container()
+        # Perfil claro y simple (sin pestañas confusas): primero la tarjeta del
+        # cliente con su nombre + "Editar mis datos"; debajo, "Mis pedidos (N)" como
+        # una sección etiquetada (los pedidos son filas plegables; no se puede usar
+        # un expander contenedor porque cada pedido ya es un expander). Más fácil.
+        tab_datos = st.container()
+        tab_historial = st.container()
 
         with tab_datos:
             # Cliente reconocido: mostrar resumen limpio y plegar el formulario.
@@ -3558,7 +3557,11 @@ def render_portal_pedido():
 
         with tab_historial:
             if _client_orders_all:
-                st.markdown(f'#### 📋 {_n_orders} Pedido(s) realizados')
+                st.markdown('<div style="border-top:1px solid #e7eaef;margin:14px 0 10px"></div>', unsafe_allow_html=True)
+                st.markdown('📦 **' + _T['tab_pedidos'].format(n=_n_orders).replace('📦 ', '') + '**'
+                            + ('  ·  toca un pedido para ver el detalle o repetirlo'
+                               if st.session_state.get('portal_lang') != 'en'
+                               else '  ·  tap an order to see details or reorder'))
                 for op in sorted(_client_orders_all, key=lambda x: x.get('fecha',''), reverse=True):
                     op_id = op.get('id','')
                     op_fecha = op.get('fecha','')[:10]
