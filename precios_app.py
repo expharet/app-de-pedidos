@@ -1246,21 +1246,26 @@ def render_catalogo():
 
     # ─── SUB-TAB 2: DESTINOS & MONEDAS ───────────────────────────────
     with sub2:
-        st.markdown('### \U0001f30d Gestionar Destinos & Fletes')
-        st.caption('Flete en USD/Kilo. A\u00f1ade, edita o elimina destinos directamente en la tabla.')
+        st.markdown('### \U0001f30d Gestionar Destinos, Fletes y M\u00e1rgenes')
+        st.caption('Flete en USD/Kilo. **Margen %** = sobreprecio de mercado por destino (p. ej. Espa\u00f1a 0 %, UK 8 %). '
+                   'A\u00f1ade, edita o elimina destinos directamente en la tabla.')
+        _dest_margen = cfg.get('destinos_margen', {})
         _dest_rows = []
         for _dn, _dv in dests.items():
             _fv = _dv.get('factor', _dv) if isinstance(_dv, dict) else _dv
             _mv = dests_moneda.get(_dn, 'USD')
-            _dest_rows.append({'Destino': _dn, 'Flete $/cj': float(_fv), 'Moneda': _mv})
+            _gv = float(_dest_margen.get(_dn, 0) or 0)
+            _dest_rows.append({'Destino': _dn, 'Flete $/cj': float(_fv), 'Margen %': _gv, 'Moneda': _mv})
         _df_dest = pd.DataFrame(_dest_rows)
         _edited_dest = st.data_editor(
             _df_dest,
             column_config={
-                'Destino': st.column_config.TextColumn('Destino', width='large',
+                'Destino': st.column_config.TextColumn('Destino', width='medium',
                     help='Nombre del destino. A\u00f1ade filas para nuevos destinos.'),
                 'Flete $/cj': st.column_config.NumberColumn('Flete $/cj', format='$%.4f', step=0.01,
                     help='Costo de flete USD por caja incluido en precio CIF'),
+                'Margen %': st.column_config.NumberColumn('Margen %', format='%.1f %%', step=0.5,
+                    help='Sobreprecio de mercado para este destino (0 = sin extra). Ej: UK 8, Espa\u00f1a 0'),
                 'Moneda': st.column_config.SelectboxColumn('Moneda', options=MONEDAS,
                     help='Divisa de referencia para el cliente'),
             },
@@ -1268,13 +1273,19 @@ def render_catalogo():
             key='edit_destinos_tabla', hide_index=True,
         )
         if st.button('\U0001f4be Guardar Destinos', type='primary', use_container_width=True, key='btn_guardar_destinos'):
-            _new_d = {}; _new_m = {}
+            _new_d = {}; _new_m = {}; _new_g = {}
             for _, _r in _edited_dest.iterrows():
                 if _r.get('Destino'):
-                    _new_d[str(_r['Destino'])] = float(_r['Flete $/cj'])
-                    _new_m[str(_r['Destino'])] = str(_r['Moneda'])
+                    _dn2 = str(_r['Destino'])
+                    _new_d[_dn2] = float(_r['Flete $/cj'])
+                    _new_m[_dn2] = str(_r['Moneda'])
+                    try:
+                        _new_g[_dn2] = float(_r.get('Margen %', 0) or 0)
+                    except (TypeError, ValueError):
+                        _new_g[_dn2] = 0.0
             data['config']['destinos'] = _new_d
             data['config']['destinos_moneda'] = _new_m
+            data['config']['destinos_margen'] = _new_g
             save_data(data)
             st.toast('Destinos guardados \u2705', icon='\u2705')
             st.rerun()
@@ -2704,8 +2715,8 @@ def get_precio_por_pallets(codigo, total_pallets, data, tipo_precio='CIF'):
 def get_precio_cif_por_pallets(codigo, total_pallets, destino, data):
     """Precio CIF para un destino. precios_plt incluye el flete de referencia (Madrid);
     se ajusta al flete del destino igual que el panel admin:
-        precio_destino = precio_base - flete_ref + flete_destino
-    Así cada destino cobra su flete real (no todos el de Madrid).
+        precio_destino = (precio_base - flete_ref + flete_destino) * (1 + margen_mercado)
+    Así cada destino cobra su flete real Y su margen de mercado (p. ej. UK > España).
     """
     base = get_precio_por_pallets(codigo, total_pallets, data)  # incluye flete ref Madrid
     if base <= 0:
@@ -2719,7 +2730,15 @@ def get_precio_cif_por_pallets(codigo, total_pallets, destino, data):
         dest_flete = float(dest_val)
     else:
         dest_flete = flete_ref
-    return round(base - flete_ref + dest_flete, 4)
+    precio = base - flete_ref + dest_flete
+    # Margen de mercado por destino (%): UK puede llevar más que España, etc.
+    try:
+        _margen_pct = float(cfg.get('destinos_margen', {}).get(destino, 0) or 0)
+    except (TypeError, ValueError):
+        _margen_pct = 0.0
+    if _margen_pct:
+        precio = precio * (1 + _margen_pct / 100.0)
+    return round(precio, 4)
 
 
 def get_precio_con_volumen(codigo, destino, tipo_precio, data, pallets):

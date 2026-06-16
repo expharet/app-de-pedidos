@@ -143,6 +143,19 @@ def test_cif_ajuste_flete_por_destino():
     assert P.get_precio_cif_por_pallets("F-001", 3, "DUBAI", DATA) == 19.75
 
 
+def test_cif_margen_por_mercado():
+    # Mismo flete que la ref → sin ajuste de flete; el margen % de mercado sí aplica.
+    _data = {
+        "products": [{"codigo": "F-001", "grupo": "A", "precios_plt": [20.0, 20.0, 18.0]}],
+        "config": {"flete_ref": 2.35, "destinos": {"UK": 2.35, "ES": 2.35},
+                   "destinos_margen": {"UK": 10.0, "ES": 0.0}},
+    }
+    assert P.get_precio_con_volumen("F-001", "ES", "CIF", _data, 3) == 18.0          # 0 %
+    assert P.get_precio_con_volumen("F-001", "UK", "CIF", _data, 3) == round(18.0 * 1.10, 4)  # +10 %
+    # sin destinos_margen configurado → sin sobreprecio (compatibilidad)
+    assert P.get_precio_cif_por_pallets("F-001", 3, "Spain", DATA) == P.get_precio_por_pallets("F-001", 3, DATA)
+
+
 def test_cif_destino_desconocido_usa_flete_ref():
     base = P.get_precio_por_pallets("F-001", 3, DATA)
     assert P.get_precio_cif_por_pallets("F-001", 3, "MARTE", DATA) == base
