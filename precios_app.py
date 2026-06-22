@@ -2816,11 +2816,10 @@ _FRUIT_EN = {
 
 def build_price_list_pdf(data, destino='Madrid/España', tiers=(1, 3, 4, 6, 8),
                          incluir_codigos=None, incoterm='CIP', validez_dias=7):
-    """Lista de precios estilo plantilla oficial (horizontal): cabecera + banda verde
-    (fecha/destino/incoterm/flete/validez) + banda roja + tabla con Codigo, Producto
-    (bilingue), Peso, FOB/Caja y CIF a varios pallets. Usa los valores reales de la app
-    (get_precio_con_volumen). incluir_codigos=None -> todas las frutas activas.
-    Devuelve (bytes, mime, ext)."""
+    """Lista de precios estilo plantilla oficial (horizontal). Idioma: ESPAÑOL solo
+    para España; INGLÉS para el resto de destinos. Incluye DOS tablas: precios en USD
+    y precios en la moneda del destino (EUR, GBP, etc.) si no es USD. Valores reales
+    de la app (get_precio_con_volumen). Devuelve (bytes, mime, ext)."""
     buf = io.BytesIO()
     _tiers = [int(t) for t in tiers] or [1, 3, 4, 6, 8]
     _prods = [p for p in data.get('products', []) if p.get('activo', True)]
@@ -2833,10 +2832,40 @@ def build_price_list_pdf(data, destino='Madrid/España', tiers=(1, 3, 4, 6, 8),
         _rate = float(get_exchange_rates().get(_moneda, 1.0) or 1.0)
     except Exception:
         _rate = 1.0
+    _sym = MONEDA_SIMBOLO.get(_moneda, _moneda)
     _dv = cfg.get('destinos', {}).get(destino, cfg.get('flete_ref', 2.35))
     _flete = float(_dv.get('factor', 2.35) if isinstance(_dv, dict) else _dv if isinstance(_dv, (int, float)) else 2.35)
     _hoy = datetime.now().strftime('%d/%m/%Y')
     _rate_txt = f'{_rate:.4f}'.replace('.', ',')
+    # Idioma: español SOLO para España; inglés para todos los demás destinos.
+    _dl = (destino or '').lower()
+    _es = ('espa' in _dl) or ('spain' in _dl)
+    _has_cur2 = (_moneda != 'USD' and _rate and abs(_rate - 1.0) > 1e-9)
+
+    T = {
+        'date': 'Fecha emisión' if _es else 'Date of issue',
+        'dest': 'Destino' if _es else 'Destination',
+        'inco': 'Incoterm',
+        'freight': 'Flete aéreo' if _es else 'Air freight',
+        'valid': 'Validez' if _es else 'Valid for',
+        'days': 'días' if _es else 'days',
+        'rate': 'Tipo de cambio' if _es else 'Exchange rate',
+        'band_usd': 'PRECIOS EN USD' if _es else 'PRICES IN USD',
+        'band_cur': (f'PRECIOS EN {_moneda}' if _es else f'PRICES IN {_moneda}'),
+        'code': 'Código' if _es else 'Code',
+        'product': 'Producto' if _es else 'Product',
+        'weight': 'Peso<br/>(kg)' if _es else 'Weight<br/>(kg)',
+        'fob': 'FOB /<br/>Caja' if _es else 'FOB /<br/>Box',
+        'pallet': 'Pallet', 'pallets': 'Pallets',
+        'foot1': (('El precio por caja baja a mayor volumen total del pedido. Precios FOB en '
+                   'origen (Ecuador) y CIF puestos en %s, sujetos a disponibilidad y a '
+                   'confirmación. Tipos de cambio referenciales; la transacción se realiza en USD.')
+                  if _es else
+                  ('The price per box decreases with the total order volume. FOB prices at origin '
+                   '(Ecuador) and CIF delivered to %s, subject to availability and confirmation. '
+                   'Exchange rates are referential; the transaction is made in USD.')) % _esc(destino),
+        'contact': 'Contacto:' if _es else 'Contact:',
+    }
 
     def _nombre(_p):
         _nm = _p.get('producto', '') or _p.get('descripcion', '') or _p.get('codigo', '')
@@ -2851,9 +2880,10 @@ def build_price_list_pdf(data, destino='Madrid/España', tiers=(1, 3, 4, 6, 8),
         return get_precio_con_volumen(_p.get('codigo'), destino, 'CIF', data, _t) or 0
 
     if not REPORTLAB_OK:
-        h = [f'<h1>EXPORT HARET - Price List</h1><p>Destino: {_esc(destino)} | Incoterm: {incoterm}</p>',
-             '<table border=1 cellpadding=5><tr><th>Codigo</th><th>Producto</th><th>Peso</th><th>FOB/Caja</th>']
-        h += [f'<th>CIF {t} Plt</th>' for t in _tiers]
+        h = [f'<h1>EXPORT HARET - Price List</h1><p>{T["dest"]}: {_esc(destino)} | {incoterm}</p>',
+             f'<h3>{T["band_usd"]}</h3><table border=1 cellpadding=5><tr><th>{T["code"]}</th>'
+             f'<th>{T["product"]}</th><th>kg</th><th>FOB</th>']
+        h += [f'<th>CIF {t}</th>' for t in _tiers]
         h.append('</tr>')
         for _p in _prods:
             h.append(f'<tr><td>{_esc(_p.get("codigo",""))}</td><td>{_esc(_nombre(_p))}</td>'
@@ -2867,17 +2897,15 @@ def build_price_list_pdf(data, destino='Madrid/España', tiers=(1, 3, 4, 6, 8),
     PAGE = landscape(A4)
     doc = SimpleDocTemplate(buf, pagesize=PAGE, rightMargin=1.1*cm, leftMargin=1.1*cm,
                             topMargin=1.0*cm, bottomMargin=1.0*cm)
-    styles = getSampleStyleSheet()
     story = []
     BLUE_HDR = colors.HexColor('#2f5496')
     BLUE_PR = colors.HexColor('#2e75b6')
     GREEN_B = colors.HexColor('#2f7a44')
     RED_B = colors.HexColor('#9b1c1c')
-    GREY = colors.HexColor('#555555')
     INK = colors.HexColor('#1b2531')
     _usable = PAGE[0] - 2.2*cm
 
-    # --- Cabecera: logo + titulo + subtitulo ---
+    # --- Cabecera ---
     _title_p = Paragraph('<font color="#1b2531" size="20"><b>EXPORT HARET</b></font>'
                          '<font color="#2f7a44" size="20"><b> &mdash; Price List</b></font>',
                          ParagraphStyle('t', alignment=TA_CENTER, leading=24))
@@ -2900,77 +2928,84 @@ def build_price_list_pdf(data, destino='Madrid/España', tiers=(1, 3, 4, 6, 8),
                                    ('RIGHTPADDING', (0, 0), (-1, -1), 0)]))
     story.append(_head_tbl)
     story.append(Spacer(1, 0.15*cm))
-
-    # --- Tipo de cambio (derecha) ---
     story.append(Paragraph(
-        f'<font size="9" color="#1b2531"><b>Tipo de cambio</b> (1 USD = '
+        f'<font size="9" color="#1b2531"><b>{T["rate"]}</b> (1 USD = '
         f'<font backColor="#FFF2A8">&nbsp;{_rate_txt}&nbsp;</font> {_moneda})</font>',
         ParagraphStyle('rx', alignment=TA_RIGHT, leading=12, spaceAfter=3)))
 
-    # --- Banda verde: datos de emision ---
-    _green_txt = (f'<font color="white" size="9.5"><b>Fecha emisi&oacute;n:</b> {_hoy}'
-                  f'&nbsp;&nbsp;|&nbsp;&nbsp;<b>Destino:</b> {_esc(destino)}'
-                  f'&nbsp;&nbsp;|&nbsp;&nbsp;<b>Incoterm:</b> {_esc(incoterm)}'
-                  f'&nbsp;&nbsp;|&nbsp;&nbsp;<b>Flete a&eacute;reo:</b> USD {_flete:.2f} / kg'
-                  f'&nbsp;&nbsp;|&nbsp;&nbsp;<b>Validez:</b> {int(validez_dias)} d&iacute;as</font>')
+    # --- Banda verde: datos de emisión ---
+    _green_txt = (f'<font color="white" size="9.5"><b>{T["date"]}:</b> {_hoy}'
+                  f'&nbsp;&nbsp;|&nbsp;&nbsp;<b>{T["dest"]}:</b> {_esc(destino)}'
+                  f'&nbsp;&nbsp;|&nbsp;&nbsp;<b>{T["inco"]}:</b> {_esc(incoterm)}'
+                  f'&nbsp;&nbsp;|&nbsp;&nbsp;<b>{T["freight"]}:</b> USD {_flete:.2f} / kg'
+                  f'&nbsp;&nbsp;|&nbsp;&nbsp;<b>{T["valid"]}:</b> {int(validez_dias)} {T["days"]}</font>')
     _gb = Table([[Paragraph(_green_txt, ParagraphStyle('g', alignment=TA_CENTER, leading=13))]],
                 colWidths=[_usable])
     _gb.setStyle(TableStyle([('BACKGROUND', (0, 0), (-1, -1), GREEN_B),
                              ('TOPPADDING', (0, 0), (-1, -1), 5), ('BOTTOMPADDING', (0, 0), (-1, -1), 5)]))
     story.append(_gb)
-    # --- Banda roja: PRECIOS EN USD ---
-    _rb = Table([[Paragraph('<font color="white" size="10"><b>PRECIOS EN USD</b></font>',
-                            ParagraphStyle('r', alignment=TA_CENTER))]], colWidths=[_usable])
-    _rb.setStyle(TableStyle([('BACKGROUND', (0, 0), (-1, -1), RED_B),
-                             ('TOPPADDING', (0, 0), (-1, -1), 4), ('BOTTOMPADDING', (0, 0), (-1, -1), 4)]))
-    story.append(_rb)
-    story.append(Spacer(1, 0.05*cm))
 
-    # --- Tabla de datos ---
+    # --- estilos de tabla ---
     _cs = ParagraphStyle('cs', fontSize=8.3, leading=9.6, textColor=INK)
     _csb = ParagraphStyle('csb', fontSize=8.3, leading=9.6, textColor=INK, fontName='Helvetica-Bold')
     _hs = ParagraphStyle('hs', fontSize=8.6, leading=10, textColor=colors.white,
                          fontName='Helvetica-Bold', alignment=TA_CENTER)
-    def _hp(_t): return Paragraph(_t, _hs)
-    _head = [_hp('C&oacute;digo'), _hp('Producto'), _hp('Peso<br/>(kg)'), _hp('FOB /<br/>Caja')]
-    for _t in _tiers:
-        _head.append(_hp(f'CIF {_t}<br/>{"Pallet" if _t == 1 else "Pallets"}'))
-    _rows = [_head]
-    for _p in _prods:
-        _kg = _p.get('kg_caja', '')
-        _kg_s = (f'{float(_kg):g}'.replace('.', ',') if _kg not in ('', None) else '')
-        _row = [Paragraph(_esc(_p.get('codigo', '')), _cs), Paragraph(_esc(_nombre(_p)), _csb),
-                _kg_s, f'${_fob(_p):,.2f}']
-        for _t in _tiers:
-            _row.append(f'${_cif(_p, _t):,.2f}')
-        _rows.append(_row)
     _nt = len(_tiers)
     _w_cod, _w_prod, _w_peso, _w_fob = 2.0*cm, 7.4*cm, 1.5*cm, 2.3*cm
     _w_cif = (_usable - _w_cod - _w_prod - _w_peso - _w_fob) / max(_nt, 1)
-    _tbl = Table(_rows, colWidths=[_w_cod, _w_prod, _w_peso, _w_fob] + [_w_cif]*_nt, repeatRows=1)
-    _tbl.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), BLUE_HDR),
-        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-        ('FONTSIZE', (2, 1), (-1, -1), 8.4),
-        ('TEXTCOLOR', (3, 1), (-1, -1), BLUE_PR),
-        ('FONTNAME', (3, 1), (-1, -1), 'Helvetica-Bold'),
-        ('ALIGN', (2, 0), (-1, -1), 'CENTER'),
-        ('ALIGN', (3, 1), (-1, -1), 'RIGHT'),
-        ('ALIGN', (2, 1), (2, -1), 'CENTER'),
-        ('GRID', (0, 0), (-1, -1), 0.4, colors.HexColor('#bcc6d6')),
-        ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#eef1f7')]),
-        ('TOPPADDING', (0, 0), (-1, -1), 4), ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
-        ('LEFTPADDING', (0, 0), (-1, -1), 5), ('RIGHTPADDING', (0, 0), (-1, -1), 5),
-    ]))
-    story.append(_tbl)
-    story.append(Spacer(1, 0.35*cm))
+    _colw = [_w_cod, _w_prod, _w_peso, _w_fob] + [_w_cif]*_nt
+
+    def _hp(_t): return Paragraph(_t, _hs)
+
+    def _add_price_table(_rate, _sym, _band_text, _band_color):
+        # banda de la tabla
+        _bb = Table([[Paragraph(f'<font color="white" size="10"><b>{_band_text}</b></font>',
+                                ParagraphStyle('bb', alignment=TA_CENTER))]], colWidths=[_usable])
+        _bb.setStyle(TableStyle([('BACKGROUND', (0, 0), (-1, -1), _band_color),
+                                 ('TOPPADDING', (0, 0), (-1, -1), 4), ('BOTTOMPADDING', (0, 0), (-1, -1), 4)]))
+        story.append(_bb)
+        story.append(Spacer(1, 0.05*cm))
+        _head = [_hp(T['code']), _hp(T['product']), _hp(T['weight']), _hp(T['fob'])]
+        for _t in _tiers:
+            _head.append(_hp(f'CIF {_t}<br/>{T["pallet"] if _t == 1 else T["pallets"]}'))
+        _rows = [_head]
+        for _p in _prods:
+            _kg = _p.get('kg_caja', '')
+            _kg_s = (f'{float(_kg):g}'.replace('.', ',') if _kg not in ('', None) else '')
+            _row = [Paragraph(_esc(_p.get('codigo', '')), _cs), Paragraph(_esc(_nombre(_p)), _csb),
+                    _kg_s, f'{_sym}{_fob(_p) * _rate:,.2f}']
+            for _t in _tiers:
+                _row.append(f'{_sym}{_cif(_p, _t) * _rate:,.2f}')
+            _rows.append(_row)
+        _tbl = Table(_rows, colWidths=_colw, repeatRows=1)
+        _tbl.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), BLUE_HDR),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('FONTSIZE', (2, 1), (-1, -1), 8.4),
+            ('TEXTCOLOR', (3, 1), (-1, -1), BLUE_PR),
+            ('FONTNAME', (3, 1), (-1, -1), 'Helvetica-Bold'),
+            ('ALIGN', (2, 0), (-1, -1), 'CENTER'),
+            ('ALIGN', (3, 1), (-1, -1), 'RIGHT'),
+            ('ALIGN', (2, 1), (2, -1), 'CENTER'),
+            ('GRID', (0, 0), (-1, -1), 0.4, colors.HexColor('#bcc6d6')),
+            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#eef1f7')]),
+            ('TOPPADDING', (0, 0), (-1, -1), 4), ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+            ('LEFTPADDING', (0, 0), (-1, -1), 5), ('RIGHTPADDING', (0, 0), (-1, -1), 5),
+        ]))
+        story.append(_tbl)
+
+    # Tabla 1: USD
+    _add_price_table(1.0, '$', T['band_usd'], RED_B)
+    # Tabla 2: moneda del destino (si no es USD)
+    if _has_cur2:
+        story.append(Spacer(1, 0.3*cm))
+        _add_price_table(_rate, _sym, T['band_cur'], BLUE_HDR)
+
+    story.append(Spacer(1, 0.3*cm))
+    story.append(Paragraph(f'<font size="8" color="#555555">{T["foot1"]}</font>',
+                           ParagraphStyle('ft', leading=11)))
     story.append(Paragraph(
-        f'<font size="8" color="#555555">El precio por caja baja a mayor volumen total del pedido. '
-        f'Precios FOB en origen (Ecuador) y CIF puestos en {_esc(destino)}, sujetos a disponibilidad '
-        f'y a confirmaci&oacute;n. Tipo de cambio referencial; la transacci&oacute;n se realiza en USD.</font>',
-        ParagraphStyle('ft', leading=11)))
-    story.append(Paragraph(
-        '<font size="8" color="#555555"><b>Contacto:</b> order@exportharet.com&nbsp;&nbsp;|'
+        f'<font size="8" color="#555555"><b>{T["contact"]}</b> order@exportharet.com&nbsp;&nbsp;|'
         '&nbsp;&nbsp;+34 641 076 116&nbsp;&nbsp;|&nbsp;&nbsp;www.exportharet.com</font>',
         ParagraphStyle('ft2', leading=11, spaceBefore=2)))
     doc.build(story)
