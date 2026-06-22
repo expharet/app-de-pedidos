@@ -2816,10 +2816,10 @@ _FRUIT_EN = {
 
 def build_price_list_pdf(data, destino='Madrid/España', tiers=(1, 3, 4, 6, 8),
                          incluir_codigos=None, incoterm='CIP', validez_dias=7):
-    """Lista de precios estilo plantilla oficial (horizontal). Idioma: ESPAÑOL solo
-    para España; INGLÉS para el resto de destinos. Incluye DOS tablas: precios en USD
-    y precios en la moneda del destino (EUR, GBP, etc.) si no es USD. Valores reales
-    de la app (get_precio_con_volumen). Devuelve (bytes, mime, ext)."""
+    """Lista de precios profesional (horizontal). Idioma: ESPAÑOL solo para España;
+    INGLÉS para el resto. Dos tablas: USD y moneda del destino (si no es USD).
+    Diseño: paleta de marca esmeralda + acento dorado, líneas finas, pie con regla y
+    numeración. Valores reales de la app. Devuelve (bytes, mime, ext)."""
     buf = io.BytesIO()
     _tiers = [int(t) for t in tiers] or [1, 3, 4, 6, 8]
     _prods = [p for p in data.get('products', []) if p.get('activo', True)]
@@ -2837,34 +2837,40 @@ def build_price_list_pdf(data, destino='Madrid/España', tiers=(1, 3, 4, 6, 8),
     _flete = float(_dv.get('factor', 2.35) if isinstance(_dv, dict) else _dv if isinstance(_dv, (int, float)) else 2.35)
     _hoy = datetime.now().strftime('%d/%m/%Y')
     _rate_txt = f'{_rate:.4f}'.replace('.', ',')
-    # Idioma: español SOLO para España; inglés para todos los demás destinos.
     _dl = (destino or '').lower()
     _es = ('espa' in _dl) or ('spain' in _dl)
     _has_cur2 = (_moneda != 'USD' and _rate and abs(_rate - 1.0) > 1e-9)
 
     T = {
-        'date': 'Fecha emisión' if _es else 'Date of issue',
+        'subtitle': 'Exotic Fresh Fruits — Ecuador',
+        'date': 'Fecha de emisión' if _es else 'Date of issue',
         'dest': 'Destino' if _es else 'Destination',
         'inco': 'Incoterm',
         'freight': 'Flete aéreo' if _es else 'Air freight',
         'valid': 'Validez' if _es else 'Valid for',
         'days': 'días' if _es else 'days',
-        'rate': 'Tipo de cambio' if _es else 'Exchange rate',
-        'band_usd': 'PRECIOS EN USD' if _es else 'PRICES IN USD',
-        'band_cur': (f'PRECIOS EN {_moneda}' if _es else f'PRICES IN {_moneda}'),
+        'rate': 'TIPO DE CAMBIO' if _es else 'EXCHANGE RATE',
+        'band_usd': 'Precios en USD' if _es else 'Prices in USD',
+        'band_cur': (f'Precios en {_moneda}' if _es else f'Prices in {_moneda}'),
+        'usd_suffix': '· Dólar estadounidense' if _es else '· US Dollar',
+        'cur_name': {'EUR': ('· Euro'), 'GBP': ('· Libra esterlina' if _es else '· British Pound'),
+                     'CHF': ('· Franco suizo' if _es else '· Swiss Franc'),
+                     'AED': ('· Dírham (EAU)' if _es else '· UAE Dirham')}.get(_moneda, ''),
         'code': 'Código' if _es else 'Code',
         'product': 'Producto' if _es else 'Product',
         'weight': 'Peso<br/>(kg)' if _es else 'Weight<br/>(kg)',
-        'fob': 'FOB /<br/>Caja' if _es else 'FOB /<br/>Box',
+        'fob': 'FOB<br/>Caja' if _es else 'FOB<br/>Box',
         'pallet': 'Pallet', 'pallets': 'Pallets',
-        'foot1': (('El precio por caja baja a mayor volumen total del pedido. Precios FOB en '
-                   'origen (Ecuador) y CIF puestos en %s, sujetos a disponibilidad y a '
-                   'confirmación. Tipos de cambio referenciales; la transacción se realiza en USD.')
+        'foot1': (('El precio por caja disminuye a mayor volumen total del pedido. Precios FOB en '
+                   'origen (Ecuador) y CIF puestos en %s. Sujetos a disponibilidad y a confirmación del '
+                   'pedido. Tipos de cambio referenciales; la transacción comercial se realiza en USD.')
                   if _es else
                   ('The price per box decreases with the total order volume. FOB prices at origin '
-                   '(Ecuador) and CIF delivered to %s, subject to availability and confirmation. '
-                   'Exchange rates are referential; the transaction is made in USD.')) % _esc(destino),
-        'contact': 'Contacto:' if _es else 'Contact:',
+                   '(Ecuador) and CIF delivered to %s. Subject to availability and order confirmation. '
+                   'Exchange rates are referential; the commercial transaction is made in USD.')) % _esc(destino),
+        'foot_brand': ('Export Haret · Frutas Exóticas Premium de Ecuador' if _es
+                       else 'Export Haret · Premium Exotic Fruits from Ecuador'),
+        'page': 'Página' if _es else 'Page',
     }
 
     def _nombre(_p):
@@ -2895,76 +2901,103 @@ def build_price_list_pdf(data, destino='Madrid/España', tiers=(1, 3, 4, 6, 8),
 
     from reportlab.lib.pagesizes import landscape
     PAGE = landscape(A4)
-    doc = SimpleDocTemplate(buf, pagesize=PAGE, rightMargin=1.1*cm, leftMargin=1.1*cm,
-                            topMargin=1.0*cm, bottomMargin=1.0*cm)
-    story = []
-    BLUE_HDR = colors.HexColor('#2f5496')
-    BLUE_PR = colors.HexColor('#2e75b6')
-    GREEN_B = colors.HexColor('#2f7a44')
-    RED_B = colors.HexColor('#9b1c1c')
+    # Paleta de marca
+    EM = colors.HexColor('#0c6e51')      # esmeralda
+    EM_D = colors.HexColor('#084a37')    # esmeralda oscuro
+    GOLD = colors.HexColor('#c19a3e')    # acento dorado (premium)
     INK = colors.HexColor('#1b2531')
-    _usable = PAGE[0] - 2.2*cm
+    MUTED = colors.HexColor('#5b6770')
+    HAIR = colors.HexColor('#dde3e8')    # línea fina
+    ROWT = colors.HexColor('#f2f7f4')    # fila alterna (tinte esmeralda muy claro)
+    _LM = 1.3*cm
+    _usable = PAGE[0] - 2 * _LM
 
-    # --- Cabecera ---
-    _title_p = Paragraph('<font color="#1b2531" size="20"><b>EXPORT HARET</b></font>'
-                         '<font color="#2f7a44" size="20"><b> &mdash; Price List</b></font>',
-                         ParagraphStyle('t', alignment=TA_CENTER, leading=24))
-    _sub_p = Paragraph('<i><font color="#666666" size="9">Exotic Fresh Fruits &mdash; Ecuador'
-                       '&nbsp;&nbsp;|&nbsp;&nbsp;www.exportharet.com'
-                       '&nbsp;&nbsp;|&nbsp;&nbsp;RUC 0291526976001</font></i>',
-                       ParagraphStyle('st', alignment=TA_CENTER, leading=12, spaceBefore=2))
+    def _footer(canvas, doc):
+        canvas.saveState()
+        _y = 0.95*cm
+        canvas.setStrokeColor(HAIR); canvas.setLineWidth(0.6)
+        canvas.line(_LM, _y + 0.32*cm, PAGE[0] - _LM, _y + 0.32*cm)
+        canvas.setFont('Helvetica', 7.5); canvas.setFillColor(MUTED)
+        canvas.drawString(_LM, _y, T['foot_brand'])
+        canvas.drawCentredString(PAGE[0] / 2.0, _y, 'order@exportharet.com   ·   +34 641 076 116   ·   www.exportharet.com')
+        canvas.drawRightString(PAGE[0] - _LM, _y, f"{T['page']} {doc.page}")
+        canvas.restoreState()
+
+    doc = SimpleDocTemplate(buf, pagesize=PAGE, rightMargin=_LM, leftMargin=_LM,
+                            topMargin=1.0*cm, bottomMargin=1.6*cm, title='Export Haret — Price List')
+    story = []
+
+    # ── Cabecera: logo | titulo central | tipo de cambio (derecha) ──
+    _title_p = Paragraph(
+        '<font color="#1b2531" size="21"><b>EXPORT HARET</b></font>'
+        '<font color="#c19a3e" size="21"><b>&nbsp;&nbsp;|</b></font>'
+        '<font color="#0c6e51" size="21"><b>&nbsp;&nbsp;Price List</b></font>',
+        ParagraphStyle('t', alignment=TA_CENTER, leading=24))
+    _sub_p = Paragraph(
+        f'<font color="#5b6770" size="8.5">{T["subtitle"]}'
+        '&nbsp;&nbsp;&middot;&nbsp;&nbsp;www.exportharet.com'
+        '&nbsp;&nbsp;&middot;&nbsp;&nbsp;RUC 0291526976001</font>',
+        ParagraphStyle('st', alignment=TA_CENTER, leading=12, spaceBefore=3))
+    _rate_p = Paragraph(
+        f'<font color="#5b6770" size="7"><b>{T["rate"]}</b></font><br/>'
+        f'<font color="#1b2531" size="11"><b>1 USD = {_rate_txt} {_moneda}</b></font>',
+        ParagraphStyle('rx', alignment=TA_RIGHT, leading=12))
     _logo_cell = ''
     try:
         from reportlab.platypus import Image as RLImage
         import os as _os
         if _os.path.exists('logo.png'):
-            _logo_cell = RLImage('logo.png', width=4.0*cm, height=1.35*cm)
+            _logo_cell = RLImage('logo.png', width=3.8*cm, height=1.28*cm)
     except Exception:
         pass
-    _head_tbl = Table([[_logo_cell, [_title_p, _sub_p], '']],
-                      colWidths=[5.0*cm, _usable - 10.0*cm, 5.0*cm])
+    _head_tbl = Table([[_logo_cell, [_title_p, _sub_p], _rate_p]],
+                      colWidths=[5.2*cm, _usable - 10.6*cm, 5.4*cm])
     _head_tbl.setStyle(TableStyle([('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
                                    ('LEFTPADDING', (0, 0), (-1, -1), 0),
                                    ('RIGHTPADDING', (0, 0), (-1, -1), 0)]))
     story.append(_head_tbl)
-    story.append(Spacer(1, 0.15*cm))
-    story.append(Paragraph(
-        f'<font size="9" color="#1b2531"><b>{T["rate"]}</b> (1 USD = '
-        f'<font backColor="#FFF2A8">&nbsp;{_rate_txt}&nbsp;</font> {_moneda})</font>',
-        ParagraphStyle('rx', alignment=TA_RIGHT, leading=12, spaceAfter=3)))
+    story.append(Spacer(1, 0.18*cm))
+    story.append(HRFlowable(width='100%', thickness=2, color=GOLD, spaceAfter=0, spaceBefore=0))
+    story.append(Spacer(1, 0.22*cm))
 
-    # --- Banda verde: datos de emisión ---
-    _green_txt = (f'<font color="white" size="9.5"><b>{T["date"]}:</b> {_hoy}'
-                  f'&nbsp;&nbsp;|&nbsp;&nbsp;<b>{T["dest"]}:</b> {_esc(destino)}'
-                  f'&nbsp;&nbsp;|&nbsp;&nbsp;<b>{T["inco"]}:</b> {_esc(incoterm)}'
-                  f'&nbsp;&nbsp;|&nbsp;&nbsp;<b>{T["freight"]}:</b> USD {_flete:.2f} / kg'
-                  f'&nbsp;&nbsp;|&nbsp;&nbsp;<b>{T["valid"]}:</b> {int(validez_dias)} {T["days"]}</font>')
-    _gb = Table([[Paragraph(_green_txt, ParagraphStyle('g', alignment=TA_CENTER, leading=13))]],
-                colWidths=[_usable])
-    _gb.setStyle(TableStyle([('BACKGROUND', (0, 0), (-1, -1), GREEN_B),
-                             ('TOPPADDING', (0, 0), (-1, -1), 5), ('BOTTOMPADDING', (0, 0), (-1, -1), 5)]))
-    story.append(_gb)
+    # ── Banda de datos de emisión (esmeralda) ──
+    _meta = (f'<font color="white" size="9"><b>{T["date"]}</b>&nbsp; {_hoy}'
+             f'<font color="#9fc9b8">&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;</font>'
+             f'<b>{T["dest"]}</b>&nbsp; {_esc(destino)}'
+             f'<font color="#9fc9b8">&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;</font>'
+             f'<b>{T["inco"]}</b>&nbsp; {_esc(incoterm)}'
+             f'<font color="#9fc9b8">&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;</font>'
+             f'<b>{T["freight"]}</b>&nbsp; USD {_flete:.2f}/kg'
+             f'<font color="#9fc9b8">&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;</font>'
+             f'<b>{T["valid"]}</b>&nbsp; {int(validez_dias)} {T["days"]}</font>')
+    _mb = Table([[Paragraph(_meta, ParagraphStyle('m', alignment=TA_CENTER, leading=13))]], colWidths=[_usable])
+    _mb.setStyle(TableStyle([('BACKGROUND', (0, 0), (-1, -1), EM),
+                             ('TOPPADDING', (0, 0), (-1, -1), 6), ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+                             ('LINEBELOW', (0, 0), (-1, -1), 1.2, GOLD)]))
+    story.append(_mb)
+    story.append(Spacer(1, 0.32*cm))
 
-    # --- estilos de tabla ---
-    _cs = ParagraphStyle('cs', fontSize=8.3, leading=9.6, textColor=INK)
-    _csb = ParagraphStyle('csb', fontSize=8.3, leading=9.6, textColor=INK, fontName='Helvetica-Bold')
-    _hs = ParagraphStyle('hs', fontSize=8.6, leading=10, textColor=colors.white,
+    # ── estilos de tabla ──
+    _cs = ParagraphStyle('cs', fontSize=8.2, leading=9.6, textColor=MUTED)
+    _csb = ParagraphStyle('csb', fontSize=8.6, leading=10, textColor=INK, fontName='Helvetica-Bold')
+    _hs = ParagraphStyle('hs', fontSize=8.4, leading=9.8, textColor=colors.white,
                          fontName='Helvetica-Bold', alignment=TA_CENTER)
     _nt = len(_tiers)
-    _w_cod, _w_prod, _w_peso, _w_fob = 2.0*cm, 7.4*cm, 1.5*cm, 2.3*cm
+    _w_cod, _w_prod, _w_peso, _w_fob = 2.1*cm, 7.6*cm, 1.5*cm, 2.2*cm
     _w_cif = (_usable - _w_cod - _w_prod - _w_peso - _w_fob) / max(_nt, 1)
     _colw = [_w_cod, _w_prod, _w_peso, _w_fob] + [_w_cif]*_nt
 
     def _hp(_t): return Paragraph(_t, _hs)
 
-    def _add_price_table(_rate, _sym, _band_text, _band_color):
-        # banda de la tabla
-        _bb = Table([[Paragraph(f'<font color="white" size="10"><b>{_band_text}</b></font>',
-                                ParagraphStyle('bb', alignment=TA_CENTER))]], colWidths=[_usable])
-        _bb.setStyle(TableStyle([('BACKGROUND', (0, 0), (-1, -1), _band_color),
-                                 ('TOPPADDING', (0, 0), (-1, -1), 4), ('BOTTOMPADDING', (0, 0), (-1, -1), 4)]))
-        story.append(_bb)
-        story.append(Spacer(1, 0.05*cm))
+    def _section_label(_txt, _sub):
+        _p = Paragraph(
+            f'<font color="#0c6e51" size="11"><b>{_txt}</b></font>'
+            f'<font color="#5b6770" size="8.5">&nbsp;&nbsp;{_sub}</font>',
+            ParagraphStyle('sec', leading=14, spaceAfter=3))
+        story.append(_p)
+        story.append(HRFlowable(width='100%', thickness=0.8, color=HAIR, spaceAfter=4))
+
+    def _add_price_table(_rate_, _sym_):
         _head = [_hp(T['code']), _hp(T['product']), _hp(T['weight']), _hp(T['fob'])]
         for _t in _tiers:
             _head.append(_hp(f'CIF {_t}<br/>{T["pallet"] if _t == 1 else T["pallets"]}'))
@@ -2973,42 +3006,47 @@ def build_price_list_pdf(data, destino='Madrid/España', tiers=(1, 3, 4, 6, 8),
             _kg = _p.get('kg_caja', '')
             _kg_s = (f'{float(_kg):g}'.replace('.', ',') if _kg not in ('', None) else '')
             _row = [Paragraph(_esc(_p.get('codigo', '')), _cs), Paragraph(_esc(_nombre(_p)), _csb),
-                    _kg_s, f'{_sym}{_fob(_p) * _rate:,.2f}']
+                    _kg_s, f'{_sym_}{_fob(_p) * _rate_:,.2f}']
             for _t in _tiers:
-                _row.append(f'{_sym}{_cif(_p, _t) * _rate:,.2f}')
+                _row.append(f'{_sym_}{_cif(_p, _t) * _rate_:,.2f}')
             _rows.append(_row)
         _tbl = Table(_rows, colWidths=_colw, repeatRows=1)
         _tbl.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), BLUE_HDR),
+            ('BACKGROUND', (0, 0), (-1, 0), EM),
+            ('LINEBELOW', (0, 0), (-1, 0), 1.0, EM_D),
             ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-            ('FONTSIZE', (2, 1), (-1, -1), 8.4),
-            ('TEXTCOLOR', (3, 1), (-1, -1), BLUE_PR),
-            ('FONTNAME', (3, 1), (-1, -1), 'Helvetica-Bold'),
+            ('FONTSIZE', (2, 1), (-1, -1), 8.6),
+            ('FONTNAME', (3, 1), (3, -1), 'Helvetica'),
+            ('TEXTCOLOR', (3, 1), (3, -1), INK),
+            ('FONTNAME', (4, 1), (-1, -1), 'Helvetica-Bold'),
+            ('TEXTCOLOR', (4, 1), (-1, -1), EM),
             ('ALIGN', (2, 0), (-1, -1), 'CENTER'),
             ('ALIGN', (3, 1), (-1, -1), 'RIGHT'),
             ('ALIGN', (2, 1), (2, -1), 'CENTER'),
-            ('GRID', (0, 0), (-1, -1), 0.4, colors.HexColor('#bcc6d6')),
-            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#eef1f7')]),
-            ('TOPPADDING', (0, 0), (-1, -1), 4), ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
-            ('LEFTPADDING', (0, 0), (-1, -1), 5), ('RIGHTPADDING', (0, 0), (-1, -1), 5),
+            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, ROWT]),
+            ('LINEBELOW', (0, 1), (-1, -1), 0.35, HAIR),
+            ('LINEAFTER', (1, 0), (1, -1), 0.35, HAIR),
+            ('LINEAFTER', (3, 0), (3, -1), 0.6, HAIR),
+            ('BOX', (0, 0), (-1, -1), 0.6, colors.HexColor('#cbd4dd')),
+            ('TOPPADDING', (0, 0), (-1, -1), 5), ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
+            ('LEFTPADDING', (0, 0), (-1, -1), 6), ('RIGHTPADDING', (0, 0), (-1, -1), 6),
         ]))
         story.append(_tbl)
 
     # Tabla 1: USD
-    _add_price_table(1.0, '$', T['band_usd'], RED_B)
+    _section_label(T['band_usd'], T['usd_suffix'])
+    _add_price_table(1.0, '$')
     # Tabla 2: moneda del destino (si no es USD)
     if _has_cur2:
-        story.append(Spacer(1, 0.3*cm))
-        _add_price_table(_rate, _sym, T['band_cur'], BLUE_HDR)
+        story.append(Spacer(1, 0.4*cm))
+        _section_label(T['band_cur'], T['cur_name'])
+        _add_price_table(_rate, (_sym if len(_sym) == 1 else _sym + ' '))
 
-    story.append(Spacer(1, 0.3*cm))
-    story.append(Paragraph(f'<font size="8" color="#555555">{T["foot1"]}</font>',
-                           ParagraphStyle('ft', leading=11)))
-    story.append(Paragraph(
-        f'<font size="8" color="#555555"><b>{T["contact"]}</b> order@exportharet.com&nbsp;&nbsp;|'
-        '&nbsp;&nbsp;+34 641 076 116&nbsp;&nbsp;|&nbsp;&nbsp;www.exportharet.com</font>',
-        ParagraphStyle('ft2', leading=11, spaceBefore=2)))
-    doc.build(story)
+    story.append(Spacer(1, 0.45*cm))
+    story.append(HRFlowable(width='100%', thickness=0.8, color=HAIR, spaceAfter=6))
+    story.append(Paragraph(f'<font size="7.8" color="#5b6770">{T["foot1"]}</font>',
+                           ParagraphStyle('ft', leading=10.5)))
+    doc.build(story, onFirstPage=_footer, onLaterPages=_footer)
     buf.seek(0)
     return buf.getvalue(), 'application/pdf', '.pdf'
 
