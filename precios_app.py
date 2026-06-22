@@ -1164,41 +1164,54 @@ def render_catalogo():
             st.dataframe(df_custom.style.apply(_style_custom, axis=0).format(_fmt_money, na_rep='—'),
                          use_container_width=True, height=min(60 + 36*(len(prods_vis)+1), 620))
 
-        # Hoja de precios por volumen en PDF (para enviar al cliente)
+        # Hoja de precios oficial (estilo plantilla) en PDF para el cliente
         st.markdown('---')
         st.markdown('### \U0001f4c4 Hoja de precios para el cliente (PDF)')
-        st.caption('Genera un PDF con el precio por caja a distintos vol\u00famenes (p. ej. 3, 5 y 7 pallets), '
-                   f'con la modalidad **{_cat_tipo}**'
-                   + (f' hasta **{_dest_sel}**' if _cat_tipo == 'CIF' else '')
-                   + (f' en **{_disp_cur}**' if _use_dest_cur else ' en **USD**')
-                   + '. Ideal para responder cuando un cliente pide precios.')
-        _pdf_tiers = st.multiselect(
-            'Vol\u00famenes (pallets) a incluir en el PDF',
-            options=[1, 2, 3, 4, 5, 6, 7, 8, 10, 12, 15, 20],
-            default=[3, 5, 7], key='cat_pdf_tiers',
-            help='El PDF tendr\u00e1 una columna con el precio/caja a cada uno de estos vol\u00famenes.')
+        st.caption('Genera la lista de precios oficial (FOB + CIF por volumen) con los valores reales de la '
+                   'app. Elige el destino, los tramos de pallets y qu\u00e9 frutas incluir. Solo se listan las '
+                   'frutas **habilitadas** (activas).')
+        _dest_keys = list(dests.keys()) or ['Madrid/Espa\u00f1a']
+        _pl1, _pl2 = st.columns([2, 1])
+        _pdf_dest = _pl1.selectbox('Destino del PDF', options=_dest_keys,
+                                   index=(_dest_keys.index(_dest_sel) if _dest_sel in _dest_keys else 0),
+                                   key='pdf_dest_sel',
+                                   help='Define los precios CIF (flete del destino) y el tipo de cambio mostrado.')
+        _pdf_tiers = _pl2.multiselect('Tramos (pallets)', options=[1, 2, 3, 4, 5, 6, 7, 8, 10, 12, 15, 20],
+                                      default=[1, 3, 4, 6, 8], key='cat_pdf_tiers',
+                                      help='Una columna CIF por cada uno de estos vol\u00famenes.')
+        _activos_pdf = [p for p in prods if p.get('activo', True)]
+        _opt_map = {f"{p.get('producto','') or p.get('codigo','')}  ({p.get('codigo','')})": p.get('codigo')
+                    for p in _activos_pdf}
+        _sel_fruits = st.multiselect('Frutas a incluir (quita las que no apliquen para este cliente)',
+                                     options=list(_opt_map.keys()), default=list(_opt_map.keys()),
+                                     key='pdf_fruits_sel')
+        _ic1, _ic2 = st.columns(2)
+        _pdf_incoterm = _ic1.text_input('Incoterm', value='CIP', key='pdf_incoterm')
+        _pdf_validez = _ic2.number_input('Validez (d\u00edas)', min_value=1, max_value=90, value=7, key='pdf_validez')
         _pp1, _pp2 = st.columns(2)
         if _pp1.button('\U0001f4c4 Generar PDF de precios', type='primary', use_container_width=True, key='gen_price_pdf'):
-            _tiers_pdf = sorted(set(int(t) for t in (_pdf_tiers or [3, 5, 7]))) or [3, 5, 7]
-            try:
-                st.session_state['_price_pdf'] = build_price_list_pdf(
-                    data, tipo_precio=_cat_tipo, destino=_dest_sel, tiers=_tiers_pdf,
-                    use_dest_cur=_use_dest_cur, rate=_rate_cat, sym=_sym_cat, moneda=_moneda_dest)
-                _tlbl = '-'.join(str(t) for t in _tiers_pdf)
-                _mlbl = (_cat_tipo + ('_' + _dest_sel.replace('/', '_').replace(' ', '') if _cat_tipo == 'CIF' else ''))
-                st.session_state['_price_pdf_name'] = f'lista_precios_{_mlbl}_{_tlbl}pal'
-            except Exception as _epdf:
-                st.session_state.pop('_price_pdf', None)
-                logger.warning(f'price list PDF fall\u00f3: {_epdf}')
-                st.error(f'No se pudo generar el PDF: {_epdf}')
+            _tiers_pdf = sorted(set(int(t) for t in (_pdf_tiers or [1, 3, 4, 6, 8]))) or [1, 3, 4, 6, 8]
+            _inc_cods = [_opt_map[k] for k in _sel_fruits] if _sel_fruits else None
+            if _inc_cods is not None and not _inc_cods:
+                st.warning('Selecciona al menos una fruta para el PDF.')
+            else:
+                try:
+                    st.session_state['_price_pdf'] = build_price_list_pdf(
+                        data, destino=_pdf_dest, tiers=_tiers_pdf, incluir_codigos=_inc_cods,
+                        incoterm=(_pdf_incoterm or 'CIP'), validez_dias=int(_pdf_validez))
+                    st.session_state['_price_pdf_name'] = f'lista_precios_{_pdf_dest.replace(chr(47), chr(95)).replace(chr(32), chr(95))}'
+                except Exception as _epdf:
+                    st.session_state.pop('_price_pdf', None)
+                    logger.warning(f'price list PDF fall\u00f3: {_epdf}')
+                    st.error(f'No se pudo generar el PDF: {_epdf}')
         if st.session_state.get('_price_pdf'):
             _pb, _pm, _pe = st.session_state['_price_pdf']
             _pp2.download_button('\U0001f4e5 Descargar PDF', data=_pb,
                 file_name=f'{st.session_state.get("_price_pdf_name", "lista_precios")}{_pe}',
                 mime=_pm, use_container_width=True, key='dl_price_pdf')
-            st.caption('\u2713 PDF listo. Si cambias modalidad, destino, moneda o tramos, pulsa **Generar** otra vez.')
+            st.caption('\u2713 PDF listo. Si cambias destino, tramos o frutas, pulsa **Generar** otra vez.')
 
-        # ── Descarga cat\u00e1logo ─────────────────────────────────────────
+        # ── Descarga del catalogo (Excel) ──
         st.markdown('---')
         _dlc1, _dlc2 = st.columns(2)
         try:
@@ -2790,105 +2803,176 @@ def build_catalog_pdf(data):
     return buf.getvalue(), 'application/pdf', '.pdf'
 
 
-def build_price_list_pdf(data, tipo_precio='CIF', destino='', tiers=(3, 5, 7),
-                         use_dest_cur=False, rate=1.0, sym='$', moneda='USD'):
-    """Genera un PDF con la LISTA DE PRECIOS POR VOLUMEN (precio/caja a N pallets)
-    para enviar al cliente. Una columna por cada tramo de pallets (p. ej. 3, 5, 7).
-    El precio sale del mismo motor que el portal (get_precio_con_volumen), así que
-    coincide exactamente con lo que verá el cliente. Devuelve (bytes, mime, ext)."""
-    buf = io.BytesIO()
-    _prods = [p for p in data.get('products', []) if p.get('activo', True)]
-    _tiers = [int(t) for t in tiers] or [3, 5, 7]
-    _rate = rate if use_dest_cur else 1.0
-    _sym = sym if use_dest_cur else '$'
-    _cur = moneda if use_dest_cur else 'USD'
-    _modo = ('FOB (en origen, sin flete)' if tipo_precio == 'FOB'
-             else f'CIF — puesto en {destino}')
+# Nombres en inglés por código (para la lista de precios bilingüe estilo plantilla).
+# Si un código no está, se muestra solo el nombre en español del catálogo.
+_FRUIT_EN = {
+    'F-PSG10': 'Sweet passion fruit', 'F-PPA01': 'Yellow Dragon fruit',
+    'F-PSM09': 'Passion fruit', 'F-GNB010': 'Soursop', 'F-MPS03': 'Sweet cucumber',
+    'F-BCC013': 'Mountain papaya', 'F-AHSS012': 'Avocado', 'F-TX020': 'Curuba',
+    'F-CAZ021': 'Sugar cane', 'F-PN016': 'Naranjilla', 'F-TAS04': 'Tree tomato',
+    'F-ZPT020': 'Mamey sapote', 'F-GNB': 'Soursop',
+}
 
-    def _price(_p, _t):
-        _pv = get_precio_con_volumen(_p.get('codigo'), destino, tipo_precio, data, _t)
-        return round((_pv or 0) * _rate, 2) if _pv else None
+
+def build_price_list_pdf(data, destino='Madrid/España', tiers=(1, 3, 4, 6, 8),
+                         incluir_codigos=None, incoterm='CIP', validez_dias=7):
+    """Lista de precios estilo plantilla oficial (horizontal): cabecera + banda verde
+    (fecha/destino/incoterm/flete/validez) + banda roja + tabla con Codigo, Producto
+    (bilingue), Peso, FOB/Caja y CIF a varios pallets. Usa los valores reales de la app
+    (get_precio_con_volumen). incluir_codigos=None -> todas las frutas activas.
+    Devuelve (bytes, mime, ext)."""
+    buf = io.BytesIO()
+    _tiers = [int(t) for t in tiers] or [1, 3, 4, 6, 8]
+    _prods = [p for p in data.get('products', []) if p.get('activo', True)]
+    if incluir_codigos is not None:
+        _inc = set(incluir_codigos)
+        _prods = [p for p in _prods if p.get('codigo') in _inc]
+    cfg = data.get('config', {})
+    _moneda = cfg.get('destinos_moneda', {}).get(destino, 'EUR')
+    try:
+        _rate = float(get_exchange_rates().get(_moneda, 1.0) or 1.0)
+    except Exception:
+        _rate = 1.0
+    _dv = cfg.get('destinos', {}).get(destino, cfg.get('flete_ref', 2.35))
+    _flete = float(_dv.get('factor', 2.35) if isinstance(_dv, dict) else _dv if isinstance(_dv, (int, float)) else 2.35)
+    _hoy = datetime.now().strftime('%d/%m/%Y')
+    _rate_txt = f'{_rate:.4f}'.replace('.', ',')
+
+    def _nombre(_p):
+        _nm = _p.get('producto', '') or _p.get('descripcion', '') or _p.get('codigo', '')
+        _en = _FRUIT_EN.get(_p.get('codigo', ''))
+        if _en and ' / ' not in _nm and _en.lower() not in _nm.lower():
+            return f'{_nm} / {_en}'
+        return _nm
+
+    def _fob(_p):
+        return get_precio_con_volumen(_p.get('codigo'), '', 'FOB', data, 1) or 0
+    def _cif(_p, _t):
+        return get_precio_con_volumen(_p.get('codigo'), destino, 'CIF', data, _t) or 0
 
     if not REPORTLAB_OK:
-        html = ['<h1>Lista de precios por volumen — Export Haret</h1>',
-                f'<p>{_modo} · Precios en {_cur}/caja</p>',
-                '<table border=1 cellpadding=6><tr><th>Fruta</th>']
-        html += [f'<th>{_t} pallets</th>' for _t in _tiers]
-        html.append('</tr>')
+        h = [f'<h1>EXPORT HARET - Price List</h1><p>Destino: {_esc(destino)} | Incoterm: {incoterm}</p>',
+             '<table border=1 cellpadding=5><tr><th>Codigo</th><th>Producto</th><th>Peso</th><th>FOB/Caja</th>']
+        h += [f'<th>CIF {t} Plt</th>' for t in _tiers]
+        h.append('</tr>')
         for _p in _prods:
-            _nm = _p.get('producto', '') or _p.get('descripcion', '') or _p.get('codigo', '')
-            html.append(f'<tr><td>{_esc(_nm)}</td>')
-            for _t in _tiers:
-                _v = _price(_p, _t)
-                html.append(f'<td>{_sym}{_v:,.2f}</td>' if _v is not None else '<td>—</td>')
-            html.append('</tr>')
-        html.append('</table>')
-        return ''.join(html).encode('utf-8'), 'text/html', '.html'
+            h.append(f'<tr><td>{_esc(_p.get("codigo",""))}</td><td>{_esc(_nombre(_p))}</td>'
+                     f'<td>{_p.get("kg_caja","")}</td><td>${_fob(_p):,.2f}</td>')
+            h += [f'<td>${_cif(_p,t):,.2f}</td>' for t in _tiers]
+            h.append('</tr>')
+        h.append('</table>')
+        return ''.join(h).encode('utf-8'), 'text/html', '.html'
 
-    doc = SimpleDocTemplate(buf, pagesize=A4, rightMargin=1.4*cm, leftMargin=1.4*cm,
-                            topMargin=1.6*cm, bottomMargin=1.6*cm)
+    from reportlab.lib.pagesizes import landscape
+    PAGE = landscape(A4)
+    doc = SimpleDocTemplate(buf, pagesize=PAGE, rightMargin=1.1*cm, leftMargin=1.1*cm,
+                            topMargin=1.0*cm, bottomMargin=1.0*cm)
     styles = getSampleStyleSheet()
     story = []
-    AZUL = colors.HexColor('#0c6e51')
-    GRIS = colors.HexColor('#666666')
-    h_style = ParagraphStyle('h', fontSize=20, textColor=AZUL, fontName='Helvetica-Bold',
-                             spaceAfter=9, leading=24, alignment=TA_LEFT)
-    s_style = ParagraphStyle('s', fontSize=10, textColor=GRIS, fontName='Helvetica',
-                             spaceAfter=10, alignment=TA_LEFT)
+    BLUE_HDR = colors.HexColor('#2f5496')
+    BLUE_PR = colors.HexColor('#2e75b6')
+    GREEN_B = colors.HexColor('#2f7a44')
+    RED_B = colors.HexColor('#9b1c1c')
+    GREY = colors.HexColor('#555555')
+    INK = colors.HexColor('#1b2531')
+    _usable = PAGE[0] - 2.2*cm
+
+    # --- Cabecera: logo + titulo + subtitulo ---
+    _title_p = Paragraph('<font color="#1b2531" size="20"><b>EXPORT HARET</b></font>'
+                         '<font color="#2f7a44" size="20"><b> &mdash; Price List</b></font>',
+                         ParagraphStyle('t', alignment=TA_CENTER, leading=24))
+    _sub_p = Paragraph('<i><font color="#666666" size="9">Exotic Fresh Fruits &mdash; Ecuador'
+                       '&nbsp;&nbsp;|&nbsp;&nbsp;www.exportharet.com'
+                       '&nbsp;&nbsp;|&nbsp;&nbsp;RUC 0291526976001</font></i>',
+                       ParagraphStyle('st', alignment=TA_CENTER, leading=12, spaceBefore=2))
+    _logo_cell = ''
     try:
         from reportlab.platypus import Image as RLImage
         import os as _os
         if _os.path.exists('logo.png'):
-            story.append(RLImage('logo.png', width=4.5*cm, height=1.5*cm))
-            story.append(Spacer(1, 0.2*cm))
+            _logo_cell = RLImage('logo.png', width=4.0*cm, height=1.35*cm)
     except Exception:
         pass
-    story.append(Paragraph('Lista de Precios por Volumen', h_style))
-    _cur_lbl = f'Precios en {_cur}/caja' + (' (referencial; el cobro es en USD)' if use_dest_cur else '')
-    story.append(Paragraph(f'{_modo}  ·  {_cur_lbl}  ·  Generado: {datetime.now().strftime("%d/%m/%Y")}', s_style))
+    _head_tbl = Table([[_logo_cell, [_title_p, _sub_p], '']],
+                      colWidths=[5.0*cm, _usable - 10.0*cm, 5.0*cm])
+    _head_tbl.setStyle(TableStyle([('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                                   ('LEFTPADDING', (0, 0), (-1, -1), 0),
+                                   ('RIGHTPADDING', (0, 0), (-1, -1), 0)]))
+    story.append(_head_tbl)
     story.append(Spacer(1, 0.15*cm))
 
-    _head = ['Fruta'] + [f'{_t} pallets' for _t in _tiers]
+    # --- Tipo de cambio (derecha) ---
+    story.append(Paragraph(
+        f'<font size="9" color="#1b2531"><b>Tipo de cambio</b> (1 USD = '
+        f'<font backColor="#FFF2A8">&nbsp;{_rate_txt}&nbsp;</font> {_moneda})</font>',
+        ParagraphStyle('rx', alignment=TA_RIGHT, leading=12, spaceAfter=3)))
+
+    # --- Banda verde: datos de emision ---
+    _green_txt = (f'<font color="white" size="9.5"><b>Fecha emisi&oacute;n:</b> {_hoy}'
+                  f'&nbsp;&nbsp;|&nbsp;&nbsp;<b>Destino:</b> {_esc(destino)}'
+                  f'&nbsp;&nbsp;|&nbsp;&nbsp;<b>Incoterm:</b> {_esc(incoterm)}'
+                  f'&nbsp;&nbsp;|&nbsp;&nbsp;<b>Flete a&eacute;reo:</b> USD {_flete:.2f} / kg'
+                  f'&nbsp;&nbsp;|&nbsp;&nbsp;<b>Validez:</b> {int(validez_dias)} d&iacute;as</font>')
+    _gb = Table([[Paragraph(_green_txt, ParagraphStyle('g', alignment=TA_CENTER, leading=13))]],
+                colWidths=[_usable])
+    _gb.setStyle(TableStyle([('BACKGROUND', (0, 0), (-1, -1), GREEN_B),
+                             ('TOPPADDING', (0, 0), (-1, -1), 5), ('BOTTOMPADDING', (0, 0), (-1, -1), 5)]))
+    story.append(_gb)
+    # --- Banda roja: PRECIOS EN USD ---
+    _rb = Table([[Paragraph('<font color="white" size="10"><b>PRECIOS EN USD</b></font>',
+                            ParagraphStyle('r', alignment=TA_CENTER))]], colWidths=[_usable])
+    _rb.setStyle(TableStyle([('BACKGROUND', (0, 0), (-1, -1), RED_B),
+                             ('TOPPADDING', (0, 0), (-1, -1), 4), ('BOTTOMPADDING', (0, 0), (-1, -1), 4)]))
+    story.append(_rb)
+    story.append(Spacer(1, 0.05*cm))
+
+    # --- Tabla de datos ---
+    _cs = ParagraphStyle('cs', fontSize=8.3, leading=9.6, textColor=INK)
+    _csb = ParagraphStyle('csb', fontSize=8.3, leading=9.6, textColor=INK, fontName='Helvetica-Bold')
+    _hs = ParagraphStyle('hs', fontSize=8.6, leading=10, textColor=colors.white,
+                         fontName='Helvetica-Bold', alignment=TA_CENTER)
+    def _hp(_t): return Paragraph(_t, _hs)
+    _head = [_hp('C&oacute;digo'), _hp('Producto'), _hp('Peso<br/>(kg)'), _hp('FOB /<br/>Caja')]
+    for _t in _tiers:
+        _head.append(_hp(f'CIF {_t}<br/>{"Pallet" if _t == 1 else "Pallets"}'))
     _rows = [_head]
     for _p in _prods:
-        _nm = _p.get('producto', '') or _p.get('descripcion', '') or _p.get('codigo', '')
-        _row = [_nm]
+        _kg = _p.get('kg_caja', '')
+        _kg_s = (f'{float(_kg):g}'.replace('.', ',') if _kg not in ('', None) else '')
+        _row = [Paragraph(_esc(_p.get('codigo', '')), _cs), Paragraph(_esc(_nombre(_p)), _csb),
+                _kg_s, f'${_fob(_p):,.2f}']
         for _t in _tiers:
-            _v = _price(_p, _t)
-            _row.append(f'{_sym}{_v:,.2f}' if _v is not None else '—')
+            _row.append(f'${_cif(_p, _t):,.2f}')
         _rows.append(_row)
-    _nc = len(_tiers)
-    _w0 = 6.5*cm
-    _wr = (18.2*cm - _w0) / max(_nc, 1)
-    tbl = Table(_rows, colWidths=[_w0] + [_wr]*_nc, repeatRows=1)
-    tbl.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), AZUL),
-        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('FONTNAME', (0, 1), (0, -1), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 0), (-1, -1), 9.5),
-        ('ALIGN', (1, 0), (-1, -1), 'RIGHT'),
-        ('ALIGN', (0, 0), (0, -1), 'LEFT'),
-        ('GRID', (0, 0), (-1, -1), 0.4, colors.HexColor('#cccccc')),
-        ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#eef6f2')]),
+    _nt = len(_tiers)
+    _w_cod, _w_prod, _w_peso, _w_fob = 2.0*cm, 7.4*cm, 1.5*cm, 2.3*cm
+    _w_cif = (_usable - _w_cod - _w_prod - _w_peso - _w_fob) / max(_nt, 1)
+    _tbl = Table(_rows, colWidths=[_w_cod, _w_prod, _w_peso, _w_fob] + [_w_cif]*_nt, repeatRows=1)
+    _tbl.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), BLUE_HDR),
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-        ('TOPPADDING', (0, 0), (-1, -1), 6),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
-        ('LEFTPADDING', (0, 0), (-1, -1), 7),
-        ('RIGHTPADDING', (0, 0), (-1, -1), 7),
+        ('FONTSIZE', (2, 1), (-1, -1), 8.4),
+        ('TEXTCOLOR', (3, 1), (-1, -1), BLUE_PR),
+        ('FONTNAME', (3, 1), (-1, -1), 'Helvetica-Bold'),
+        ('ALIGN', (2, 0), (-1, -1), 'CENTER'),
+        ('ALIGN', (3, 1), (-1, -1), 'RIGHT'),
+        ('ALIGN', (2, 1), (2, -1), 'CENTER'),
+        ('GRID', (0, 0), (-1, -1), 0.4, colors.HexColor('#bcc6d6')),
+        ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#eef1f7')]),
+        ('TOPPADDING', (0, 0), (-1, -1), 4), ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+        ('LEFTPADDING', (0, 0), (-1, -1), 5), ('RIGHTPADDING', (0, 0), (-1, -1), 5),
     ]))
-    story.append(tbl)
-    story.append(Spacer(1, 0.5*cm))
-    story.append(Paragraph('<b>El precio por caja baja a mayor volumen total del pedido.</b> '
-                           'Precios sujetos a disponibilidad y a confirmación del pedido.',
-                           ParagraphStyle('n', fontSize=8.5, textColor=GRIS)))
-    if use_dest_cur:
-        story.append(Paragraph(f'Precios en {_cur} referenciales (1 USD = {_sym}{rate:.4f}). '
-                               'La transacción comercial se realiza en USD.',
-                               ParagraphStyle('n2', fontSize=8, textColor=GRIS, spaceBefore=3)))
-    story.append(Spacer(1, 0.3*cm))
-    story.append(Paragraph('<b>Contacto:</b> order@exportharet.com  |  +34 641 076 116  |  '
-                           'Export Haret — Frutas Exóticas Premium de Ecuador', s_style))
+    story.append(_tbl)
+    story.append(Spacer(1, 0.35*cm))
+    story.append(Paragraph(
+        f'<font size="8" color="#555555">El precio por caja baja a mayor volumen total del pedido. '
+        f'Precios FOB en origen (Ecuador) y CIF puestos en {_esc(destino)}, sujetos a disponibilidad '
+        f'y a confirmaci&oacute;n. Tipo de cambio referencial; la transacci&oacute;n se realiza en USD.</font>',
+        ParagraphStyle('ft', leading=11)))
+    story.append(Paragraph(
+        '<font size="8" color="#555555"><b>Contacto:</b> order@exportharet.com&nbsp;&nbsp;|'
+        '&nbsp;&nbsp;+34 641 076 116&nbsp;&nbsp;|&nbsp;&nbsp;www.exportharet.com</font>',
+        ParagraphStyle('ft2', leading=11, spaceBefore=2)))
     doc.build(story)
     buf.seek(0)
     return buf.getvalue(), 'application/pdf', '.pdf'
