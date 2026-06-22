@@ -2813,8 +2813,8 @@ def build_catalog_pdf(data):
 _FRUIT_EN = {
     'F-PSG10': 'Sweet passion fruit', 'F-PPA01': 'Yellow Dragon fruit',
     'F-PSM09': 'Passion fruit', 'F-GNB010': 'Soursop', 'F-MPS03': 'Sweet cucumber',
-    'F-BCC013': 'Mountain papaya', 'F-AHSS012': 'Avocado', 'F-TX020': 'Curuba',
-    'F-CAZ021': 'Sugar cane', 'F-PN016': 'Naranjilla', 'F-TAS04': 'Tree tomato',
+    'F-BCC013': 'Babaco', 'F-AHSS012': 'Avocado', 'F-TX020': 'Curuba',
+    'F-CAZ021': 'Sugar cane', 'F-PN016': 'Lulo', 'F-TAS04': 'Tamarillo',
     'F-ZPT020': 'Mamey sapote', 'F-GNB': 'Soursop',
 }
 
