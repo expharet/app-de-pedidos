@@ -2861,6 +2861,7 @@ def build_price_list_pdf(data, destino='Madrid/España', tiers=(1, 3, 4, 6, 8),
         'weight': 'Peso<br/>(kg)' if _es else 'Weight<br/>(kg)',
         'fob': 'FOB<br/>Caja' if _es else 'FOB<br/>Box',
         'pallet': 'Pallet', 'pallets': 'Pallets',
+        'min_col': 'Pedido<br/>mínimo' if _es else 'Min.<br/>order',
         'foot1': (('El precio por caja disminuye a mayor volumen total del pedido. Precios FOB en '
                    'origen (Ecuador) y CIF puestos en %s. Sujetos a disponibilidad y a confirmación del '
                    'pedido. Tipos de cambio referenciales; la transacción comercial se realiza en USD.')
@@ -2884,6 +2885,17 @@ def build_price_list_pdf(data, destino='Madrid/España', tiers=(1, 3, 4, 6, 8),
         return get_precio_con_volumen(_p.get('codigo'), '', 'FOB', data, 1) or 0
     def _cif(_p, _t):
         return get_precio_con_volumen(_p.get('codigo'), destino, 'CIF', data, _t) or 0
+
+    def _min_txt(_p):
+        _mc = int(_p.get('min_cantidad', 0) or 0)
+        if _mc <= 0:
+            return '—'
+        _mu = str(_p.get('min_unidad', 'Pallets') or 'Pallets')
+        if _mu == 'Cajas':
+            _u = (('caja' if _mc == 1 else 'cajas') if _es else ('box' if _mc == 1 else 'boxes'))
+        else:
+            _u = ('pallet' if _mc == 1 else 'pallets')
+        return f'{_mc} {_u}'
 
     if not REPORTLAB_OK:
         h = [f'<h1>EXPORT HARET - Price List</h1><p>{T["dest"]}: {_esc(destino)} | {incoterm}</p>',
@@ -2983,9 +2995,9 @@ def build_price_list_pdf(data, destino='Madrid/España', tiers=(1, 3, 4, 6, 8),
     _hs = ParagraphStyle('hs', fontSize=8.4, leading=9.8, textColor=colors.white,
                          fontName='Helvetica-Bold', alignment=TA_CENTER)
     _nt = len(_tiers)
-    _w_cod, _w_prod, _w_peso, _w_fob = 2.1*cm, 7.6*cm, 1.5*cm, 2.2*cm
-    _w_cif = (_usable - _w_cod - _w_prod - _w_peso - _w_fob) / max(_nt, 1)
-    _colw = [_w_cod, _w_prod, _w_peso, _w_fob] + [_w_cif]*_nt
+    _w_cod, _w_prod, _w_peso, _w_min, _w_fob = 2.0*cm, 6.4*cm, 1.7*cm, 2.1*cm, 2.1*cm
+    _w_cif = (_usable - _w_cod - _w_prod - _w_peso - _w_min - _w_fob) / max(_nt, 1)
+    _colw = [_w_cod, _w_prod, _w_peso, _w_min, _w_fob] + [_w_cif]*_nt
 
     def _hp(_t): return Paragraph(_t, _hs)
 
@@ -2998,7 +3010,7 @@ def build_price_list_pdf(data, destino='Madrid/España', tiers=(1, 3, 4, 6, 8),
         story.append(HRFlowable(width='100%', thickness=0.8, color=HAIR, spaceAfter=4))
 
     def _add_price_table(_rate_, _sym_):
-        _head = [_hp(T['code']), _hp(T['product']), _hp(T['weight']), _hp(T['fob'])]
+        _head = [_hp(T['code']), _hp(T['product']), _hp(T['weight']), _hp(T['min_col']), _hp(T['fob'])]
         for _t in _tiers:
             _head.append(_hp(f'CIF {_t}<br/>{T["pallet"] if _t == 1 else T["pallets"]}'))
         _rows = [_head]
@@ -3006,7 +3018,7 @@ def build_price_list_pdf(data, destino='Madrid/España', tiers=(1, 3, 4, 6, 8),
             _kg = _p.get('kg_caja', '')
             _kg_s = (f'{float(_kg):g}'.replace('.', ',') if _kg not in ('', None) else '')
             _row = [Paragraph(_esc(_p.get('codigo', '')), _cs), Paragraph(_esc(_nombre(_p)), _csb),
-                    _kg_s, f'{_sym_}{_fob(_p) * _rate_:,.2f}']
+                    _kg_s, _min_txt(_p), f'{_sym_}{_fob(_p) * _rate_:,.2f}']
             for _t in _tiers:
                 _row.append(f'{_sym_}{_cif(_p, _t) * _rate_:,.2f}')
             _rows.append(_row)
@@ -3016,17 +3028,19 @@ def build_price_list_pdf(data, destino='Madrid/España', tiers=(1, 3, 4, 6, 8),
             ('LINEBELOW', (0, 0), (-1, 0), 1.0, EM_D),
             ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
             ('FONTSIZE', (2, 1), (-1, -1), 8.6),
-            ('FONTNAME', (3, 1), (3, -1), 'Helvetica'),
-            ('TEXTCOLOR', (3, 1), (3, -1), INK),
-            ('FONTNAME', (4, 1), (-1, -1), 'Helvetica-Bold'),
-            ('TEXTCOLOR', (4, 1), (-1, -1), EM),
+            ('FONTSIZE', (3, 1), (3, -1), 7.8),
+            ('TEXTCOLOR', (3, 1), (3, -1), MUTED),
+            ('FONTNAME', (4, 1), (4, -1), 'Helvetica'),
+            ('TEXTCOLOR', (4, 1), (4, -1), INK),
+            ('FONTNAME', (5, 1), (-1, -1), 'Helvetica-Bold'),
+            ('TEXTCOLOR', (5, 1), (-1, -1), EM),
             ('ALIGN', (2, 0), (-1, -1), 'CENTER'),
-            ('ALIGN', (3, 1), (-1, -1), 'RIGHT'),
-            ('ALIGN', (2, 1), (2, -1), 'CENTER'),
+            ('ALIGN', (4, 1), (-1, -1), 'RIGHT'),
+            ('ALIGN', (2, 1), (3, -1), 'CENTER'),
             ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, ROWT]),
             ('LINEBELOW', (0, 1), (-1, -1), 0.35, HAIR),
             ('LINEAFTER', (1, 0), (1, -1), 0.35, HAIR),
-            ('LINEAFTER', (3, 0), (3, -1), 0.6, HAIR),
+            ('LINEAFTER', (4, 0), (4, -1), 0.6, HAIR),
             ('BOX', (0, 0), (-1, -1), 0.6, colors.HexColor('#cbd4dd')),
             ('TOPPADDING', (0, 0), (-1, -1), 5), ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
             ('LEFTPADDING', (0, 0), (-1, -1), 6), ('RIGHTPADDING', (0, 0), (-1, -1), 6),
