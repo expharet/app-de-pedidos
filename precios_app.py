@@ -2818,12 +2818,23 @@ _FRUIT_EN = {
     'F-ZPT020': 'Mamey sapote', 'F-GNB': 'Soursop',
 }
 
+# Corrección de nombres que quedaron en INGLÉS dentro del campo español del catálogo.
+# Formato codigo: (valor_erróneo_conocido, nombre_correcto_en_español). Solo se aplica
+# si el valor guardado coincide con el erróneo; si el admin lo edita, deja de aplicar.
+_FRUIT_ES_FIX = {
+    'F-GNB010': ('Soursop', 'Guanábana'),
+    'F-MPS03': ('Sweet cucumber', 'Melón dulce'),
+}
+
 
 def producto_nombre(p, lang='es'):
     """Nombre del producto a mostrar segun el idioma elegido.
-    ES -> campo 'producto'. EN -> campo 'producto_en' si existe; si no, el mapa
-    _FRUIT_EN por codigo; si no, cae al nombre en espanol."""
+    ES -> campo 'producto' (con corrección si quedó en inglés). EN -> campo
+    'producto_en' si existe; si no, el mapa _FRUIT_EN por codigo; si no, el español."""
     _es_name = (p.get('producto') or p.get('descripcion') or p.get('codigo') or '').strip()
+    _fix = _FRUIT_ES_FIX.get(p.get('codigo', ''))
+    if _fix and _es_name.lower() == _fix[0].lower():
+        _es_name = _fix[1]
     if lang == 'en':
         _en = (p.get('producto_en') or '').strip()
         return _en or _FRUIT_EN.get(p.get('codigo', ''), '') or _es_name
@@ -2891,8 +2902,8 @@ def build_price_list_pdf(data, destino='Madrid/España', tiers=(1, 3, 4, 6, 8),
     }
 
     def _nombre(_p):
-        _nm = _p.get('producto', '') or _p.get('descripcion', '') or _p.get('codigo', '')
-        _en = (_p.get('producto_en') or '').strip() or _FRUIT_EN.get(_p.get('codigo', ''), '')
+        _nm = producto_nombre(_p, 'es')
+        _en = producto_nombre(_p, 'en')
         if _en and ' / ' not in _nm and _en.lower() not in _nm.lower():
             return f'{_nm} / {_en}'
         return _nm

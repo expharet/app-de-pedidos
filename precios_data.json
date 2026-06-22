@@ -439,7 +439,7 @@
     },
     {
       "codigo": "F-GNB010",
-      "producto": "Soursop",
+      "producto": "Guanábana",
       "kg_caja": 4,
       "costo_caja_manual": null,
       "precio_compra": 13.14,
@@ -473,11 +473,13 @@
       ],
       "precio_fob_final": 15.3696,
       "min_unidad": "Cajas",
-      "min_cantidad": 60
+      "min_cantidad": 60,
+      "descripcion": "Guanábana",
+      "producto_en": "Soursop"
     },
     {
       "codigo": "F-MPS03",
-      "producto": "Sweet cucumber",
+      "producto": "Melón dulce",
       "kg_caja": 3,
       "costo_caja_manual": 0,
       "precio_compra": 5.25,
@@ -511,7 +513,9 @@
       ],
       "precio_fob_final": 5.9585,
       "min_unidad": "Cajas",
-      "min_cantidad": 40
+      "min_cantidad": 40,
+      "descripcion": "Melón dulce",
+      "producto_en": "Sweet cucumber"
     },
     {
       "codigo": "F-CCN017",
