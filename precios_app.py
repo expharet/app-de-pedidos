@@ -3021,11 +3021,11 @@ def build_price_list_pdf(data, destino='Madrid/España', tiers=(1, 3, 4, 6, 8),
     _vol_note = (
         (f'<b>C&oacute;mo leer esta tabla:</b> las columnas <b>CIF ({_tmin} a {_tmax} pallets)</b> son el '
          'precio por caja seg&uacute;n el <b>total de pallets del pedido</b> &mdash; a mayor volumen, menor '
-         'precio por caja. La <b>FOB / Caja</b> es el precio en origen (Ecuador) y es fijo.')
+         'precio por caja. La <b>FOB / Caja</b> es el precio en origen (Ecuador).')
         if _es else
         (f'<b>How to read this table:</b> the <b>CIF ({_tmin} to {_tmax} pallets)</b> columns show the '
          'price per box based on the <b>total pallets in the order</b> &mdash; the higher the volume, the '
-         'lower the price per box. The <b>FOB / Box</b> is the price at origin (Ecuador) and is fixed.'))
+         'lower the price per box. The <b>FOB / Box</b> is the price at origin (Ecuador).'))
     _nb = Table([[Paragraph(f'<font size="8.3" color="#1b2531">{_vol_note}</font>',
                             ParagraphStyle('vn', leading=11.5))]], colWidths=[_usable])
     _nb.setStyle(TableStyle([('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#f4f9f6')),
