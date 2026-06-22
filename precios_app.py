@@ -1249,6 +1249,7 @@ def render_catalogo():
             _edit_rows.append({
                 'Cod': _p.get('codigo',''),
                 'Producto': _p.get('producto','') or _p.get('descripcion',''),
+                'Producto EN': (_p.get('producto_en','') or '').strip() or _FRUIT_EN.get(_p.get('codigo',''), ''),
                 'Activo': bool(_p.get('activo', True)),
                 'Min Unidad': str(_p.get('min_unidad', 'Pallets') or 'Pallets'),
                 'Min Cant': int(_p.get('min_cantidad', 0) or 0),
@@ -1280,7 +1281,10 @@ def render_catalogo():
         _plt_cols = ['1 Plt','2 Plt','3 Plt','4 Plt','5 Plt','6 Plt','7 Plt','8 Plt','9 Plt','10 Plt','11 Plt','12 Plt','13 Plt','14 Plt','15 Plt','16 Plt','17 Plt','18 Plt','19 Plt','20 Plt','21 Plt','22 Plt','23 Plt']
         _col_cfg_edit = {
             'Cod': st.column_config.TextColumn('C\u00f3digo', disabled=True, width='small'),
-            'Producto': st.column_config.TextColumn('Producto', width='medium'),
+            'Producto': st.column_config.TextColumn('Producto (ES)', width='medium',
+                help='Nombre en español (lo ve el cliente en el portal en español)'),
+            'Producto EN': st.column_config.TextColumn('Producto (EN)', width='medium',
+                help='Nombre en inglés (lo ve el cliente cuando elige English)'),
             'Activo': st.column_config.CheckboxColumn('Activo', width='small',
                 help='Desactiva para ocultar del portal del cliente'),
             'Min Unidad': st.column_config.SelectboxColumn('Min Unidad', options=['Pallets', 'Cajas'], width='small',
@@ -1311,6 +1315,7 @@ def render_catalogo():
                     'codigo': _cod_r,
                     'producto': str(_r.get('Producto','')),
                     'descripcion': str(_r.get('Producto','')),
+                    'producto_en': (lambda _v: '' if _v is None or str(_v) in ('nan','None') else str(_v).strip())(_r.get('Producto EN')),
                     'activo': bool(_r.get('Activo', True)),
                     'min_unidad': (lambda _mu: _mu if _mu in ('Pallets','Cajas') else 'Pallets')(str(_r.get('Min Unidad','Pallets')) if _r.get('Min Unidad') is not None and str(_r.get('Min Unidad')) not in ('nan','None','') else 'Pallets'),
                     'min_cantidad': (lambda _mc: int(_mc) if _mc is not None and str(_mc) not in ('nan','None','') and not (isinstance(_mc, float) and _mc != _mc) else 0)(_r.get('Min Cant')),
@@ -2814,6 +2819,17 @@ _FRUIT_EN = {
 }
 
 
+def producto_nombre(p, lang='es'):
+    """Nombre del producto a mostrar segun el idioma elegido.
+    ES -> campo 'producto'. EN -> campo 'producto_en' si existe; si no, el mapa
+    _FRUIT_EN por codigo; si no, cae al nombre en espanol."""
+    _es_name = (p.get('producto') or p.get('descripcion') or p.get('codigo') or '').strip()
+    if lang == 'en':
+        _en = (p.get('producto_en') or '').strip()
+        return _en or _FRUIT_EN.get(p.get('codigo', ''), '') or _es_name
+    return _es_name or (p.get('codigo') or '')
+
+
 def build_price_list_pdf(data, destino='Madrid/España', tiers=(1, 3, 4, 6, 8),
                          incluir_codigos=None, incoterm='CIP', validez_dias=7):
     """Lista de precios profesional (horizontal). Idioma: ESPAÑOL solo para España;
@@ -2876,7 +2892,7 @@ def build_price_list_pdf(data, destino='Madrid/España', tiers=(1, 3, 4, 6, 8),
 
     def _nombre(_p):
         _nm = _p.get('producto', '') or _p.get('descripcion', '') or _p.get('codigo', '')
-        _en = _FRUIT_EN.get(_p.get('codigo', ''))
+        _en = (_p.get('producto_en') or '').strip() or _FRUIT_EN.get(_p.get('codigo', ''), '')
         if _en and ' / ' not in _nm and _en.lower() not in _nm.lower():
             return f'{_nm} / {_en}'
         return _nm
@@ -4420,7 +4436,8 @@ def render_portal_pedido():
     _new_carrito = []
     for idx, p in enumerate(prods):
         cod = p.get('codigo','')
-        nombre_prod = p.get('descripcion','') or p.get('producto','') or cod
+        # Nombre segun el idioma elegido por el cliente (ES o EN)
+        nombre_prod = producto_nombre(p, st.session_state.get('portal_lang', 'es'))
         _grp_x = p.get('grupo','')
         _gi_x = data.get('config',{}).get('grupos',{}).get(_grp_x,{})
         cxp = int(_gi_x.get('cajas_pallet',p.get('cajas_pallet',160))) if isinstance(_gi_x,dict) else 160
