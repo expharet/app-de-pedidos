@@ -3014,7 +3014,27 @@ def build_price_list_pdf(data, destino='Madrid/España', tiers=(1, 3, 4, 6, 8),
                              ('TOPPADDING', (0, 0), (-1, -1), 6), ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
                              ('LINEBELOW', (0, 0), (-1, -1), 1.2, GOLD)]))
     story.append(_mb)
-    story.append(Spacer(1, 0.32*cm))
+    story.append(Spacer(1, 0.28*cm))
+
+    # ── Nota: como leer la tabla (las CIF son precios por volumen del pedido) ──
+    _tmin, _tmax = (min(_tiers) if _tiers else 1), (max(_tiers) if _tiers else 8)
+    _vol_note = (
+        (f'<b>C&oacute;mo leer esta tabla:</b> las columnas <b>CIF ({_tmin} a {_tmax} pallets)</b> son el '
+         'precio por caja seg&uacute;n el <b>total de pallets del pedido</b> &mdash; a mayor volumen, menor '
+         'precio por caja. La <b>FOB / Caja</b> es el precio en origen (Ecuador) y es fijo.')
+        if _es else
+        (f'<b>How to read this table:</b> the <b>CIF ({_tmin} to {_tmax} pallets)</b> columns show the '
+         'price per box based on the <b>total pallets in the order</b> &mdash; the higher the volume, the '
+         'lower the price per box. The <b>FOB / Box</b> is the price at origin (Ecuador) and is fixed.'))
+    _nb = Table([[Paragraph(f'<font size="8.3" color="#1b2531">{_vol_note}</font>',
+                            ParagraphStyle('vn', leading=11.5))]], colWidths=[_usable])
+    _nb.setStyle(TableStyle([('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#f4f9f6')),
+                             ('BOX', (0, 0), (-1, -1), 0.6, colors.HexColor('#cfe3d9')),
+                             ('LINEBEFORE', (0, 0), (0, -1), 2.4, GOLD),
+                             ('LEFTPADDING', (0, 0), (-1, -1), 10), ('RIGHTPADDING', (0, 0), (-1, -1), 10),
+                             ('TOPPADDING', (0, 0), (-1, -1), 6), ('BOTTOMPADDING', (0, 0), (-1, -1), 6)]))
+    story.append(_nb)
+    story.append(Spacer(1, 0.3*cm))
 
     # ── estilos de tabla ──
     _cs = ParagraphStyle('cs', fontSize=8.2, leading=9.6, textColor=MUTED)
