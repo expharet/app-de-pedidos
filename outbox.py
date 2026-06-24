@@ -170,6 +170,33 @@ def fetch_carts() -> dict | None:
     return None
 
 
+def publish_portal_accesos(accesos: list) -> bool:
+    """Vuelca el registro de accesos del portal (visitas de clientes) al Gist, para
+    que el historial sobreviva a los reinicios de Streamlit Cloud."""
+    return _patch_file("portal_accesos.json", accesos)
+
+
+def fetch_portal_accesos() -> list | None:
+    """Lee el registro de accesos del portal desde el Gist (None si no hay/ falla)."""
+    gist_id = _gist_id()
+    if not gist_id:
+        return None
+    token = _token()
+    headers = {"Accept": "application/vnd.github+json"}
+    if token:
+        headers["Authorization"] = f"token {token}"
+    try:
+        r = requests.get(f"https://api.github.com/gists/{gist_id}",
+                         headers=headers, timeout=10)
+        if r.status_code == 200:
+            content = (r.json().get("files", {})
+                       .get("portal_accesos.json", {}).get("content"))
+            return json.loads(content) if content else []
+    except (requests.RequestException, ValueError):
+        pass
+    return None
+
+
 def publish_catalog(data: dict) -> bool:
     """Vuelca el catálogo (productos, precios, destinos, MÁRGENES, grupos…) al Gist
     para que los cambios del admin sobrevivan a reinicios de Streamlit Cloud y el

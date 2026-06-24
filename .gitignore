@@ -14,4 +14,5 @@ email_log.json
 pending_emails.json
 admin_sessions.json
 accesos_log.json
+portal_accesos.json
 users_custom.json

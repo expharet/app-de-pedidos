@@ -436,6 +436,12 @@ def hidratar_pedidos_gist():
                 _save(DATA_FILE, remoto_cat)
                 st.cache_data.clear()
                 logger.info('catálogo hidratado desde el Gist (precios/márgenes durables)')
+        # 5) Registro de accesos del portal (visitas): el Gist es la verdad durable.
+        if hasattr(outbox, 'fetch_portal_accesos'):
+            remoto_acc = outbox.fetch_portal_accesos()
+            if isinstance(remoto_acc, list) and remoto_acc:
+                _save(PORTAL_ACCESOS_FILE, remoto_acc)
+                logger.info(f'hidratados {len(remoto_acc)} accesos del portal desde el Gist')
     except Exception as e:
         logger.warning(f'hidratar gist falló: {e}')
 def _esc(s):
@@ -449,6 +455,25 @@ def registrar_acceso(email, nombre, rol):
     acc = load_accesos()
     acc.append({"fecha_hora": datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "email": email, "nombre": nombre, "rol": rol})
     save_accesos(acc)
+
+# ─── Registro de accesos del PORTAL (visitas de clientes) ─────────────────────
+PORTAL_ACCESOS_FILE = 'portal_accesos.json'
+def load_portal_accesos(): return _load(PORTAL_ACCESOS_FILE, [])
+def save_portal_accesos(data):
+    _save(PORTAL_ACCESOS_FILE, data)
+    if outbox and hasattr(outbox, 'publish_portal_accesos'):
+        try:
+            outbox.publish_portal_accesos(data)  # durable en el Gist
+        except Exception as e:
+            logger.warning(f'publish_portal_accesos falló: {e}')
+def registrar_acceso_portal(email, nombre, reconocido):
+    """Anota una visita al portal (email + fecha/hora). Conserva los últimos 2000."""
+    acc = load_portal_accesos()
+    acc.append({"fecha_hora": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "email": email, "nombre": nombre or '', "reconocido": bool(reconocido)})
+    if len(acc) > 2000:
+        acc = acc[-2000:]
+    save_portal_accesos(acc)
 
 
 def load_min_log(): return _load(MIN_LOG_FILE, [])
@@ -2238,7 +2263,7 @@ def render_clientes():
         for _pe, _pv in (_pc or {}).items():
             _k = (_pe or '').strip().lower()
             if _k and _k not in _existing:
-                clients[_k] = {'nombre': _pv.get('nombre',''), 'email': _k, 'empresa': _pv.get('empresa',''), 'telefono': _pv.get('telefono',''), 'pais': _pv.get('pais',''), 'fecha_registro': _pv.get('fecha_registro',''), 'pedidos_ids': _pv.get('pedidos',[]), 'origen': 'portal_cliente'}
+                clients[_k] = {'nombre': _pv.get('nombre',''), 'email': _k, 'empresa': _pv.get('empresa',''), 'telefono': _pv.get('telefono',''), 'pais': _pv.get('pais',''), 'fecha_registro': _pv.get('fecha_registro',''), 'pedidos_ids': _pv.get('pedidos',[]), 'origen': _pv.get('origen','portal_cliente'), 'ultimo_acceso': _pv.get('ultimo_acceso',''), 'accesos': _pv.get('accesos',0)}
                 _existing.add(_k)
         save_clients(clients)
     except Exception:
@@ -2247,13 +2272,37 @@ def render_clientes():
     if not clients: st.info('No hay clientes. Se crean al hacer pedidos.'); return
     _search = st.text_input('🔍 Buscar cliente', key='cli_search', placeholder='Nombre, email, empresa...')
     rows=[]
+    _n_visitas = 0
     for e,c in clients.items():
         if _search and _search.lower() not in (e + c.get('nombre','') + c.get('empresa','')).lower(): continue
         seg=segmentar(e,clients)
         mp=[p for p in pedidos if p.get('client_email')==e]
-        rows.append({'Nombre':c.get('nombre',''),'Email':e,'Empresa':c.get('empresa',''),'País':c.get('pais',''),'Segmento':seg['badge'],'Pedidos':len(mp),'Facturación':f"${sum(p.get('total_usd',0) for p in mp):,.2f}",'Descuento':f"{seg['descuento']*100:.0f}%"})
+        # "Solo visitó" = entró al portal pero aún no tiene nombre ni pedidos (lead)
+        _es_visita = (not (c.get('nombre') or '').strip()) and len(mp) == 0
+        if _es_visita: _n_visitas += 1
+        _ult = (c.get('ultimo_acceso','') or '')[:10]
+        rows.append({'Estado': ('👀 Solo visitó' if _es_visita else '✅ Cliente'),
+                     'Nombre':c.get('nombre',''),'Email':e,'Empresa':c.get('empresa',''),'País':c.get('pais',''),
+                     'Segmento':seg['badge'],'Pedidos':len(mp),
+                     'Facturación':f"${sum(p.get('total_usd',0) for p in mp):,.2f}",'Descuento':f"{seg['descuento']*100:.0f}%",
+                     'Último acceso': _ult})
     st.dataframe(pd.DataFrame(rows),use_container_width=True,hide_index=True)
-    st.caption(f'{len(rows)} de {len(clients)} clientes')
+    st.caption(f'{len(rows)} de {len(clients)} clientes' + (f'  ·  👀 {_n_visitas} solo visitaron (sin pedido)' if _n_visitas else ''))
+
+    # ── Registro de accesos al portal (visitas) ──────────────────────────────
+    _accs = load_portal_accesos()
+    with st.expander(f'👀 Accesos al portal ({len(_accs)} visitas registradas)', expanded=False):
+        if not _accs:
+            st.caption('Aún no hay accesos registrados. Cada vez que alguien entre al portal con '
+                       'un email válido, quedará aquí (email + fecha/hora).')
+        else:
+            _uniq = len({(a.get('email','') or '').lower() for a in _accs})
+            st.caption(f'{len(_accs)} accesos · {_uniq} emails distintos. Se muestran los 200 más recientes.')
+            _acc_rows = [{'Fecha y hora': a.get('fecha_hora',''), 'Email': a.get('email',''),
+                          'Nombre': a.get('nombre',''),
+                          'Reconocido': '✅' if a.get('reconocido') else '🆕 nuevo'}
+                         for a in reversed(_accs[-200:])]
+            st.dataframe(pd.DataFrame(_acc_rows), use_container_width=True, hide_index=True)
 
     # ── Ficha de cliente (Perfil 360, estilo Finanzas) ──
     _admin_seccion('Ficha de cliente', '🪪')
@@ -3794,6 +3843,29 @@ def render_portal_pedido():
                 st.session_state['portal_last_email'] = email_input
             st.info(_T['not_registered'])
             show_register = True
+
+        # ── Registro de visita (A: log de accesos · B: ficha-lead en Clientes) ──
+        # Una vez por sesión y por email válido: anota el acceso y crea/actualiza una
+        # ficha mínima del visitante aunque no guarde datos ni pida. Durable (Gist).
+        import re as _re_acc
+        if (_re_acc.match(r'^[^@\s]+@[^@\s]+\.[^@\s]+$', email_input)
+                and st.session_state.get('_portal_acceso_done') != email_input):
+            st.session_state['_portal_acceso_done'] = email_input
+            try:
+                _now_acc = datetime.now().isoformat()
+                registrar_acceso_portal(email_input, client_data.get('nombre', ''), bool(is_registered))
+                _ex_lead = dict(portal_clients.get(email_input, {}))
+                portal_clients[email_input] = _merge_client_record(_ex_lead, {'email': email_input})
+                portal_clients[email_input].setdefault('fecha_registro', _now_acc)
+                portal_clients[email_input].setdefault('pedidos', [])
+                portal_clients[email_input]['ultimo_acceso'] = _now_acc
+                portal_clients[email_input]['accesos'] = int(_ex_lead.get('accesos', 0) or 0) + 1
+                # Marca de origen 'visita' solo si aún no es cliente (sin nombre ni pedidos)
+                if not (_ex_lead.get('nombre') or _ex_lead.get('pedidos')):
+                    portal_clients[email_input].setdefault('origen', 'portal_visita')
+                save_portal_clients(portal_clients)
+            except Exception as _e_acc:
+                logger.warning(f'registro de acceso del portal falló: {_e_acc}')
 
     if email_input:
         # #10 Retomar carrito pendiente: si el cliente vuelve y aún no tiene nada
