@@ -563,7 +563,7 @@ def login_page():
         if _osL.path.exists('logo.png'):
             _lc1, _lc2, _lc3 = st.columns([1, 2, 1])
             with _lc2:
-                st.image('logo.png', use_container_width=True)
+                st.image('logo.png', width='stretch')
         else:
             st.markdown('<div style="text-align:center"><h1 style="margin:0;color:#084a37">Export Haret</h1></div>', unsafe_allow_html=True)
         st.markdown(
@@ -574,7 +574,7 @@ def login_page():
         with st.form('admin_login_form', clear_on_submit=False):
             email = st.text_input('Email')
             pwd = st.text_input('Contraseña', type='password')
-            _ok = st.form_submit_button('Entrar →', use_container_width=True, type='primary')
+            _ok = st.form_submit_button('Entrar →', width='stretch', type='primary')
         if _ok:
             h = hashlib.md5(pwd.encode()).hexdigest()
             if email in USERS and USERS[email]['pwd'] == h:
@@ -592,7 +592,7 @@ def login_page():
             else:
                 st.error('❌ Email o contraseña incorrectos')
         st.markdown('<div style="text-align:center;color:#8a978f;font-size:.8rem;margin:10px 0 4px">🔒 Acceso restringido al personal autorizado</div>', unsafe_allow_html=True)
-        if st.button('← Volver al portal de clientes', key='login_back', use_container_width=True):
+        if st.button('← Volver al portal de clientes', key='login_back', width='stretch'):
             st.session_state.app_mode = 'portal'
             st.query_params.clear()
             st.rerun()
@@ -821,7 +821,7 @@ def render_dashboard():
         if _mes_data:
             _meses_sorted = sorted(_mes_data.keys())[-12:]
             _df_chart = pd.DataFrame({'Mes': _meses_sorted, 'Total USD': [round(_mes_data[m], 2) for m in _meses_sorted]}).set_index('Mes')
-            st.bar_chart(_df_chart, use_container_width=True, height=250)
+            st.bar_chart(_df_chart, width='stretch', height=250)
     else: st.info('📊 Gráfico disponible cuando haya pedidos.')
     st.markdown('')
     with st.expander('⏱ SLA de Procesos', expanded=False):
@@ -856,7 +856,7 @@ def render_dashboard():
         st.markdown('---')
         st.markdown(f"### 📦 Productos ({len(data['products'])} activos)")
         _df_prods = pd.DataFrame([{'Código':p.get('codigo',''),'Producto':p.get('descripcion','') or p.get('producto',''),'Precio Compra':f"${p.get('precio_compra',0):.4f}",'Margen':f"{float(p.get('margen_pct',0.1) or 0.1)*100:.0f}%",'Activo':'✅' if p.get('activo',True) else '❌'} for p in data['products'][:15]])
-        st.dataframe(_df_prods,use_container_width=True,hide_index=True)
+        st.dataframe(_df_prods,width='stretch',hide_index=True)
 
 # ─── TAB COTIZACION ───────────────────────────────────────────────────
 
@@ -1149,7 +1149,7 @@ def render_catalogo():
 
         _fmt_money = lambda _v: (f'{_disp_sym}{_v:,.2f}' if pd.notna(_v) else '—')
         _df_styled = df_plt.style.apply(_style_row, axis=1).format(_fmt_money, na_rep='—')
-        st.dataframe(_df_styled, use_container_width=True, height=min(60 + 36*(len(prods_vis)+1), 760))
+        st.dataframe(_df_styled, width='stretch', height=min(60 + 36*(len(prods_vis)+1), 760))
 
         st.caption(f'Verde = precio más bajo (más volumen). Cada fila es una fruta; las columnas son tramos de pallets. Precios en **{_disp_cur}/caja**'
                    + (' (referencial; el cobro es en USD)' if _use_dest_cur else '')
@@ -1187,7 +1187,7 @@ def render_catalogo():
             st.caption(f'Precio en **{_disp_cur}/caja** a **{int(_n_custom)} pallets** · {_mon_c}'
                        + (' (referencial; el cobro es en USD)' if _use_dest_cur else ''))
             st.dataframe(df_custom.style.apply(_style_custom, axis=0).format(_fmt_money, na_rep='—'),
-                         use_container_width=True, height=min(60 + 36*(len(prods_vis)+1), 620))
+                         width='stretch', height=min(60 + 36*(len(prods_vis)+1), 620))
 
         # Hoja de precios oficial (estilo plantilla) en PDF para el cliente
         st.markdown('---')
@@ -1214,7 +1214,7 @@ def render_catalogo():
         _pdf_incoterm = _ic1.text_input('Incoterm', value='CIP', key='pdf_incoterm')
         _pdf_validez = _ic2.number_input('Validez (d\u00edas)', min_value=1, max_value=90, value=7, key='pdf_validez')
         _pp1, _pp2 = st.columns(2)
-        if _pp1.button('\U0001f4c4 Generar PDF de precios', type='primary', use_container_width=True, key='gen_price_pdf'):
+        if _pp1.button('\U0001f4c4 Generar PDF de precios', type='primary', width='stretch', key='gen_price_pdf'):
             _tiers_pdf = sorted(set(int(t) for t in (_pdf_tiers or [1, 3, 4, 6, 8]))) or [1, 3, 4, 6, 8]
             _inc_cods = [_opt_map[k] for k in _sel_fruits] if _sel_fruits else None
             if _inc_cods is not None and not _inc_cods:
@@ -1233,7 +1233,7 @@ def render_catalogo():
             _pb, _pm, _pe = st.session_state['_price_pdf']
             _pp2.download_button('\U0001f4e5 Descargar PDF', data=_pb,
                 file_name=f'{st.session_state.get("_price_pdf_name", "lista_precios")}{_pe}',
-                mime=_pm, use_container_width=True, key='dl_price_pdf')
+                mime=_pm, width='stretch', key='dl_price_pdf')
             st.caption('\u2713 PDF listo. Si cambias destino, tramos o frutas, pulsa **Generar** otra vez.')
 
         # ── Descarga del catalogo (Excel) ──
@@ -1256,7 +1256,7 @@ def render_catalogo():
             _dlc1.download_button('\U0001f4e5 Descargar Excel', data=_out_dl.getvalue(),
                 file_name=f'catalogo_{_dest_sel.replace("/","_")}.xlsx',
                 mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-                use_container_width=True, key='dl_cat_excel')
+                width='stretch', key='dl_cat_excel')
         except ImportError:
             _dlc1.info('Instalar openpyxl para exportar')
 
@@ -1325,12 +1325,12 @@ def render_catalogo():
         _edited_prods = st.data_editor(
             _df_edit,
             column_config=_col_cfg_edit,
-            use_container_width=True,
+            width='stretch',
             num_rows='dynamic',
             key=f'edit_precios_plt_{st.session_state.price_edit_v}',
             hide_index=True,
         )
-        if st.button('\U0001f4be Guardar Precios', type='primary', use_container_width=True, key='btn_save_precios_plt'):
+        if st.button('\U0001f4be Guardar Precios', type='primary', width='stretch', key='btn_save_precios_plt'):
             _old_by_cod = {p.get('codigo'): p for p in prods}
             _new_prods = []
             for _, _r in _edited_prods.iterrows():
@@ -1413,10 +1413,10 @@ def render_catalogo():
                 'Moneda': st.column_config.SelectboxColumn('Moneda', options=MONEDAS,
                     help='Divisa de referencia para el cliente'),
             },
-            use_container_width=True, num_rows='dynamic',
+            width='stretch', num_rows='dynamic',
             key='edit_destinos_tabla', hide_index=True,
         )
-        if st.button('\U0001f4be Guardar Destinos', type='primary', use_container_width=True, key='btn_guardar_destinos'):
+        if st.button('\U0001f4be Guardar Destinos', type='primary', width='stretch', key='btn_guardar_destinos'):
             _new_d = {}; _new_m = {}; _new_g = {}
             for _, _r in _edited_dest.iterrows():
                 if _r.get('Destino'):
@@ -1527,14 +1527,14 @@ def render_catalogo():
         _edited_emb = st.data_editor(
             _emb_df,
             column_config=_emb_col_cfg,
-            use_container_width=True,
+            width='stretch',
             num_rows='dynamic',
             key='edit_embalaje_grupos',
             hide_index=True,
             height=min(80 + 40 * (len(_emb_rows) + 2), 500),
         )
 
-        if st.button('\U0001f4be Guardar Grupos', type='primary', use_container_width=True, key='btn_save_embalaje'):
+        if st.button('\U0001f4be Guardar Grupos', type='primary', width='stretch', key='btn_save_embalaje'):
             _new_grupos = {}
             for _, _er in _edited_emb.iterrows():
                 _grp_k = str(_er.get('Grupo', '')).strip().upper()
@@ -1598,7 +1598,7 @@ def render_catalogo():
                 )
                 _new_assignments[_grp_k] = [_label_cod_map[lbl] for lbl in _sel if lbl in _label_cod_map]
 
-        if st.button('\U0001f4be Guardar Asignacion de Productos', type='primary', use_container_width=True, key='btn_save_prod_grp'):
+        if st.button('\U0001f4be Guardar Asignacion de Productos', type='primary', width='stretch', key='btn_save_prod_grp'):
             _new_cod_grp = {}
             for _grp_k2, _cods2 in _new_assignments.items():
                 for _c2 in _cods2:
@@ -1675,7 +1675,7 @@ def render_hacer_pedido():
     # Carrito
     if st.session_state.carrito:
         st.markdown('#### 🛒 Carrito')
-        st.dataframe(pd.DataFrame(st.session_state.carrito)[['codigo','producto','cajas','pallets','precio_usd','total']],use_container_width=True,hide_index=True)
+        st.dataframe(pd.DataFrame(st.session_state.carrito)[['codigo','producto','cajas','pallets','precio_usd','total']],width='stretch',hide_index=True)
         tot=sum(i['total'] for i in st.session_state.carrito)
         tc1,tc2,tc3=st.columns(3)
         tc1.metric('📦 Cajas',f'{sum(i["cajas"] for i in st.session_state.carrito):,}')
@@ -1703,7 +1703,7 @@ def render_hacer_pedido():
             f'</div>',
             unsafe_allow_html=True
         )
-    if st.button('📤 GUARDAR PEDIDO',type='primary',use_container_width=True):
+    if st.button('📤 GUARDAR PEDIDO',type='primary',width='stretch'):
         if not c_email: st.error('❌ Ingresa email del cliente')
         elif not c_name: st.error('❌ Ingresa nombre del cliente')
         elif not st.session_state.carrito: st.error('❌ Agrega productos al carrito')
@@ -1739,7 +1739,7 @@ def render_destinos():
     for k,v in dests.items():
         if isinstance(v,dict): rows_d.append({'Destino':k,'Moneda':v.get('moneda','USD'),'CIF':v.get('factor',1.0)})
         else: rows_d.append({'Destino':k,'Moneda':'USD/EUR','CIF USD':round(float(v),2) if isinstance(v,(int,float)) else 0})
-    st.dataframe(pd.DataFrame(rows_d),use_container_width=True,hide_index=True)
+    st.dataframe(pd.DataFrame(rows_d),width='stretch',hide_index=True)
 
 # ─── TAB GESTION PEDIDOS ──────────────────────────────────────────────
 def render_gestion_pedidos():
@@ -1756,7 +1756,7 @@ def render_gestion_pedidos():
             st.info(f"{_ic} Pedido {_sn.get('pid','')} → **{_sn.get('estado','')}**. "
                     f"El email automático no está configurado — avisa a **{_cli}** por WhatsApp 👇")
         _wc1, _wc2 = st.columns([1, 3])
-        _wc1.link_button('📲 Avisar por WhatsApp', _sn.get('wa', 'https://wa.me/'), use_container_width=True)
+        _wc1.link_button('📲 Avisar por WhatsApp', _sn.get('wa', 'https://wa.me/'), width='stretch')
         if _wc2.button('✓ Listo / ocultar', key='status_notify_dismiss'):
             st.session_state.pop('_status_notified', None)
             st.rerun()
@@ -1843,7 +1843,7 @@ def render_gestion_pedidos():
                     if _pp2.get('id') == ped.get('id'): _all_p2[_ip2]['bl_numero'] = _bl_new; break
                 save_pedidos(_all_p2); st.cache_data.clear()
             if ped.get('productos'):
-                st.dataframe(pd.DataFrame(ped['productos'])[['codigo','producto','cajas','pallets','precio_usd','total']].rename(columns={'codigo':'Código','producto':'Producto','cajas':'Cajas','pallets':'Pallets','precio_usd':'Precio USD','total':'Total USD'}),use_container_width=True,hide_index=True)
+                st.dataframe(pd.DataFrame(ped['productos'])[['codigo','producto','cajas','pallets','precio_usd','total']].rename(columns={'codigo':'Código','producto':'Producto','cajas':'Cajas','pallets':'Pallets','precio_usd':'Precio USD','total':'Total USD'}),width='stretch',hide_index=True)
             if ped.get('notas'): st.markdown(f"**Notas:** {ped['notas']}")
             # PEND4: Cambio rapido de estado en linea
             _est_actual = ped.get('estado','Recibido')
@@ -1852,7 +1852,7 @@ def render_gestion_pedidos():
                 _nuevo_est = st.selectbox(f'🚚 Estado actual del pedido', ORDEN_ESTADOS, index=ORDEN_ESTADOS.index(_est_actual) if _est_actual in ORDEN_ESTADOS else 0, key=f"se_est_{ped.get('id','')}")
             with _se2:
                 st.markdown('<br>', unsafe_allow_html=True)
-                if st.button('Guardar estado', key=f"se_btn_{ped.get('id','')}", use_container_width=True, type='secondary'):
+                if st.button('Guardar estado', key=f"se_btn_{ped.get('id','')}", width='stretch', type='secondary'):
                     if _nuevo_est != _est_actual:
                         _all_pe = load_pedidos()
                         for _ipe, _ppe in enumerate(_all_pe):
@@ -1889,7 +1889,7 @@ def render_gestion_pedidos():
                     new_ent_g=et2.text_input('Fecha entrega',value=ped.get('fecha_entrega',''),placeholder='ej: 2026-06-20',key=f'g_ent_{ped.get("id","")}')
                     ep_rg=[{'Cod':i.get('codigo',''),'Producto':i.get('producto',''),'Cajas':int(i.get('cajas',0)),'Precio_USD':float(i.get('precio_usd',0))} for i in ped.get('productos',[])]
                     if ep_rg:
-                        ep_eg=st.data_editor(pd.DataFrame(ep_rg),column_config={'Cod':st.column_config.TextColumn('Cod',disabled=True),'Producto':st.column_config.TextColumn('Prod',disabled=True),'Cajas':st.column_config.NumberColumn('Cajas',min_value=1,step=1),'Precio_USD':st.column_config.NumberColumn('$/cj',format='$%.4f')},use_container_width=True,num_rows='dynamic',key=f'g_ep_{ped.get("id","")}',hide_index=True)
+                        ep_eg=st.data_editor(pd.DataFrame(ep_rg),column_config={'Cod':st.column_config.TextColumn('Cod',disabled=True),'Producto':st.column_config.TextColumn('Prod',disabled=True),'Cajas':st.column_config.NumberColumn('Cajas',min_value=1,step=1),'Precio_USD':st.column_config.NumberColumn('$/cj',format='$%.4f')},width='stretch',num_rows='dynamic',key=f'g_ep_{ped.get("id","")}',hide_index=True)
                     if st.button('💾 Guardar cambios',key=f'g_save_{ped.get("id","")}',type='primary'):
                         all_p=load_pedidos(); dd_g=load_data()
                         for _i,_p in enumerate(all_p):
@@ -1909,14 +1909,14 @@ def render_gestion_pedidos():
                 with st.expander(f'📜 Timeline de eventos ({len(hist_g)})',expanded=False):
                     st.markdown(eventos_timeline_html(hist_g), unsafe_allow_html=True)
             _pdf_b, _pdf_m, _pdf_x = build_order_pdf(ped)
-            st.download_button('⬇️ Albarán PDF', data=_pdf_b, file_name=f"{ped.get('id','ped')}{_pdf_x}", mime=_pdf_m, key=f'pdf_adm_{ped.get("id","")}', use_container_width=True)
+            st.download_button('⬇️ Albarán PDF', data=_pdf_b, file_name=f"{ped.get('id','ped')}{_pdf_x}", mime=_pdf_m, key=f'pdf_adm_{ped.get("id","")}', width='stretch')
             st.markdown('**Cambiar Estado — clic rápido:**')
             estado_actual = ped.get('estado','Recibido')
             qb_cols = st.columns(len(ORDEN_ESTADOS))
             for qi, qe in enumerate(ORDEN_ESTADOS):
                 _icon = ESTADO_ICONS.get(qe,'')
                 _is_current = (qe == estado_actual)
-                if qb_cols[qi].button(f'{_icon} {qe}', key=f'qb_{ped["id"]}_{qe}', type='primary' if _is_current else 'secondary', use_container_width=True):
+                if qb_cols[qi].button(f'{_icon} {qe}', key=f'qb_{ped["id"]}_{qe}', type='primary' if _is_current else 'secondary', width='stretch'):
                     if not _is_current:
                         todos=load_pedidos()
                         for _i,_p in enumerate(todos):
@@ -1947,7 +1947,7 @@ def render_configuracion():
         if _ue not in USERS:
             _all_users_display.append({'Email': _ue, 'Nombre': _uv.get('nombre',''), 'Rol': _uv.get('rol','ventas'), 'Tipo': 'Custom'})
     if _all_users_display:
-        st.dataframe(pd.DataFrame(_all_users_display), use_container_width=True, hide_index=True)
+        st.dataframe(pd.DataFrame(_all_users_display), width='stretch', hide_index=True)
     else:
         st.info('\u2139\ufe0f No hay usuarios configurados. Usa el panel de abajo para agregar uno.')
     # Alta / cambio de contraseña — formulario limpio (tarjeta + botón ancho)
@@ -1960,7 +1960,7 @@ def render_configuracion():
             _new_pwd = _np1.text_input('Contraseña', type='password')
             _new_rol = _np2.selectbox('Rol', ['admin', 'ventas'])
             st.caption('Si el email ya existe, se actualiza su contraseña y rol.')
-            _save_user = st.form_submit_button('💾 Guardar usuario', type='primary', use_container_width=True)
+            _save_user = st.form_submit_button('💾 Guardar usuario', type='primary', width='stretch')
         if _save_user:
             import re as _re_us
             _em_us = (_new_email or '').strip().lower()
@@ -1985,7 +1985,7 @@ def render_configuracion():
     elog=load_email_log()
     if elog:
         df_e=pd.DataFrame(elog[-20:][::-1])
-        st.dataframe(df_e[['id','destinatario','asunto','tipo','fecha','estado']].rename(columns={'id':'ID','destinatario':'Para','asunto':'Asunto','tipo':'Tipo','fecha':'Fecha','estado':'Estado'}),use_container_width=True,hide_index=True)
+        st.dataframe(df_e[['id','destinatario','asunto','tipo','fecha','estado']].rename(columns={'id':'ID','destinatario':'Para','asunto':'Asunto','tipo':'Tipo','fecha':'Fecha','estado':'Estado'}),width='stretch',hide_index=True)
     else: st.info('Sin emails registrados')
     st.markdown('---')
     st.markdown('---')
@@ -2093,7 +2093,7 @@ def render_configuracion():
         _filtro_m = st.selectbox("🔍 Filtrar por producto:", _prods_u, key="filtro_min_log")
         if _filtro_m != "Todos":
             _df_min = _df_min[_df_min["Producto"] == _filtro_m]
-        st.dataframe(_df_min, use_container_width=True, hide_index=True)
+        st.dataframe(_df_min, width='stretch', hide_index=True)
         st.caption(f"Total de cambios registrados: {len(_min_changes)}")
 
 
@@ -2110,7 +2110,7 @@ def render_configuracion():
         _filtro = st.selectbox("🔍 Filtrar por usuario:", _emails_u, key="filtro_accesos_hist")
         if _filtro != "Todos":
             _df_acc = _df_acc[_df_acc["Email"] == _filtro]
-        st.dataframe(_df_acc, use_container_width=True, hide_index=True)
+        st.dataframe(_df_acc, width='stretch', hide_index=True)
         st.caption(f"Total de accesos registrados: {len(_accesos)}")
 # ─── TAB CLIENTES ──────────────────────────────────────────────
 def _migrate_clients_swap(clients):
@@ -2286,7 +2286,7 @@ def render_clientes():
                      'Segmento':seg['badge'],'Pedidos':len(mp),
                      'Facturación':f"${sum(p.get('total_usd',0) for p in mp):,.2f}",'Descuento':f"{seg['descuento']*100:.0f}%",
                      'Último acceso': _ult})
-    st.dataframe(pd.DataFrame(rows),use_container_width=True,hide_index=True)
+    st.dataframe(pd.DataFrame(rows),width='stretch',hide_index=True)
     st.caption(f'{len(rows)} de {len(clients)} clientes' + (f'  ·  👀 {_n_visitas} solo visitaron (sin pedido)' if _n_visitas else ''))
 
     # ── Registro de accesos al portal (visitas) ──────────────────────────────
@@ -2302,7 +2302,7 @@ def render_clientes():
                           'Nombre': a.get('nombre',''),
                           'Reconocido': '✅' if a.get('reconocido') else '🆕 nuevo'}
                          for a in reversed(_accs[-200:])]
-            st.dataframe(pd.DataFrame(_acc_rows), use_container_width=True, hide_index=True)
+            st.dataframe(pd.DataFrame(_acc_rows), width='stretch', hide_index=True)
 
     # ── Ficha de cliente (Perfil 360, estilo Finanzas) ──
     _admin_seccion('Ficha de cliente', '🪪')
@@ -2351,10 +2351,10 @@ def render_clientes():
         _cc1, _cc2, _cc3 = st.columns(3)
         _tel_d = ''.join(ch for ch in str(_c.get('telefono','') or '') if ch.isdigit())
         if _tel_d:
-            _cc1.link_button('📲 WhatsApp', f'https://wa.me/{_tel_d}', use_container_width=True)
-        _cc2.link_button('✉️ Email', f'mailto:{_sel_cli}', use_container_width=True)
+            _cc1.link_button('📲 WhatsApp', f'https://wa.me/{_tel_d}', width='stretch')
+        _cc2.link_button('✉️ Email', f'mailto:{_sel_cli}', width='stretch')
         if _np:
-            if _cc3.button('📦 Ver sus pedidos', use_container_width=True, key='cli_ficha_pedidos'):
+            if _cc3.button('📦 Ver sus pedidos', width='stretch', key='cli_ficha_pedidos'):
                 # clave pendiente: se aplica al buscador de Pedidos ANTES de crear el widget
                 st.session_state['_gp_c_pending'] = _sel_cli
                 st.rerun()
@@ -2427,14 +2427,14 @@ def render_reportes():
     st.markdown('### Por Destino')
     dd={}
     for p in pf: dd[p.get('destino','Otros')]=dd.get(p.get('destino','Otros'),0)+p.get('total_usd',0)
-    if dd: st.dataframe(pd.DataFrame(sorted(dd.items(),key=lambda x:x[1],reverse=True),columns=['Destino','Total USD']),use_container_width=True,hide_index=True)
+    if dd: st.dataframe(pd.DataFrame(sorted(dd.items(),key=lambda x:x[1],reverse=True),columns=['Destino','Total USD']),width='stretch',hide_index=True)
     st.markdown('---')
     st.markdown('### 👑 Top Clientes')
     cf={}
     for p in pf: cf[p.get('client_email','')]=cf.get(p.get('client_email',''),0)+p.get('total_usd',0)
     if cf:
         t10=sorted(cf.items(),key=lambda x:x[1],reverse=True)[:10]
-        st.dataframe(pd.DataFrame([{'Cliente':clients.get(e,{}).get('nombre',e),'Email':e,'Total':f'${v:,.2f}'} for e,v in t10]),use_container_width=True,hide_index=True)
+        st.dataframe(pd.DataFrame([{'Cliente':clients.get(e,{}).get('nombre',e),'Email':e,'Total':f'${v:,.2f}'} for e,v in t10]),width='stretch',hide_index=True)
     if pf:
         st.markdown('---')
         xb=exportar_excel(pf)
@@ -3618,13 +3618,13 @@ def render_portal_pedido():
         st.markdown("<div style='text-align:right;padding-top:9px;color:#aab5ad;font-size:0.72rem;letter-spacing:.4px;text-transform:uppercase'>Idioma · Language</div>", unsafe_allow_html=True)
     with _lbtn_c2:
         _es_type = 'primary' if _cur_lang == 'es' else 'secondary'
-        if st.button('🇪🇸', key='btn_lang_es', help='Español', use_container_width=False, type=_es_type):
+        if st.button('🇪🇸', key='btn_lang_es', help='Español', width='content', type=_es_type):
             if _cur_lang != 'es':
                 st.session_state['portal_lang'] = 'es'
                 st.rerun()
     with _lbtn_c3:
         _en_type = 'primary' if _cur_lang == 'en' else 'secondary'
-        if st.button('🇬🇧', key='btn_lang_en', help='English', use_container_width=False, type=_en_type):
+        if st.button('🇬🇧', key='btn_lang_en', help='English', width='content', type=_en_type):
             if _cur_lang != 'en':
                 st.session_state['portal_lang'] = 'en'
                 st.rerun()
@@ -3756,7 +3756,7 @@ def render_portal_pedido():
         with st.form('portal_email_form', clear_on_submit=False):
             _email_form_raw = st.text_input(_T['email_label'], placeholder=_T['email_ph'], key=_eml_key, value=st.session_state.portal_email)
             st.caption('🔒 ' + _eml_benef)
-            _acceder_clicked = st.form_submit_button(_T.get('btn_acceder', '🔓 Acceder'), type='primary', use_container_width=True)
+            _acceder_clicked = st.form_submit_button(_T.get('btn_acceder', '🔓 Acceder'), type='primary', width='stretch')
         if _acceder_clicked:
             import re as _re_eml
             _eml_trim = (_email_form_raw or '').strip()
@@ -3937,7 +3937,7 @@ def render_portal_pedido():
                         '</div>', unsafe_allow_html=True)
                 with _ne2:
                     if st.button(('✏️ Change email' if st.session_state.get('portal_lang') == 'en' else '✏️ Cambiar correo'),
-                                 key='portal_change_email', use_container_width=True):
+                                 key='portal_change_email', width='stretch'):
                         _portal_reset_identity()
                         st.rerun()
                 _form_host = st.container()
@@ -3956,7 +3956,7 @@ def render_portal_pedido():
               if show_register:
                   st.caption(_T['auto_register'])
               _sv_c1, _sv_c2 = st.columns([1,3])
-              if _sv_c1.button(_T.get('save_data_btn','💾 Guardar datos'), key='portal_save_client_btn', type='primary', use_container_width=True):
+              if _sv_c1.button(_T.get('save_data_btn','💾 Guardar datos'), key='portal_save_client_btn', type='primary', width='stretch'):
                   import re as _re_sv
                   _eml_sv = (email_input or '').strip().lower()
                   _nm_sv = (nombre or '').strip()
@@ -4002,7 +4002,7 @@ def render_portal_pedido():
                             unsafe_allow_html=True)
                 _ord_lbl = (f'📦   {_verb} mis pedidos  ·  {_n_orders}   {_chev}' if _es_ord
                             else f'📦   {_verb} my orders  ·  {_n_orders}   {_chev}')
-                if st.button(_ord_lbl, key='portal_toggle_orders', use_container_width=True):
+                if st.button(_ord_lbl, key='portal_toggle_orders', width='stretch'):
                     st.session_state['portal_show_orders'] = not _open_ord
                     st.rerun()
             if _client_orders_all and st.session_state.get('portal_show_orders'):
@@ -4039,7 +4039,7 @@ def render_portal_pedido():
                         can_cancel = op_estado not in ['Cancelado','Entregado','Enviado']
                         # PATCH 17: Repetir pedido button
                         _rp_c1, _rp_c2, _rp_c3 = st.columns([1, 1, 3])
-                        if _rp_c1.button(_T['btn_repeat'], key=f'repeat_{op_id}', help=_T['btn_repeat_help'], use_container_width=True):
+                        if _rp_c1.button(_T['btn_repeat'], key=f'repeat_{op_id}', help=_T['btn_repeat_help'], width='stretch'):
                             _repeat_prods = op.get('productos', [])
                             if _repeat_prods:
                                 st.session_state.portal_carrito = []
@@ -4069,7 +4069,7 @@ def render_portal_pedido():
                             else:
                                 st.warning(_T['order_no_products'])
                         if can_cancel:
-                            if _rp_c2.button(_T['btn_cancel'], key=f'cancel_{op_id}', type='secondary', use_container_width=True):
+                            if _rp_c2.button(_T['btn_cancel'], key=f'cancel_{op_id}', type='secondary', width='stretch'):
                                 st.session_state[f'confirm_cancel_{op_id}'] = True
                         if st.session_state.get(f'confirm_cancel_{op_id}'):
                             st.warning(_T['confirm_cancel'].format(pid=op_id).replace('<b>', '**').replace('</b>', '**'))
@@ -4118,13 +4118,13 @@ def render_portal_pedido():
         _out_lbl = '🚪 Log out' if _lang_en0 else '🚪 Salir de la cuenta'
         _nav_l, _nav_a, _nav_b = st.columns([4, 3, 3])
         with _nav_a:
-            if st.button(_bk_lbl, key='portal_volver_atras', use_container_width=True,
+            if st.button(_bk_lbl, key='portal_volver_atras', width='stretch',
                          help=('Go back to your contact details (step 1)' if _lang_en0
                                else 'Vuelve a tus datos de contacto (paso 1)')):
                 st.session_state['_scroll_step1'] = True
                 st.rerun()
         with _nav_b:
-            if st.button(_out_lbl, key='portal_salir_cuenta', use_container_width=True,
+            if st.button(_out_lbl, key='portal_salir_cuenta', width='stretch',
                          help=('Sign out. Your unfinished order is saved for next time.' if _lang_en0
                                else 'Cierra la sesión. Tu pedido sin terminar queda guardado para la próxima.')):
                 _portal_reset_identity()
@@ -4227,7 +4227,7 @@ def render_portal_pedido():
     if not _step2_ok:
         if st.button(('✅ Confirm delivery and pick my fruits →' if _lang_en2
                       else '✅ Confirmar entrega y elegir mis frutas →'),
-                     type='primary', use_container_width=True, key='portal_confirm_step2'):
+                     type='primary', width='stretch', key='portal_confirm_step2'):
             st.session_state['portal_step2_confirmed'] = True
             st.session_state['_scroll_step3'] = True
             st.rerun()
@@ -4451,7 +4451,7 @@ def render_portal_pedido():
         # Solo "Vaciar pedido" (discreto a la derecha). El total va en la barra inferior.
         _vc_cols = st.columns([5, 2])
         with _vc_cols[1]:
-            if st.button(_T.get('clear_cart','🗑️ Vaciar carrito'), key='portal_vaciar_top', use_container_width=True, type='secondary'):
+            if st.button(_T.get('clear_cart','🗑️ Vaciar carrito'), key='portal_vaciar_top', width='stretch', type='secondary'):
                 st.session_state['_portal_clear_qty'] = True   # se procesa antes de los inputs
                 st.session_state.portal_carrito = []
                 st.session_state['_cart_saved_snap'] = None
@@ -4895,7 +4895,7 @@ def render_portal_pedido():
         )
         if tipo_precio == 'FOB':
             st.caption(_T['cart_fob'])
-        if st.button(_T['clear_cart'], key='portal_vaciar', use_container_width=False):
+        if st.button(_T['clear_cart'], key='portal_vaciar', width='content'):
             st.session_state['_portal_clear_qty'] = True   # se procesa antes de los inputs
             st.session_state.portal_carrito = []
             st.session_state['_cart_saved_snap'] = None
@@ -5014,7 +5014,7 @@ def render_portal_pedido():
             <small style='color:#888;display:block;margin-top:8px'>{_T['calc_note']}</small>
             </div>""", unsafe_allow_html=True)
 
-        btn_guardar = st.button(_T['confirm_btn'], type='primary', use_container_width=True, key='portal_guardar')
+        btn_guardar = st.button(_T['confirm_btn'], type='primary', width='stretch', key='portal_guardar')
 
         if btn_guardar:
             if not email_input:
@@ -5159,7 +5159,7 @@ def render_portal_pedido():
             data=pdf_bytes,
             file_name=f'{pid_saved}{pdf_ext}',
             mime=pdf_mime,
-            use_container_width=True,
+            width='stretch',
             key='dl_pedido'
         )
         # WhatsApp — professional message
@@ -5187,7 +5187,7 @@ def render_portal_pedido():
             + _T['wa_msg_regards']
         )
         wa_url = f'https://wa.me/34641076116?text={wa_text_lines}'
-        ac2.link_button(_T['wa_confirm'], wa_url, use_container_width=True)
+        ac2.link_button(_T['wa_confirm'], wa_url, width='stretch')
         # Email — professional with albarán note
         subject = _T['em_subj'] + f' {pid_saved} — Export Haret'
         _nom_mail = ped_saved.get('client_name','')
@@ -5209,7 +5209,7 @@ def render_portal_pedido():
             + _T['wa_msg_regards']
         )
         mailto_url = f'mailto:order@exportharet.com?subject={subject.replace(" ", "%20")}&body={body.replace(" ", "%20")}'
-        ac3.link_button(_T['em_send'], mailto_url, use_container_width=True)
+        ac3.link_button(_T['em_send'], mailto_url, width='stretch')
         # Nueva Orden
         if st.button(_T['new_order_btn'], key='nuevo_portal'):
             st.session_state['ultimo_pedido'] = None
@@ -5231,7 +5231,7 @@ def render_portal_pedido():
         _cplt=_cc2.number_input('Pallets', min_value=1,max_value=200,value=5,key='cplt')
         _cpro=st.text_area(_T['products_label'].replace(':',''),key='cpro',placeholder='ej: 3 pallets Granadilla...',height=70)
         _cmsg=st.text_area(_T['quote_msg_lbl'],key='cmsg',placeholder=_T['quote_msg_ph'],height=70)
-        if st.button(_T['send_quote'], key='bcot', type='primary', use_container_width=True):
+        if st.button(_T['send_quote'], key='bcot', type='primary', width='stretch'):
             if not _ce or not _cpro: st.error(_T['err_email'] + ' / ' + _T['products_label'])
             else:
                 _cy=datetime.now().strftime('%Y');_cpv=[p for p in load_pedidos() if p.get('id','').startswith(f'COT-{_cy}')]
@@ -5270,7 +5270,7 @@ def main():
         try:
             import os as _osbrand
             if _osbrand.path.exists('logo.png'):
-                st.sidebar.image('logo.png', use_container_width=True)
+                st.sidebar.image('logo.png', width='stretch')
             else:
                 st.sidebar.markdown('### Export Haret')
         except Exception:
@@ -5283,7 +5283,7 @@ def main():
             st.sidebar.link_button(
                 LANG_TEXTS[st.session_state.get('portal_lang','es')]['download_catalog'],
                 'https://exportharet.com/wp-content/uploads/2026/04/Catalog-Export-Haret.pdf',
-                use_container_width=True,
+                width='stretch',
             )
         except Exception:
             pass
@@ -5333,7 +5333,7 @@ def main():
     try:
         import os as _osSB
         if _osSB.path.exists('logo.png'):
-            st.sidebar.image('logo.png', use_container_width=True)
+            st.sidebar.image('logo.png', width='stretch')
         else:
             st.sidebar.markdown('### Export Haret')
         st.sidebar.caption('Panel de administración')
@@ -5348,7 +5348,7 @@ def main():
     st.sidebar.metric('💵 Facturación', f"${sum(p.get('total_usd',0) for p in pedidos):,.0f}")
     pending = len([p for p in pedidos if p.get('estado') in ['Recibido','Confirmado','Preparando']])
     # KPI clickable - filtra Pedidos por estados pendientes
-    if st.sidebar.button(f'⏳ En proceso: {pending}', use_container_width=True, key='kpi_en_proceso', help='Click para filtrar Pedidos por estados activos'):
+    if st.sidebar.button(f'⏳ En proceso: {pending}', width='stretch', key='kpi_en_proceso', help='Click para filtrar Pedidos por estados activos'):
         st.session_state['pedidos_filter_estado'] = ['Recibido','Confirmado','Preparando']
         st.session_state['admin_active_tab'] = 'pedidos'
         st.rerun()
@@ -5361,19 +5361,19 @@ def main():
         _msg_sh = _qsh(LANG_TEXTS[st.session_state.get('portal_lang','es')]['share_msg'] + ' ' + _portal_url)
         _c1sh, _c2sh = st.columns(2)
         with _c1sh:
-            st.link_button('💬 WhatsApp', f'https://wa.me/?text={_msg_sh}', use_container_width=True)
+            st.link_button('💬 WhatsApp', f'https://wa.me/?text={_msg_sh}', width='stretch')
         with _c2sh:
-            st.link_button('✉️ Email', f'mailto:?subject={_qsh("Portal de Pedidos Export Haret")}&body={_msg_sh}', use_container_width=True)
+            st.link_button('✉️ Email', f'mailto:?subject={_qsh("Portal de Pedidos Export Haret")}&body={_msg_sh}', width='stretch')
         st.caption('🔓 Acceso público, sin login.')
     st.sidebar.markdown('---')
-    if st.sidebar.button('🌐 Ver Portal Clientes', use_container_width=True, key='admin_go_portal'):
+    if st.sidebar.button('🌐 Ver Portal Clientes', width='stretch', key='admin_go_portal'):
         admin_session_end(st.session_state.get('_admin_tok'))
         st.session_state['_admin_tok'] = None
         st.session_state.app_mode = 'portal'
         st.session_state.logged_in = False
         st.query_params.clear()
         st.rerun()
-    if st.sidebar.button('🚪 Cerrar Sesión', use_container_width=True):
+    if st.sidebar.button('🚪 Cerrar Sesión', width='stretch'):
         admin_session_end(st.session_state.get('_admin_tok'))
         st.session_state['_admin_tok'] = None
         st.session_state.logged_in = False
